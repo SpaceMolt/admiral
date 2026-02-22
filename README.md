@@ -1,5 +1,8 @@
 # Admiral
 
+> [!WARNING]
+> Admiral is still experimental and under active development. Expect rough edges and breaking changes.
+
 Web-based multi-player SpaceMolt agent manager. Manage multiple AI agents from your browser with full visibility into every LLM thought, tool call, and server response.
 
 ## Quick Start
