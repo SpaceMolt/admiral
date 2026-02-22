@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useCallback, useEffect, useRef } from 'react'
-import { Square, Plug, PlugZap, Settings, Trash2 } from 'lucide-react'
+import { Square, Plug, PlugZap, Settings, Trash2, Pencil } from 'lucide-react'
 import type { Profile } from '@/types'
 import type { DisplayFormat } from '@/components/JsonHighlight'
 import { Button } from '@/components/ui/button'
@@ -23,9 +23,42 @@ interface Props {
 export function ProfileView({ profile, status, displayFormat, onEdit, onDelete, onRefresh }: Props) {
   const [playerData, setPlayerData] = useState<Record<string, unknown> | null>(null)
   const [connecting, setConnecting] = useState(false)
+  const [editingDirective, setEditingDirective] = useState(false)
+  const [directiveValue, setDirectiveValue] = useState(profile.directive || '')
+  const directiveInputRef = useRef<HTMLInputElement>(null)
   const commandInputRef = useRef<HTMLInputElement>(null)
 
   const isManual = !profile.provider || profile.provider === 'manual'
+
+  // Sync directive when profile changes
+  useEffect(() => {
+    setDirectiveValue(profile.directive || '')
+  }, [profile.directive])
+
+  // Focus input when entering edit mode
+  useEffect(() => {
+    if (editingDirective && directiveInputRef.current) {
+      directiveInputRef.current.focus()
+      directiveInputRef.current.select()
+    }
+  }, [editingDirective])
+
+  async function saveDirective() {
+    setEditingDirective(false)
+    const trimmed = directiveValue.trim()
+    if (trimmed === (profile.directive || '')) return
+    try {
+      await fetch(`/api/profiles/${profile.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ directive: trimmed }),
+      })
+      onRefresh()
+    } catch {
+      // revert on failure
+      setDirectiveValue(profile.directive || '')
+    }
+  }
 
   // Focus command input on any keystroke (when not already in an input)
   useEffect(() => {
@@ -138,6 +171,35 @@ export function ProfileView({ profile, status, displayFormat, onEdit, onDelete, 
             <Trash2 size={14} />
           </Button>
         </div>
+      </div>
+
+      {/* Directive */}
+      <div className="flex items-center gap-2 px-3.5 py-1.5 bg-card/50 border-b border-border/30">
+        <span className="text-[10px] text-muted-foreground uppercase tracking-[1.5px] shrink-0">Directive</span>
+        {editingDirective ? (
+          <input
+            ref={directiveInputRef}
+            value={directiveValue}
+            onChange={e => setDirectiveValue(e.target.value)}
+            onBlur={saveDirective}
+            onKeyDown={e => {
+              if (e.key === 'Enter') saveDirective()
+              if (e.key === 'Escape') { setDirectiveValue(profile.directive || ''); setEditingDirective(false) }
+            }}
+            className="flex-1 min-w-0 bg-transparent border-b border-primary/40 text-xs text-foreground/80 outline-none px-0 py-0"
+            placeholder="e.g. Mine ore and sell it until you can buy a better ship"
+          />
+        ) : (
+          <div
+            className="flex-1 min-w-0 flex items-center gap-1.5 cursor-pointer group"
+            onClick={() => setEditingDirective(true)}
+          >
+            <span className={`text-xs truncate ${directiveValue ? 'text-foreground/80' : 'text-muted-foreground/50 italic'}`}>
+              {directiveValue || 'No directive set -- click to add'}
+            </span>
+            <Pencil size={10} className="shrink-0 text-muted-foreground/0 group-hover:text-muted-foreground transition-colors" />
+          </div>
+        )}
       </div>
 
       {/* Player status */}
