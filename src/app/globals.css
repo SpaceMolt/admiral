@@ -3,7 +3,64 @@
 /* ─── SMUI Theme Variables ───────────────────────────────── */
 
 @layer base {
+  /* ─── Light Mode (Nord Snow Storm) ─── */
   :root {
+    --background: 218 27% 94%;
+    --foreground: 220 16% 22%;
+    --card: 218 27% 89%;
+    --card-foreground: 220 16% 22%;
+    --popover: 218 27% 89%;
+    --popover-foreground: 220 16% 22%;
+    --primary: 213 32% 40%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 219 28% 84%;
+    --secondary-foreground: 220 16% 22%;
+    --muted: 219 28% 84%;
+    --muted-foreground: 220 17% 28%;
+    --accent: 213 20% 86%;
+    --accent-foreground: 213 32% 40%;
+    --destructive: 355 60% 45%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 219 18% 72%;
+    --input: 219 18% 72%;
+    --ring: 213 32% 40%;
+    --radius: 0rem;
+
+    /* SMUI Frost palette (darkened for light bg) */
+    --smui-frost-0: 176 30% 35%;
+    --smui-frost-1: 193 40% 38%;
+    --smui-frost-2: 193 44% 42%;
+    --smui-frost-3: 210 34% 40%;
+
+    /* SMUI Aurora palette (darkened for light bg) */
+    --smui-red: 355 55% 44%;
+    --smui-orange: 14 55% 44%;
+    --smui-yellow: 40 70% 34%;
+    --smui-green: 92 35% 34%;
+    --smui-purple: 311 28% 40%;
+
+    /* SMUI Surface hierarchy */
+    --smui-surface-0: 218 27% 94%;
+    --smui-surface-1: 218 27% 89%;
+    --smui-surface-2: 219 28% 84%;
+    --smui-surface-3: 219 20% 76%;
+
+    /* SMUI Border Hover */
+    --smui-border-hover: 220 17% 50%;
+
+    /* Sidebar */
+    --sidebar-background: 218 27% 89%;
+    --sidebar-foreground: 220 16% 22%;
+    --sidebar-primary: 213 32% 40%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 213 20% 86%;
+    --sidebar-accent-foreground: 213 32% 40%;
+    --sidebar-border: 219 18% 72%;
+    --sidebar-ring: 213 32% 40%;
+  }
+
+  /* ─── Dark Mode (Nord Polar Night) ─── */
+  .dark {
     --background: 213 16% 12%;
     --foreground: 213 27% 88%;
     --card: 217 16% 15.5%;
@@ -23,7 +80,6 @@
     --border: 217 17% 28%;
     --input: 217 17% 28%;
     --ring: 193 44% 67%;
-    --radius: 0rem;
 
     /* SMUI Frost palette (Nord-inspired) */
     --smui-frost-0: 193 26% 42%;
@@ -47,7 +103,7 @@
     /* SMUI Border Hover */
     --smui-border-hover: 193 44% 67%;
 
-    /* Sidebar (matches SMUI) */
+    /* Sidebar */
     --sidebar-background: 217 16% 15.5%;
     --sidebar-foreground: 213 27% 88%;
     --sidebar-primary: 193 44% 67%;

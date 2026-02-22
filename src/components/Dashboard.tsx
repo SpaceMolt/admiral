@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
-import { Settings } from 'lucide-react'
+import { Settings, Sun, Moon } from 'lucide-react'
 import type { Profile, Provider } from '@/types'
 import type { DisplayFormat } from '@/components/JsonHighlight'
 import { Button } from '@/components/ui/button'
@@ -116,6 +116,7 @@ export function Dashboard({ profiles: initialProfiles, providers, displayFormat,
         </div>
         <div className="flex items-center gap-3">
           <FormatToggle value={displayFormat} onChange={onDisplayFormatChange} />
+          <ThemeToggle />
           <button
             onClick={onShowProviders}
             className="flex items-center gap-1.5 text-xs text-muted-foreground uppercase tracking-wider px-2.5 py-1.5 hover:text-foreground transition-colors"
@@ -179,6 +180,31 @@ export function Dashboard({ profiles: initialProfiles, providers, displayFormat,
         </div>
       </div>
     </div>
+  )
+}
+
+function ThemeToggle() {
+  const [dark, setDark] = useState(true)
+
+  useEffect(() => {
+    setDark(document.documentElement.classList.contains('dark'))
+  }, [])
+
+  function toggle() {
+    const next = !dark
+    setDark(next)
+    document.documentElement.classList.toggle('dark', next)
+    try { localStorage.setItem('admiral-theme', next ? 'dark' : 'light') } catch {}
+  }
+
+  return (
+    <button
+      onClick={toggle}
+      className="flex items-center justify-center w-7 h-7 text-muted-foreground hover:text-foreground transition-colors border border-border"
+      title={dark ? 'Switch to light mode' : 'Switch to dark mode'}
+    >
+      {dark ? <Sun size={13} /> : <Moon size={13} />}
+    </button>
   )
 }
 

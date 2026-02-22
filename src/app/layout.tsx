@@ -1,4 +1,5 @@
 import type { Metadata } from 'next'
+import Script from 'next/script'
 import { Orbitron, JetBrains_Mono } from 'next/font/google'
 import './globals.css'
 
@@ -23,7 +24,15 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className={`dark ${orbitron.variable} ${jetbrainsMono.variable}`}>
+    <html lang="en" className={`dark ${orbitron.variable} ${jetbrainsMono.variable}`} suppressHydrationWarning>
+      <head>
+        <Script id="theme-init" strategy="beforeInteractive">{`
+          try {
+            var theme = localStorage.getItem('admiral-theme');
+            if (theme === 'light') document.documentElement.classList.remove('dark');
+          } catch(e) {}
+        `}</Script>
+      </head>
       <body>{children}</body>
     </html>
   )

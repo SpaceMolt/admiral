@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { KeyRound, Wifi, WifiOff, ArrowRight, Search, Server } from 'lucide-react'
+import { KeyRound, Wifi, WifiOff, Search, Server } from 'lucide-react'
 import type { Provider } from '@/types'
 import type { DisplayFormat } from '@/components/JsonHighlight'
 import { Button } from '@/components/ui/button'
@@ -267,8 +267,7 @@ export function ProviderSetup({ providers: initialProviders, displayFormat, onDi
             onClick={onDone}
             className="gap-2 text-xs font-medium uppercase tracking-[1.5px]"
           >
-            {hasValid ? 'Continue' : 'Skip for Now'}
-            <ArrowRight size={16} />
+            Save Settings
           </Button>
         </div>
       </div>

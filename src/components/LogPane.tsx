@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useRef, useEffect, useCallback } from 'react'
+import { useState, useRef, useEffect, useCallback, useMemo } from 'react'
 import { ChevronDown, ChevronRight } from 'lucide-react'
 import type { LogEntry, LogType } from '@/types'
 import { JsonHighlight, type DisplayFormat } from './JsonHighlight'
@@ -126,6 +126,19 @@ export function LogPane({ profileId, connected, displayFormat = 'yaml' }: Props)
 
   const filtered = filter ? entries.filter(e => filter.includes(e.type)) : entries
 
+  // Compute counts per filter
+  const counts = useMemo(() => {
+    const map: Record<string, number> = {}
+    for (const f of FILTERS) {
+      if (f.types === null) {
+        map[f.label] = entries.length
+      } else {
+        map[f.label] = entries.filter(e => f.types!.includes(e.type)).length
+      }
+    }
+    return map
+  }, [entries])
+
   return (
     <div className="flex flex-col h-full">
       {/* Filter tabs - SMUI line variant */}
@@ -133,6 +146,7 @@ export function LogPane({ profileId, connected, displayFormat = 'yaml' }: Props)
         <div className="flex items-center ml-1">
           {FILTERS.map(f => {
             const isActive = (filter === null && f.types === null) || (filter && f.types && filter[0] === f.types[0])
+            const count = counts[f.label] || 0
             return (
               <button
                 key={f.label}
@@ -144,6 +158,11 @@ export function LogPane({ profileId, connected, displayFormat = 'yaml' }: Props)
                 }`}
               >
                 {f.label}
+                {count > 0 && (
+                  <span className={`ml-1.5 text-[10px] tabular-nums ${isActive ? 'text-primary/60' : 'text-muted-foreground/50'}`}>
+                    {count}
+                  </span>
+                )}
                 {isActive && (
                   <span className="absolute bottom-0 left-0 right-0 h-px bg-primary" />
                 )}
