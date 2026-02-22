@@ -5,3 +5,6 @@ data/
 *.db-journal
 .env
 .env.local
+bun.lock
+bun.lockb
+package-lock.json
