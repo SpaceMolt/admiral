@@ -14,6 +14,7 @@ const QUICK_COMMANDS = [
   { label: 'Market', command: 'get_market' },
   { label: 'Skills', command: 'get_skills' },
   { label: 'Nearby', command: 'get_nearby_ships' },
+  { label: 'Log', command: 'captains_log_list' },
 ]
 
 export function QuickCommands({ onSend, disabled }: Props) {

@@ -60,6 +60,12 @@ function migrate(db: Database.Database): void {
     CREATE INDEX IF NOT EXISTS idx_log_profile ON log_entries(profile_id, id);
   `)
 
+  // Migrations: add columns that may be missing from older databases
+  const profileCols = db.pragma('table_info(profiles)') as Array<{ name: string }>
+  if (!profileCols.some(c => c.name === 'todo')) {
+    db.exec("ALTER TABLE profiles ADD COLUMN todo TEXT DEFAULT ''")
+  }
+
   // Seed default providers
   const defaultProviders = [
     'anthropic', 'openai', 'groq', 'google', 'xai',
@@ -113,12 +119,12 @@ export function getProfile(id: string): Profile | undefined {
 
 export function createProfile(profile: Omit<Profile, 'created_at' | 'updated_at'>): Profile {
   getDb().prepare(
-    `INSERT INTO profiles (id, name, username, password, empire, player_id, provider, model, directive, connection_mode, server_url, autoconnect, enabled)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+    `INSERT INTO profiles (id, name, username, password, empire, player_id, provider, model, directive, todo, connection_mode, server_url, autoconnect, enabled)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
   ).run(
     profile.id, profile.name, profile.username, profile.password,
     profile.empire, profile.player_id, profile.provider, profile.model,
-    profile.directive, profile.connection_mode, profile.server_url,
+    profile.directive, profile.todo || '', profile.connection_mode, profile.server_url,
     profile.autoconnect ? 1 : 0, profile.enabled ? 1 : 0,
   )
   return getProfile(profile.id)!
@@ -128,7 +134,7 @@ export function updateProfile(id: string, updates: Partial<Profile>): Profile | 
   const allowed = [
     'name', 'username', 'password', 'empire', 'player_id',
     'provider', 'model', 'directive', 'connection_mode', 'server_url',
-    'autoconnect', 'enabled',
+    'autoconnect', 'enabled', 'todo',
   ]
   const sets: string[] = []
   const vals: unknown[] = []

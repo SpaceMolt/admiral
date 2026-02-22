@@ -25,6 +25,7 @@ export async function POST(request: Request) {
       provider: provider || null,
       model: model || null,
       directive: directive || '',
+      todo: '',
       connection_mode: connection_mode || 'http',
       server_url: server_url || 'https://game.spacemolt.com',
       autoconnect: true,

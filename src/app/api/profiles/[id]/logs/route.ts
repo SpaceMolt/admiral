@@ -28,7 +28,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
       }
 
       // Subscribe to live events
-      const agent = agentManager.getAgent(id)
+      let currentAgent = agentManager.getAgent(id)
       const handler = (entry: unknown) => {
         if (closed) return
         try {
@@ -38,18 +38,23 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
         }
       }
 
-      if (agent) {
-        agent.events.on('log', handler)
+      if (currentAgent) {
+        currentAgent.events.on('log', handler)
       }
 
-      // Also poll for new events from other agents that might start later
+      // Poll for agent reconnections (new Agent instance for same profile)
       const interval = setInterval(() => {
         if (closed) {
           clearInterval(interval)
           return
         }
-        const currentAgent = agentManager.getAgent(id)
-        if (currentAgent && currentAgent !== agent) {
+        const latestAgent = agentManager.getAgent(id)
+        if (latestAgent && latestAgent !== currentAgent) {
+          // Remove handler from old agent
+          if (currentAgent) {
+            currentAgent.events.removeListener('log', handler)
+          }
+          currentAgent = latestAgent
           currentAgent.events.on('log', handler)
         }
       }, 2000)
@@ -73,7 +78,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
         closed = true
         clearInterval(interval)
         clearInterval(heartbeat)
-        if (agent) agent.events.removeListener('log', handler)
+        if (currentAgent) currentAgent.events.removeListener('log', handler)
       })
     },
   })

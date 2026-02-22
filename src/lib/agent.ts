@@ -118,6 +118,8 @@ export class Agent {
     }
 
     const compaction: CompactionState = { summary: '' }
+    // Load persisted TODO from DB
+    this.todo = profile.todo || ''
     const todo = { value: this.todo }
 
     while (this.running && !this.abortController.signal.aborted) {

@@ -88,7 +88,7 @@ export async function runAgentTurn(
       showedReason = true
       const result = await executeTool(toolCall.name, toolCall.arguments, toolCtx, callReason)
 
-      // If save_credentials updated todo via local tool, sync back
+      // If update_todo changed the todo via local tool, sync back
       todo.value = toolCtx.todo
 
       const isError = result.startsWith('Error')

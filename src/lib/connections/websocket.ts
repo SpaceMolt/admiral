@@ -17,6 +17,7 @@ export class WebSocketConnection implements GameConnection {
     timer: ReturnType<typeof setTimeout>
   }>()
   private requestId = 0
+  private credentials: { username: string; password: string } | null = null
 
   constructor(serverUrl: string) {
     const base = serverUrl.replace(/\/$/, '')
@@ -65,6 +66,7 @@ export class WebSocketConnection implements GameConnection {
   }
 
   async login(username: string, password: string): Promise<LoginResult> {
+    this.credentials = { username, password }
     const resp = await this.sendCommand('login', { username, password })
     if (resp.error) {
       return { success: false, error: resp.error.message }
@@ -195,6 +197,13 @@ export class WebSocketConnection implements GameConnection {
     this.reconnectTimer = setTimeout(async () => {
       try {
         await this.connect()
+        // Re-authenticate after reconnect
+        if (this.credentials) {
+          await this.sendCommand('login', {
+            username: this.credentials.username,
+            password: this.credentials.password,
+          })
+        }
       } catch {
         // onclose will fire and schedule next reconnect
       }

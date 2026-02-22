@@ -1,7 +1,7 @@
 import { Type, StringEnum } from '@mariozechner/pi-ai'
 import type { Tool } from '@mariozechner/pi-ai'
 import type { GameConnection } from './connections/interface'
-import { updateProfile, getProfile } from './db'
+import { updateProfile } from './db'
 
 // ─── Tool Definitions ────────────────────────────────────────
 
@@ -125,6 +125,7 @@ function executeLocalTool(name: string, args: Record<string, unknown>, ctx: Tool
     }
     case 'update_todo': {
       ctx.todo = String(args.content)
+      updateProfile(ctx.profileId, { todo: ctx.todo })
       ctx.log('system', 'TODO list updated')
       return 'TODO list updated.'
     }
