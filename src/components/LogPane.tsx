@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useRef, useEffect, useCallback, useMemo } from 'react'
-import { ChevronDown, ChevronRight, ArrowDown, Check, Minus, Trash2 } from 'lucide-react'
+import { ChevronDown, ChevronRight, ArrowDown, Check, Minus, X } from 'lucide-react'
 import { useVirtualizer } from '@tanstack/react-virtual'
 import type { LogEntry, LogType } from '@/types'
 import { JsonHighlight, type DisplayFormat } from './JsonHighlight'
@@ -116,18 +116,29 @@ export function LogPane({ profileId, connected, displayFormat = 'yaml' }: Props)
     return map
   }, [entries])
 
+  // Track expand changes to force re-measure
+  const expandKey = useMemo(() => `${[...expanded].join(',')}_${[...summaryExpanded].join(',')}`, [expanded, summaryExpanded])
+
   // Virtualizer
   const virtualizer = useVirtualizer({
     count: filtered.length,
     getScrollElement: () => scrollRef.current,
-    estimateSize: () => 32,
+    estimateSize: () => 34,
     overscan: 20,
+    getItemKey: (index) => filtered[index]?.id ?? index,
   })
+
+  // Re-measure all when expand state changes
+  useEffect(() => {
+    virtualizer.measure()
+  }, [expandKey])
 
   // Auto-scroll when new entries arrive
   useEffect(() => {
     if (autoScroll && filtered.length > 0) {
-      virtualizer.scrollToIndex(filtered.length - 1, { align: 'end' })
+      requestAnimationFrame(() => {
+        virtualizer.scrollToIndex(filtered.length - 1, { align: 'end' })
+      })
     }
   }, [filtered.length, autoScroll])
 
@@ -145,8 +156,6 @@ export function LogPane({ profileId, connected, displayFormat = 'yaml' }: Props)
       else next.add(id)
       return next
     })
-    // Force virtualizer to re-measure after expansion
-    requestAnimationFrame(() => virtualizer.measure())
   }
 
   function toggleSummaryExpand(id: number) {
@@ -156,7 +165,6 @@ export function LogPane({ profileId, connected, displayFormat = 'yaml' }: Props)
       else next.add(id)
       return next
     })
-    requestAnimationFrame(() => virtualizer.measure())
   }
 
   function toggleFilter(key: string) {
@@ -175,6 +183,7 @@ export function LogPane({ profileId, connected, displayFormat = 'yaml' }: Props)
   }
 
   async function handleClear() {
+    if (!window.confirm('Clear all log history for this profile?')) return
     setEntries([])
     setExpanded(new Set())
     setSummaryExpanded(new Set())
@@ -213,10 +222,11 @@ export function LogPane({ profileId, connected, displayFormat = 'yaml' }: Props)
         {entries.length > 0 && (
           <button
             onClick={handleClear}
-            className="flex items-center gap-1 px-1.5 py-0.5 text-[10px] text-muted-foreground/50 hover:text-destructive transition-colors uppercase tracking-wider"
+            className="flex items-center gap-1 px-2 py-0.5 text-[11px] text-muted-foreground/50 hover:text-destructive transition-colors"
             title="Clear log history"
           >
-            <Trash2 size={10} />
+            <X size={12} />
+            <span className="uppercase tracking-wider text-[10px]">Clear</span>
           </button>
         )}
       </div>
@@ -228,90 +238,20 @@ export function LogPane({ profileId, connected, displayFormat = 'yaml' }: Props)
             No log entries yet. Connect a profile to see activity.
           </div>
         ) : (
-          <div
-            style={{ height: virtualizer.getTotalSize(), width: '100%', position: 'relative' }}
-          >
-            {virtualizer.getVirtualItems().map(virtualRow => {
-              const entry = filtered[virtualRow.index]
-              const isExpanded = expanded.has(entry.id)
-              const isSummaryExpanded = summaryExpanded.has(entry.id)
-              const hasDetail = entry.detail && entry.detail !== entry.summary && entry.type !== 'tool_call'
-              const hasLongSummary = entry.summary.length > SUMMARY_EXPAND_THRESHOLD
-              const isClickable = hasDetail || hasLongSummary
-
-              return (
-                <div
-                  key={entry.id}
-                  data-index={virtualRow.index}
-                  ref={virtualizer.measureElement}
-                  style={{
-                    position: 'absolute',
-                    top: 0,
-                    left: 0,
-                    width: '100%',
-                    transform: `translateY(${virtualRow.start}px)`,
-                  }}
-                >
-                  <div className="border-b border-border/30 hover:bg-secondary/20">
-                    <div
-                      className={`flex items-start gap-2.5 px-3.5 py-2 ${isClickable ? 'cursor-pointer' : ''}`}
-                      onClick={() => {
-                        if (hasDetail) {
-                          toggleExpand(entry.id)
-                        } else if (hasLongSummary) {
-                          toggleSummaryExpand(entry.id)
-                        }
-                      }}
-                    >
-                      {isClickable ? (
-                        (isExpanded || isSummaryExpanded)
-                          ? <ChevronDown size={10} className="text-muted-foreground mt-0.5 shrink-0" />
-                          : <ChevronRight size={10} className="text-muted-foreground mt-0.5 shrink-0" />
-                      ) : (
-                        <span className="w-[10px] shrink-0" />
-                      )}
-                      <span className="text-muted-foreground shrink-0 w-14">
-                        {formatTime(entry.timestamp)}
-                      </span>
-                      <span className={`log-badge ${BADGE_CLASS[entry.type] || 'log-badge-system'} shrink-0`}>
-                        {TYPE_LABELS[entry.type] || entry.type}
-                      </span>
-                      <span className={`text-foreground/80 ${isSummaryExpanded ? '' : 'truncate'}`}>
-                        {entry.summary}
-                      </span>
-                    </div>
-                    {isExpanded && hasDetail && entry.detail && (
-                      <div className="ml-9 mr-3.5 mb-2 max-h-72 overflow-y-auto border border-border bg-smui-surface-0">
-                        {looksLikeJson(entry.detail) ? (
-                          <JsonHighlight json={entry.detail} format={displayFormat} className="px-3.5 py-2.5 text-[11px] leading-relaxed" />
-                        ) : entry.type === 'llm_thought' ? (
-                          <div className="px-3.5 py-2.5">
-                            <MarkdownRenderer content={entry.detail} />
-                          </div>
-                        ) : (
-                          <pre className="px-3.5 py-2.5 text-[11px] text-muted-foreground whitespace-pre-wrap break-words leading-relaxed">
-                            {entry.detail}
-                          </pre>
-                        )}
-                      </div>
-                    )}
-                    {isSummaryExpanded && !hasDetail && (
-                      <div className="ml-9 mr-3.5 mb-2 border border-border bg-smui-surface-0">
-                        {entry.type === 'llm_thought' ? (
-                          <div className="px-3.5 py-2.5">
-                            <MarkdownRenderer content={entry.summary} />
-                          </div>
-                        ) : (
-                          <pre className="px-3.5 py-2.5 text-[11px] text-muted-foreground whitespace-pre-wrap break-words leading-relaxed">
-                            {entry.summary}
-                          </pre>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                </div>
-              )
-            })}
+          <div style={{ height: virtualizer.getTotalSize(), width: '100%', position: 'relative' }}>
+            {virtualizer.getVirtualItems().map(virtualRow => (
+              <LogRow
+                key={filtered[virtualRow.index].id}
+                entry={filtered[virtualRow.index]}
+                virtualRow={virtualRow}
+                measureElement={virtualizer.measureElement}
+                isExpanded={expanded.has(filtered[virtualRow.index].id)}
+                isSummaryExpanded={summaryExpanded.has(filtered[virtualRow.index].id)}
+                displayFormat={displayFormat}
+                onToggleExpand={toggleExpand}
+                onToggleSummaryExpand={toggleSummaryExpand}
+              />
+            ))}
           </div>
         )}
       </div>
@@ -329,6 +269,93 @@ export function LogPane({ profileId, connected, displayFormat = 'yaml' }: Props)
           <ArrowDown size={14} />
         </button>
       )}
+    </div>
+  )
+}
+
+function LogRow({ entry, virtualRow, measureElement, isExpanded, isSummaryExpanded, displayFormat, onToggleExpand, onToggleSummaryExpand }: {
+  entry: LogEntry
+  virtualRow: { index: number; start: number }
+  measureElement: (el: HTMLElement | null) => void
+  isExpanded: boolean
+  isSummaryExpanded: boolean
+  displayFormat: DisplayFormat
+  onToggleExpand: (id: number) => void
+  onToggleSummaryExpand: (id: number) => void
+}) {
+  const hasDetail = entry.detail && entry.detail !== entry.summary && entry.type !== 'tool_call'
+  const hasLongSummary = entry.summary.length > SUMMARY_EXPAND_THRESHOLD
+  const isClickable = hasDetail || hasLongSummary
+
+  return (
+    <div
+      data-index={virtualRow.index}
+      ref={measureElement}
+      style={{
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        width: '100%',
+        transform: `translateY(${virtualRow.start}px)`,
+      }}
+    >
+      <div className="border-b border-border/30 hover:bg-secondary/20">
+        <div
+          className={`flex items-start gap-2.5 px-3.5 py-2 ${isClickable ? 'cursor-pointer' : ''}`}
+          onClick={() => {
+            if (hasDetail) {
+              onToggleExpand(entry.id)
+            } else if (hasLongSummary) {
+              onToggleSummaryExpand(entry.id)
+            }
+          }}
+        >
+          {isClickable ? (
+            (isExpanded || isSummaryExpanded)
+              ? <ChevronDown size={10} className="text-muted-foreground mt-0.5 shrink-0" />
+              : <ChevronRight size={10} className="text-muted-foreground mt-0.5 shrink-0" />
+          ) : (
+            <span className="w-[10px] shrink-0" />
+          )}
+          <span className="text-muted-foreground shrink-0 w-14">
+            {formatTime(entry.timestamp)}
+          </span>
+          <span className={`log-badge ${BADGE_CLASS[entry.type] || 'log-badge-system'} shrink-0`}>
+            {TYPE_LABELS[entry.type] || entry.type}
+          </span>
+          <span className={`text-foreground/80 ${isSummaryExpanded ? '' : 'truncate'}`}>
+            {entry.summary}
+          </span>
+        </div>
+        {isExpanded && hasDetail && entry.detail && (
+          <div className="ml-9 mr-3.5 mb-2 max-h-72 overflow-y-auto border border-border bg-smui-surface-0">
+            {looksLikeJson(entry.detail) ? (
+              <JsonHighlight json={entry.detail} format={displayFormat} className="px-3.5 py-2.5 text-[11px] leading-relaxed" />
+            ) : entry.type === 'llm_thought' ? (
+              <div className="px-3.5 py-2.5">
+                <MarkdownRenderer content={entry.detail} />
+              </div>
+            ) : (
+              <pre className="px-3.5 py-2.5 text-[11px] text-muted-foreground whitespace-pre-wrap break-words leading-relaxed">
+                {entry.detail}
+              </pre>
+            )}
+          </div>
+        )}
+        {isSummaryExpanded && !hasDetail && (
+          <div className="ml-9 mr-3.5 mb-2 border border-border bg-smui-surface-0">
+            {entry.type === 'llm_thought' ? (
+              <div className="px-3.5 py-2.5">
+                <MarkdownRenderer content={entry.summary} />
+              </div>
+            ) : (
+              <pre className="px-3.5 py-2.5 text-[11px] text-muted-foreground whitespace-pre-wrap break-words leading-relaxed">
+                {entry.summary}
+              </pre>
+            )}
+          </div>
+        )}
+      </div>
     </div>
   )
 }

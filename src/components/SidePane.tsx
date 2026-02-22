@@ -93,7 +93,7 @@ export function SidePane({ profileId, todo: initialTodo, connected }: Props) {
   }, [refreshTodo])
 
   return (
-    <div className="w-72 border-l border-border flex flex-col h-full bg-card/50 overflow-hidden">
+    <div className="flex flex-col h-full bg-card/50 overflow-hidden">
       {/* Captain's Log */}
       <div className="border-b border-border">
         <button

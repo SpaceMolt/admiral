@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useCallback, useEffect, useRef } from 'react'
-import { Square, Plug, PlugZap, Settings, Trash2, Pencil, PanelRight } from 'lucide-react'
+import { Square, Plug, PlugZap, Settings, Trash2, Pencil } from 'lucide-react'
 import type { Profile } from '@/types'
 import type { DisplayFormat } from '@/components/JsonHighlight'
 import { Button } from '@/components/ui/button'
@@ -25,11 +25,14 @@ interface Props {
 
 export function ProfileView({ profile, status, displayFormat, playerData, onPlayerData, onEdit, onDelete, onRefresh }: Props) {
   const [showSidePane, setShowSidePane] = useState(false)
+  const [sidePaneWidth, setSidePaneWidth] = useState(288)
   const [connecting, setConnecting] = useState(false)
   const [editingDirective, setEditingDirective] = useState(false)
   const [directiveValue, setDirectiveValue] = useState(profile.directive || '')
   const directiveInputRef = useRef<HTMLInputElement>(null)
   const commandInputRef = useRef<HTMLInputElement>(null)
+  const resizingRef = useRef(false)
+  const containerRef = useRef<HTMLDivElement>(null)
 
   const isManual = !profile.provider || profile.provider === 'manual'
 
@@ -63,28 +66,38 @@ export function ProfileView({ profile, status, displayFormat, playerData, onPlay
     }
   }
 
-  // Auto-fetch status when connection becomes active
+  // Fetch player status
+  const fetchStatus = useCallback(() => {
+    fetch(`/api/profiles/${profile.id}/command`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ command: 'get_status' }),
+    })
+      .then(r => r.json())
+      .then(result => {
+        if (result.result) onPlayerData(result.result as Record<string, unknown>)
+      })
+      .catch(() => {})
+  }, [profile.id, onPlayerData])
+
+  // Auto-fetch status when connection becomes active + poll every 60s
   const prevConnected = useRef(false)
   useEffect(() => {
     if (status.connected && !prevConnected.current) {
-      // Just connected - auto-fetch status after a short delay for login to complete
-      const timer = setTimeout(() => {
-        fetch(`/api/profiles/${profile.id}/command`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ command: 'get_status' }),
-        })
-          .then(r => r.json())
-          .then(result => {
-            if (result.result) onPlayerData(result.result as Record<string, unknown>)
-          })
-          .catch(() => {})
-      }, 500)
+      // Just connected - fetch after short delay for login to complete
+      const timer = setTimeout(fetchStatus, 1500)
       prevConnected.current = status.connected
       return () => clearTimeout(timer)
     }
     prevConnected.current = status.connected
-  }, [status.connected, profile.id, onPlayerData])
+  }, [status.connected, fetchStatus])
+
+  // Poll status every 60s while connected
+  useEffect(() => {
+    if (!status.connected) return
+    const interval = setInterval(fetchStatus, 60000)
+    return () => clearInterval(interval)
+  }, [status.connected, fetchStatus])
 
   // Focus command input on any keystroke (when not already in an input)
   useEffect(() => {
@@ -99,6 +112,34 @@ export function ProfileView({ profile, status, displayFormat, playerData, onPlay
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
   }, [])
+
+  // Resize handling
+  const handleResizeStart = useCallback((e: React.MouseEvent) => {
+    e.preventDefault()
+    resizingRef.current = true
+    const startX = e.clientX
+    const startWidth = sidePaneWidth
+
+    function onMouseMove(e: MouseEvent) {
+      if (!resizingRef.current) return
+      const delta = startX - e.clientX
+      const newWidth = Math.max(200, Math.min(600, startWidth + delta))
+      setSidePaneWidth(newWidth)
+    }
+
+    function onMouseUp() {
+      resizingRef.current = false
+      document.removeEventListener('mousemove', onMouseMove)
+      document.removeEventListener('mouseup', onMouseUp)
+      document.body.style.cursor = ''
+      document.body.style.userSelect = ''
+    }
+
+    document.body.style.cursor = 'col-resize'
+    document.body.style.userSelect = 'none'
+    document.addEventListener('mousemove', onMouseMove)
+    document.addEventListener('mouseup', onMouseUp)
+  }, [sidePaneWidth])
 
   async function handleConnect() {
     setConnecting(true)
@@ -190,9 +231,6 @@ export function ProfileView({ profile, status, displayFormat, playerData, onPlay
         )}
 
         <div className="flex items-center gap-0.5 ml-1">
-          <Button variant="ghost" size="icon" onClick={() => setShowSidePane(v => !v)} className={`h-7 w-7 ${showSidePane ? 'text-primary' : 'text-muted-foreground hover:text-foreground'}`}>
-            <PanelRight size={14} />
-          </Button>
           <Button variant="ghost" size="icon" onClick={onEdit} className="h-7 w-7 text-muted-foreground hover:text-foreground">
             <Settings size={14} />
           </Button>
@@ -234,16 +272,30 @@ export function ProfileView({ profile, status, displayFormat, playerData, onPlay
       {/* Player status */}
       <PlayerStatus data={playerData} />
 
-      {/* Quick commands */}
-      <QuickCommands onSend={handleSendCommand} disabled={!status.connected} />
+      {/* Quick commands + side pane toggle */}
+      <QuickCommands
+        onSend={handleSendCommand}
+        disabled={!status.connected}
+        showSidePane={showSidePane}
+        onToggleSidePane={() => setShowSidePane(v => !v)}
+      />
 
       {/* Log pane + side pane */}
-      <div className="flex flex-1 min-h-0">
+      <div ref={containerRef} className="flex flex-1 min-h-0">
         <div className="flex-1 min-w-0">
           <LogPane profileId={profile.id} connected={status.connected} displayFormat={displayFormat} />
         </div>
         {showSidePane && (
-          <SidePane profileId={profile.id} todo={profile.todo} connected={status.connected} />
+          <>
+            {/* Resize handle */}
+            <div
+              onMouseDown={handleResizeStart}
+              className="w-1 shrink-0 cursor-col-resize bg-border hover:bg-primary/40 transition-colors"
+            />
+            <div style={{ width: sidePaneWidth }} className="shrink-0">
+              <SidePane profileId={profile.id} todo={profile.todo} connected={status.connected} />
+            </div>
+          </>
         )}
       </div>
 

@@ -1,10 +1,13 @@
 'use client'
 
+import { PanelRight } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 
 interface Props {
   onSend: (command: string, args?: Record<string, unknown>) => void
   disabled: boolean
+  showSidePane: boolean
+  onToggleSidePane: () => void
 }
 
 const QUICK_COMMANDS = [
@@ -19,7 +22,7 @@ const QUICK_COMMANDS = [
   { label: 'Log', command: 'captains_log_list' },
 ]
 
-export function QuickCommands({ onSend, disabled }: Props) {
+export function QuickCommands({ onSend, disabled, showSidePane, onToggleSidePane }: Props) {
   return (
     <div className="flex items-center gap-1.5 px-3.5 py-2.5 bg-card border-b border-border overflow-x-auto">
       <span className="text-[11px] text-muted-foreground uppercase tracking-[1.5px] shrink-0 mr-1">Quick</span>
@@ -35,6 +38,16 @@ export function QuickCommands({ onSend, disabled }: Props) {
           {q.label}
         </Button>
       ))}
+      <div className="flex-1" />
+      <Button
+        variant="ghost"
+        size="icon"
+        onClick={onToggleSidePane}
+        className={`h-7 w-7 shrink-0 ${showSidePane ? 'text-primary' : 'text-muted-foreground hover:text-foreground'}`}
+        title={showSidePane ? 'Hide side panel' : 'Show side panel'}
+      >
+        <PanelRight size={14} />
+      </Button>
     </div>
   )
 }
