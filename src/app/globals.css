@@ -1,0 +1,138 @@
+@import "tailwindcss";
+
+@theme {
+  --color-space-black: #0a0e17;
+  --color-deep-void: #0d1321;
+  --color-nebula-blue: #1a2744;
+  --color-plasma-cyan: #00d4ff;
+  --color-laser-blue: #4dabf7;
+  --color-shell-orange: #ff6b35;
+  --color-claw-red: #e63946;
+  --color-bio-green: #2dd4bf;
+  --color-star-white: #e8f4f8;
+  --color-chrome-silver: #a8c5d6;
+  --color-hull-grey: #3d5a6c;
+  --color-warning-yellow: #ffd93d;
+  --color-void-purple: #9b59b6;
+  --color-dim-grey: #2a3a4a;
+
+  --font-orbitron: var(--font-family-orbitron), 'Orbitron', sans-serif;
+  --font-jetbrains: var(--font-family-jetbrains), 'JetBrains Mono', monospace;
+  --font-space-grotesk: var(--font-family-space-grotesk), 'Space Grotesk', sans-serif;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html, body {
+  height: 100%;
+  overflow: hidden;
+}
+
+body {
+  font-family: var(--font-space-grotesk);
+  background: var(--color-space-black);
+  color: var(--color-star-white);
+}
+
+/* Scrollbar styling */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--color-deep-void);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--color-hull-grey);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-chrome-silver);
+}
+
+/* Status indicator animations */
+@keyframes pulse-green {
+  0%, 100% { box-shadow: 0 0 4px var(--color-bio-green); }
+  50% { box-shadow: 0 0 12px var(--color-bio-green); }
+}
+
+.status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.status-dot-grey { background: var(--color-hull-grey); }
+.status-dot-green {
+  background: var(--color-bio-green);
+  animation: pulse-green 2s infinite;
+}
+.status-dot-orange { background: var(--color-shell-orange); }
+.status-dot-red { background: var(--color-claw-red); }
+
+/* Log type badges */
+.log-badge {
+  font-family: var(--font-jetbrains);
+  font-size: 0.65rem;
+  font-weight: 600;
+  padding: 1px 6px;
+  border-radius: 3px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  white-space: nowrap;
+}
+
+.log-badge-connection { background: rgba(0, 212, 255, 0.2); color: var(--color-plasma-cyan); }
+.log-badge-llm_thought { background: rgba(155, 89, 182, 0.2); color: var(--color-void-purple); }
+.log-badge-tool_call { background: rgba(255, 107, 53, 0.2); color: var(--color-shell-orange); }
+.log-badge-tool_result { background: rgba(45, 212, 191, 0.2); color: var(--color-bio-green); }
+.log-badge-server_message { background: rgba(77, 171, 247, 0.2); color: var(--color-laser-blue); }
+.log-badge-notification { background: rgba(255, 217, 61, 0.2); color: var(--color-warning-yellow); }
+.log-badge-error { background: rgba(230, 57, 70, 0.2); color: var(--color-claw-red); }
+.log-badge-system { background: rgba(168, 197, 214, 0.15); color: var(--color-chrome-silver); }
+
+/* Form inputs */
+.input-field {
+  width: 100%;
+  background: var(--color-space-black);
+  border: 1px solid rgba(61, 90, 108, 0.4);
+  border-radius: 4px;
+  padding: 0.5rem 0.625rem;
+  font-family: var(--font-jetbrains);
+  font-size: 0.75rem;
+  color: var(--color-star-white);
+}
+
+.input-field::placeholder {
+  color: var(--color-hull-grey);
+}
+
+.input-field:focus {
+  border-color: var(--color-plasma-cyan);
+  outline: none;
+}
+
+.input-field:disabled {
+  opacity: 0.5;
+}
+
+select.input-field {
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%233d5a6c' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.5rem center;
+  padding-right: 1.75rem;
+}
+
+select.input-field option {
+  background: var(--color-deep-void);
+  color: var(--color-star-white);
+}
