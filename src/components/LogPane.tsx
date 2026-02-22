@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useRef, useEffect, useCallback, useMemo } from 'react'
-import { ChevronDown, ChevronRight } from 'lucide-react'
+import { ChevronDown, ChevronRight, ArrowDown } from 'lucide-react'
 import type { LogEntry, LogType } from '@/types'
 import { JsonHighlight, type DisplayFormat } from './JsonHighlight'
 import { MarkdownRenderer } from './MarkdownRenderer'
@@ -51,6 +51,7 @@ export function LogPane({ profileId, connected, displayFormat = 'yaml' }: Props)
   const [summaryExpanded, setSummaryExpanded] = useState<Set<number>>(new Set())
   const [autoScroll, setAutoScroll] = useState(true)
   const scrollRef = useRef<HTMLDivElement>(null)
+  const bottomRef = useRef<HTMLDivElement>(null)
   const eventSourceRef = useRef<EventSource | null>(null)
   // Track connection changes to re-establish SSE and pick up missed entries
   const [sseKey, setSseKey] = useState(0)
@@ -109,8 +110,10 @@ export function LogPane({ profileId, connected, displayFormat = 'yaml' }: Props)
   function toggleExpand(id: number) {
     setExpanded(prev => {
       const next = new Set(prev)
-      if (next.has(id)) next.delete(id)
-      else next.add(id)
+      const opening = !next.has(id)
+      if (opening) next.add(id)
+      else next.delete(id)
+      if (opening) scrollEntryIntoView(id)
       return next
     })
   }
@@ -118,9 +121,25 @@ export function LogPane({ profileId, connected, displayFormat = 'yaml' }: Props)
   function toggleSummaryExpand(id: number) {
     setSummaryExpanded(prev => {
       const next = new Set(prev)
-      if (next.has(id)) next.delete(id)
-      else next.add(id)
+      const opening = !next.has(id)
+      if (opening) next.add(id)
+      else next.delete(id)
+      if (opening) scrollEntryIntoView(id)
       return next
+    })
+  }
+
+  function scrollEntryIntoView(id: number) {
+    requestAnimationFrame(() => {
+      const el = document.getElementById(`log-entry-${id}`)
+      if (el && scrollRef.current) {
+        const container = scrollRef.current
+        const elRect = el.getBoundingClientRect()
+        const containerRect = container.getBoundingClientRect()
+        if (elRect.bottom > containerRect.bottom) {
+          el.scrollIntoView({ block: 'end', behavior: 'smooth' })
+        }
+      }
     })
   }
 
@@ -140,7 +159,7 @@ export function LogPane({ profileId, connected, displayFormat = 'yaml' }: Props)
   }, [entries])
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex flex-col h-full relative">
       {/* Filter tabs - SMUI line variant */}
       <div className="flex items-center bg-card border-b border-border">
         <div className="flex items-center ml-1">
@@ -171,18 +190,6 @@ export function LogPane({ profileId, connected, displayFormat = 'yaml' }: Props)
           })}
         </div>
         <div className="flex-1" />
-        {!autoScroll && (
-          <button
-            onClick={() => {
-              setAutoScroll(true)
-              if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight
-            }}
-            className="px-2.5 py-1 text-[11px] text-[hsl(var(--smui-yellow))] bg-[hsl(var(--smui-yellow)/0.1)] tracking-[1.5px] uppercase mr-2"
-          >
-            <ChevronDown size={10} className="inline mr-1" />
-            Follow
-          </button>
-        )}
       </div>
 
       {/* Log entries */}
@@ -195,12 +202,12 @@ export function LogPane({ profileId, connected, displayFormat = 'yaml' }: Props)
         {filtered.map(entry => {
           const isExpanded = expanded.has(entry.id)
           const isSummaryExpanded = summaryExpanded.has(entry.id)
-          const hasDetail = entry.detail && entry.detail !== entry.summary
+          const hasDetail = entry.detail && entry.detail !== entry.summary && entry.type !== 'tool_call'
           const hasLongSummary = entry.summary.length > SUMMARY_EXPAND_THRESHOLD
           const isClickable = hasDetail || hasLongSummary
 
           return (
-            <div key={entry.id} className="border-b border-border/30 hover:bg-secondary/20">
+            <div key={entry.id} id={`log-entry-${entry.id}`} className="border-b border-border/30 hover:bg-secondary/20">
               <div
                 className={`flex items-start gap-2.5 px-3.5 py-2 ${isClickable ? 'cursor-pointer' : ''}`}
                 onClick={() => {
@@ -228,7 +235,7 @@ export function LogPane({ profileId, connected, displayFormat = 'yaml' }: Props)
                   {entry.summary}
                 </span>
               </div>
-              {isExpanded && entry.detail && (
+              {isExpanded && hasDetail && (
                 <div className="ml-9 mr-3.5 mb-2 max-h-72 overflow-y-auto border border-border bg-smui-surface-0">
                   {looksLikeJson(entry.detail) ? (
                     <JsonHighlight json={entry.detail} format={displayFormat} className="px-3.5 py-2.5 text-[11px] leading-relaxed" />
@@ -259,7 +266,22 @@ export function LogPane({ profileId, connected, displayFormat = 'yaml' }: Props)
             </div>
           )
         })}
+        <div ref={bottomRef} />
       </div>
+
+      {/* Floating scroll-to-bottom button */}
+      {!autoScroll && (
+        <button
+          onClick={() => {
+            setAutoScroll(true)
+            bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
+          }}
+          className="absolute bottom-4 right-4 w-8 h-8 flex items-center justify-center bg-card border border-border text-muted-foreground hover:text-foreground hover:border-primary/40 transition-all shadow-lg"
+          title="Scroll to bottom"
+        >
+          <ArrowDown size={14} />
+        </button>
+      )}
     </div>
   )
 }

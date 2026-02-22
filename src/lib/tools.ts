@@ -68,7 +68,7 @@ export async function executeTool(
   reason?: string,
 ): Promise<string> {
   if (LOCAL_TOOLS.has(name)) {
-    ctx.log('tool_call', `${name}(${formatArgs(args)})`, reason)
+    ctx.log('tool_call', `${name}(${formatArgs(args)})`)
     return executeLocalTool(name, args, ctx)
   }
 
@@ -83,7 +83,8 @@ export async function executeTool(
     commandArgs = Object.keys(args).length > 0 ? args : undefined
   }
 
-  ctx.log('tool_call', `game(${command}${commandArgs ? ', ' + formatArgs(commandArgs) : ''})`, reason)
+  const fmtArgs = commandArgs ? formatArgs(commandArgs) : ''
+  ctx.log('tool_call', `game(${command}${fmtArgs ? ', ' + fmtArgs : ''})`)
 
   try {
     const resp = await ctx.connection.execute(command, commandArgs && Object.keys(commandArgs).length > 0 ? commandArgs : undefined)
