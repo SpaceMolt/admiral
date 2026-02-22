@@ -98,6 +98,22 @@ export async function validateApiKey(provider: string, apiKey: string): Promise<
         })
         return resp.ok
       }
+      case 'minimax': {
+        const resp = await fetch('https://api.minimax.io/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${apiKey}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            model: 'MiniMax-M2.5-highspeed',
+            max_tokens: 1,
+            messages: [{ role: 'user', content: 'hi' }],
+          }),
+          signal: AbortSignal.timeout(10000),
+        })
+        return resp.status !== 401 && resp.status !== 403
+      }
       default:
         // For unknown providers, assume valid if non-empty
         return apiKey.length > 0

@@ -7,6 +7,7 @@ const PROVIDER_API_URLS: Record<string, string> = {
   openai: 'https://api.openai.com/v1/models',
   groq: 'https://api.groq.com/openai/v1/models',
   openrouter: 'https://openrouter.ai/api/v1/models',
+  minimax: 'https://api.minimax.io/v1/models',
 }
 
 const LOCAL_DEFAULTS: Record<string, string> = {

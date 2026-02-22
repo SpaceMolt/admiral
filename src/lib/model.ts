@@ -22,6 +22,7 @@ const CUSTOM_BASE_URLS: Record<string, string> = {
   ollama: 'http://127.0.0.1:11434/v1',
   lmstudio: 'http://127.0.0.1:1234/v1',
   vllm: 'http://127.0.0.1:8000/v1',
+  minimax: 'https://api.minimax.io/v1',
 }
 
 /**
@@ -60,10 +61,10 @@ export function resolveModel(modelStr: string): { model: Model<any>; apiKey?: st
   let apiKey: string
 
   if (baseUrl) {
-    // Check if we have a custom base URL in DB
+    // Check if we have a custom base URL or API key in DB
     const dbProvider = getProvider(provider)
     if (dbProvider?.base_url) baseUrl = dbProvider.base_url
-    apiKey = 'local'
+    apiKey = dbProvider?.api_key || 'local'
   } else {
     const dbProvider = getProvider(provider)
     if (dbProvider?.base_url) {

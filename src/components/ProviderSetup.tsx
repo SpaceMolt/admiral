@@ -20,6 +20,7 @@ const PROVIDER_INFO: Record<string, { label: string; description: string; isLoca
   google: { label: 'Google AI', description: 'Gemini models', isLocal: false, keyPlaceholder: 'AI...' },
   xai: { label: 'xAI', description: 'Grok models', isLocal: false, keyPlaceholder: 'xai-...' },
   mistral: { label: 'Mistral', description: 'Mistral models', isLocal: false, keyPlaceholder: '' },
+  minimax: { label: 'MiniMax', description: 'MiniMax models', isLocal: false, keyPlaceholder: 'eyJ...' },
   openrouter: { label: 'OpenRouter', description: 'Multi-provider gateway', isLocal: false, keyPlaceholder: 'sk-or-...' },
   ollama: { label: 'Ollama', description: 'Local models', isLocal: true, keyPlaceholder: '' },
   lmstudio: { label: 'LM Studio', description: 'Local models', isLocal: true, keyPlaceholder: '' },
