@@ -3,6 +3,9 @@
 import { useState } from 'react'
 import { KeyRound, Wifi, WifiOff, ArrowRight, Search, Server } from 'lucide-react'
 import type { Provider } from '@/types'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Card } from '@/components/ui/card'
 
 const DEFAULT_LOCAL_URLS: Record<string, string> = {
   ollama: 'http://localhost:11434',
@@ -112,25 +115,26 @@ export function ProviderSetup({ providers: initialProviders, onDone }: Props) {
   return (
     <div className="flex items-center justify-center min-h-screen p-8">
       <div className="max-w-2xl w-full">
-        <h1 className="font-orbitron text-3xl font-bold text-plasma-cyan mb-2 tracking-wider">ADMIRAL</h1>
-        <p className="text-chrome-silver font-jetbrains text-sm mb-8">SpaceMolt Agent Manager -- Configure your LLM providers to get started.</p>
+        <h1 className="font-orbitron text-3xl font-bold text-primary mb-2 tracking-wider">ADMIRAL</h1>
+        <p className="text-muted-foreground font-jetbrains text-sm mb-8">SpaceMolt Agent Manager -- Configure your LLM providers to get started.</p>
 
         <div className="flex gap-3 mb-6">
-          <button
+          <Button
+            variant="secondary"
             onClick={detectLocal}
             disabled={detecting}
-            className="flex items-center gap-2 px-4 py-2.5 bg-nebula-blue border border-hull-grey/50 rounded text-sm font-jetbrains text-chrome-silver hover:border-plasma-cyan hover:text-plasma-cyan transition-colors disabled:opacity-50"
+            className="gap-2 font-jetbrains hover:text-primary"
           >
             <Search size={14} />
             {detecting ? 'Scanning...' : 'Detect Local Providers'}
-          </button>
+          </Button>
         </div>
 
         <div className="space-y-2.5">
           {providers.map(p => {
             const info = PROVIDER_INFO[p.id] || { label: p.id, description: '', isLocal: false, keyPlaceholder: '' }
             return (
-              <div key={p.id} className="p-3.5 bg-deep-void border border-hull-grey/30 rounded-md">
+              <Card key={p.id} className="p-3.5">
                 <div className="flex items-center gap-3">
                   <div className={`status-dot ${
                     p.status === 'valid' ? 'status-dot-green' :
@@ -138,69 +142,73 @@ export function ProviderSetup({ providers: initialProviders, onDone }: Props) {
                     p.status === 'unreachable' ? 'status-dot-orange' :
                     'status-dot-grey'
                   }`} />
-                  <span className="font-jetbrains text-sm font-semibold text-star-white">{info.label}</span>
-                  <span className="font-jetbrains text-xs text-chrome-silver/50">{info.description}</span>
+                  <span className="font-jetbrains text-sm font-semibold text-foreground">{info.label}</span>
+                  <span className="font-jetbrains text-xs text-muted-foreground/50">{info.description}</span>
                 </div>
 
                 {!info.isLocal && (
                   <div className="flex items-center gap-2.5 mt-2.5 ml-5">
-                    <KeyRound size={12} className="text-hull-grey/70 shrink-0" />
-                    <input
+                    <KeyRound size={12} className="text-border/70 shrink-0" />
+                    <Input
                       type="password"
                       value={keys[p.id] || ''}
                       onChange={e => setKeys(k => ({ ...k, [p.id]: e.target.value }))}
                       placeholder={info.keyPlaceholder || 'API key'}
-                      className="flex-1 bg-space-black border border-hull-grey/30 rounded px-2.5 py-1.5 text-xs font-jetbrains text-star-white placeholder:text-hull-grey/50 focus:border-plasma-cyan focus:outline-none"
+                      className="flex-1 h-7 text-xs"
                     />
-                    <button
+                    <Button
+                      variant="secondary"
+                      size="sm"
                       onClick={() => saveKey(p.id)}
                       disabled={saving[p.id]}
-                      className="px-3.5 py-1.5 text-xs font-jetbrains bg-nebula-blue border border-hull-grey/40 rounded text-chrome-silver hover:border-plasma-cyan hover:text-plasma-cyan transition-colors disabled:opacity-50"
+                      className="font-jetbrains hover:text-primary"
                     >
                       {saving[p.id] ? '...' : 'Save'}
-                    </button>
+                    </Button>
                   </div>
                 )}
                 {info.isLocal && (
                   <>
                     <div className="flex items-center gap-2.5 mt-2.5 ml-5">
-                      <Server size={12} className="text-hull-grey/70 shrink-0" />
-                      <input
+                      <Server size={12} className="text-border/70 shrink-0" />
+                      <Input
                         value={urls[p.id] || DEFAULT_LOCAL_URLS[p.id] || ''}
                         onChange={e => setUrls(u => ({ ...u, [p.id]: e.target.value }))}
                         placeholder={DEFAULT_LOCAL_URLS[p.id] || 'http://host:port'}
-                        className="flex-1 bg-space-black border border-hull-grey/30 rounded px-2.5 py-1.5 text-xs font-jetbrains text-star-white placeholder:text-hull-grey/50 focus:border-plasma-cyan focus:outline-none"
+                        className="flex-1 h-7 text-xs"
                       />
-                      <button
+                      <Button
+                        variant="secondary"
+                        size="sm"
                         onClick={() => saveLocalUrl(p.id)}
                         disabled={saving[p.id]}
-                        className="px-3.5 py-1.5 text-xs font-jetbrains bg-nebula-blue border border-hull-grey/40 rounded text-chrome-silver hover:border-plasma-cyan hover:text-plasma-cyan transition-colors disabled:opacity-50"
+                        className="font-jetbrains hover:text-primary"
                       >
                         {saving[p.id] ? '...' : 'Save'}
-                      </button>
+                      </Button>
                     </div>
                     <div className="flex items-center gap-1.5 mt-2 ml-5">
                       {p.status === 'valid' ? (
-                        <><Wifi size={11} className="text-bio-green" /><span className="text-[11px] font-jetbrains text-bio-green">Running</span></>
+                        <><Wifi size={11} className="text-smui-green" /><span className="text-[11px] font-jetbrains text-smui-green">Running</span></>
                       ) : (
-                        <><WifiOff size={11} className="text-hull-grey/60" /><span className="text-[11px] font-jetbrains text-hull-grey/60">Not detected</span></>
+                        <><WifiOff size={11} className="text-border/60" /><span className="text-[11px] font-jetbrains text-border/60">Not detected</span></>
                       )}
                     </div>
                   </>
                 )}
-              </div>
+              </Card>
             )
           })}
         </div>
 
         <div className="flex justify-end mt-8">
-          <button
+          <Button
             onClick={onDone}
-            className="flex items-center gap-2 px-6 py-2.5 font-orbitron text-sm font-semibold uppercase tracking-wider bg-gradient-to-r from-shell-orange to-claw-red text-star-white border border-shell-orange rounded hover:shadow-[0_0_30px_rgba(255,107,53,0.5)] transition-shadow"
+            className="gap-2 font-orbitron text-sm font-semibold uppercase tracking-wider bg-gradient-to-r from-smui-orange to-destructive text-foreground hover:shadow-[0_0_30px_hsl(var(--smui-orange)/0.5)]"
           >
             {hasValid ? 'Continue' : 'Skip for Now'}
             <ArrowRight size={16} />
-          </button>
+          </Button>
         </div>
       </div>
     </div>

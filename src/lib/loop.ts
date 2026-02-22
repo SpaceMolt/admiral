@@ -44,7 +44,12 @@ export async function runAgentTurn(
     try {
       response = await completeWithRetry(model, context, log, options)
     } catch (err) {
-      log('error', `LLM call failed: ${err instanceof Error ? err.message : String(err)}`)
+      log('error', `LLM call failed: ${err instanceof Error ? err.message : String(err)}`, JSON.stringify({
+        model: { name: (model as any).name || 'unknown', contextWindow: model.contextWindow },
+        messageCount: context.messages.length,
+        estimatedTokens: totalMessageTokens(context.messages),
+        error: err instanceof Error ? err.message : String(err),
+      }, null, 2))
       return
     }
 
@@ -322,7 +327,14 @@ async function completeWithRetry(
       if (options?.signal?.aborted) throw lastError
 
       const delay = RETRY_BASE_DELAY * Math.pow(2, attempt)
-      log('error', `LLM error (attempt ${attempt + 1}/${MAX_RETRIES}): ${lastError.message}`)
+      log('error', `LLM error (attempt ${attempt + 1}/${MAX_RETRIES}): ${lastError.message}`, JSON.stringify({
+        model: { name: (model as any).name || 'unknown', contextWindow: model.contextWindow },
+        messageCount: context.messages.length,
+        estimatedTokens: totalMessageTokens(context.messages),
+        attempt: attempt + 1,
+        maxRetries: MAX_RETRIES,
+        error: lastError.message,
+      }, null, 2))
       await sleep(delay)
     }
   }

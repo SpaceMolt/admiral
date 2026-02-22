@@ -1,25 +1,127 @@
 @import "tailwindcss";
 
-@theme {
-  --color-space-black: #0a0e17;
-  --color-deep-void: #0d1321;
-  --color-nebula-blue: #1a2744;
-  --color-plasma-cyan: #00d4ff;
-  --color-laser-blue: #4dabf7;
-  --color-shell-orange: #ff6b35;
-  --color-claw-red: #e63946;
-  --color-bio-green: #2dd4bf;
-  --color-star-white: #e8f4f8;
-  --color-chrome-silver: #a8c5d6;
-  --color-hull-grey: #3d5a6c;
-  --color-warning-yellow: #ffd93d;
-  --color-void-purple: #9b59b6;
-  --color-dim-grey: #2a3a4a;
+/* ─── SMUI Theme Variables ───────────────────────────────── */
 
+@layer base {
+  :root {
+    --background: 213 16% 12%;
+    --foreground: 213 27% 88%;
+    --card: 217 16% 15.5%;
+    --card-foreground: 213 27% 88%;
+    --popover: 217 16% 15.5%;
+    --popover-foreground: 213 27% 88%;
+    --primary: 193 44% 67%;
+    --primary-foreground: 213 16% 12%;
+    --secondary: 216 15% 19%;
+    --secondary-foreground: 213 27% 88%;
+    --muted: 216 15% 19%;
+    --muted-foreground: 213 14% 65%;
+    --accent: 193 10% 16%;
+    --accent-foreground: 193 44% 67%;
+    --destructive: 355 52% 64%;
+    --destructive-foreground: 219 28% 94%;
+    --border: 217 17% 28%;
+    --input: 217 17% 28%;
+    --ring: 193 44% 67%;
+    --radius: 0rem;
+
+    /* SMUI Frost palette (Nord-inspired) */
+    --smui-frost-0: 193 26% 42%;
+    --smui-frost-1: 193 44% 50%;
+    --smui-frost-2: 193 44% 67%;
+    --smui-frost-3: 213 32% 52%;
+
+    /* SMUI Aurora palette */
+    --smui-red: 355 52% 64%;
+    --smui-orange: 14 51% 63%;
+    --smui-yellow: 40 71% 73%;
+    --smui-green: 92 28% 65%;
+    --smui-purple: 311 24% 63%;
+
+    /* SMUI Surface hierarchy */
+    --smui-surface-0: 213 16% 12%;
+    --smui-surface-1: 217 16% 15.5%;
+    --smui-surface-2: 216 15% 19%;
+    --smui-surface-3: 217 17% 28%;
+
+    /* Sidebar (matches SMUI) */
+    --sidebar-background: 217 16% 15.5%;
+    --sidebar-foreground: 213 27% 88%;
+    --sidebar-primary: 193 44% 67%;
+    --sidebar-primary-foreground: 213 16% 12%;
+    --sidebar-accent: 193 10% 16%;
+    --sidebar-accent-foreground: 193 44% 67%;
+    --sidebar-border: 217 17% 28%;
+    --sidebar-ring: 193 44% 67%;
+  }
+}
+
+/* ─── Tailwind Theme Registration ────────────────────────── */
+
+@theme inline {
+  /* Core colors */
+  --color-background: hsl(var(--background));
+  --color-foreground: hsl(var(--foreground));
+  --color-card: hsl(var(--card));
+  --color-card-foreground: hsl(var(--card-foreground));
+  --color-popover: hsl(var(--popover));
+  --color-popover-foreground: hsl(var(--popover-foreground));
+  --color-primary: hsl(var(--primary));
+  --color-primary-foreground: hsl(var(--primary-foreground));
+  --color-secondary: hsl(var(--secondary));
+  --color-secondary-foreground: hsl(var(--secondary-foreground));
+  --color-muted: hsl(var(--muted));
+  --color-muted-foreground: hsl(var(--muted-foreground));
+  --color-accent: hsl(var(--accent));
+  --color-accent-foreground: hsl(var(--accent-foreground));
+  --color-destructive: hsl(var(--destructive));
+  --color-destructive-foreground: hsl(var(--destructive-foreground));
+  --color-border: hsl(var(--border));
+  --color-input: hsl(var(--input));
+  --color-ring: hsl(var(--ring));
+
+  /* SMUI Frost */
+  --color-smui-frost-0: hsl(var(--smui-frost-0));
+  --color-smui-frost-1: hsl(var(--smui-frost-1));
+  --color-smui-frost-2: hsl(var(--smui-frost-2));
+  --color-smui-frost-3: hsl(var(--smui-frost-3));
+
+  /* SMUI Aurora */
+  --color-smui-red: hsl(var(--smui-red));
+  --color-smui-orange: hsl(var(--smui-orange));
+  --color-smui-yellow: hsl(var(--smui-yellow));
+  --color-smui-green: hsl(var(--smui-green));
+  --color-smui-purple: hsl(var(--smui-purple));
+
+  /* SMUI Surface hierarchy */
+  --color-smui-surface-0: hsl(var(--smui-surface-0));
+  --color-smui-surface-1: hsl(var(--smui-surface-1));
+  --color-smui-surface-2: hsl(var(--smui-surface-2));
+  --color-smui-surface-3: hsl(var(--smui-surface-3));
+
+  /* Sidebar */
+  --color-sidebar-background: hsl(var(--sidebar-background));
+  --color-sidebar-foreground: hsl(var(--sidebar-foreground));
+  --color-sidebar-primary: hsl(var(--sidebar-primary));
+  --color-sidebar-primary-foreground: hsl(var(--sidebar-primary-foreground));
+  --color-sidebar-accent: hsl(var(--sidebar-accent));
+  --color-sidebar-accent-foreground: hsl(var(--sidebar-accent-foreground));
+  --color-sidebar-border: hsl(var(--sidebar-border));
+  --color-sidebar-ring: hsl(var(--sidebar-ring));
+
+  /* Radius */
+  --radius-sm: calc(var(--radius) + 2px);
+  --radius-md: calc(var(--radius) + 4px);
+  --radius-lg: calc(var(--radius) + 6px);
+  --radius-xl: calc(var(--radius) + 8px);
+
+  /* Fonts */
   --font-orbitron: var(--font-family-orbitron), 'Orbitron', sans-serif;
   --font-jetbrains: var(--font-family-jetbrains), 'JetBrains Mono', monospace;
-  --font-space-grotesk: var(--font-family-space-grotesk), 'Space Grotesk', sans-serif;
+  --font-sans: var(--font-family-jetbrains), 'JetBrains Mono', monospace;
 }
+
+/* ─── Base Styles ────────────────────────────────────────── */
 
 * {
   margin: 0;
@@ -33,34 +135,41 @@ html, body {
 }
 
 body {
-  font-family: var(--font-space-grotesk);
-  background: var(--color-space-black);
-  color: var(--color-star-white);
+  font-family: var(--font-jetbrains);
+  background: hsl(var(--background));
+  color: hsl(var(--foreground));
 }
 
-/* Scrollbar styling */
+::selection {
+  background: hsl(var(--primary) / 0.3);
+  color: hsl(var(--foreground));
+}
+
+/* ─── Scrollbar Styling ──────────────────────────────────── */
+
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
 }
 
 ::-webkit-scrollbar-track {
-  background: var(--color-deep-void);
+  background: hsl(var(--card));
 }
 
 ::-webkit-scrollbar-thumb {
-  background: var(--color-hull-grey);
+  background: hsl(var(--border));
   border-radius: 3px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: var(--color-chrome-silver);
+  background: hsl(var(--muted-foreground));
 }
 
-/* Status indicator animations */
+/* ─── Status Indicators ──────────────────────────────────── */
+
 @keyframes pulse-green {
-  0%, 100% { box-shadow: 0 0 4px var(--color-bio-green); }
-  50% { box-shadow: 0 0 12px var(--color-bio-green); }
+  0%, 100% { box-shadow: 0 0 4px hsl(var(--smui-green)); }
+  50% { box-shadow: 0 0 12px hsl(var(--smui-green)); }
 }
 
 .status-dot {
@@ -70,69 +179,47 @@ body {
   flex-shrink: 0;
 }
 
-.status-dot-grey { background: var(--color-hull-grey); }
+.status-dot-grey { background: hsl(var(--border)); }
 .status-dot-green {
-  background: var(--color-bio-green);
+  background: hsl(var(--smui-green));
   animation: pulse-green 2s infinite;
 }
-.status-dot-orange { background: var(--color-shell-orange); }
-.status-dot-red { background: var(--color-claw-red); }
+.status-dot-orange { background: hsl(var(--smui-orange)); }
+.status-dot-red { background: hsl(var(--smui-red)); }
 
-/* Log type badges */
+/* ─── Log Type Badges ────────────────────────────────────── */
+
 .log-badge {
   font-family: var(--font-jetbrains);
   font-size: 0.65rem;
   font-weight: 600;
   padding: 1px 6px;
-  border-radius: 3px;
   text-transform: uppercase;
   letter-spacing: 0.05em;
   white-space: nowrap;
 }
 
-.log-badge-connection { background: rgba(0, 212, 255, 0.2); color: var(--color-plasma-cyan); }
-.log-badge-llm_thought { background: rgba(155, 89, 182, 0.2); color: var(--color-void-purple); }
-.log-badge-tool_call { background: rgba(255, 107, 53, 0.2); color: var(--color-shell-orange); }
-.log-badge-tool_result { background: rgba(45, 212, 191, 0.2); color: var(--color-bio-green); }
-.log-badge-server_message { background: rgba(77, 171, 247, 0.2); color: var(--color-laser-blue); }
-.log-badge-notification { background: rgba(255, 217, 61, 0.2); color: var(--color-warning-yellow); }
-.log-badge-error { background: rgba(230, 57, 70, 0.2); color: var(--color-claw-red); }
-.log-badge-system { background: rgba(168, 197, 214, 0.15); color: var(--color-chrome-silver); }
+.log-badge-connection { background: hsl(var(--primary) / 0.15); color: hsl(var(--primary)); }
+.log-badge-llm_thought { background: hsl(var(--smui-purple) / 0.15); color: hsl(var(--smui-purple)); }
+.log-badge-tool_call { background: hsl(var(--smui-orange) / 0.15); color: hsl(var(--smui-orange)); }
+.log-badge-tool_result { background: hsl(var(--smui-green) / 0.15); color: hsl(var(--smui-green)); }
+.log-badge-server_message { background: hsl(var(--smui-frost-3) / 0.15); color: hsl(var(--smui-frost-3)); }
+.log-badge-notification { background: hsl(var(--smui-yellow) / 0.15); color: hsl(var(--smui-yellow)); }
+.log-badge-error { background: hsl(var(--destructive) / 0.15); color: hsl(var(--destructive)); }
+.log-badge-system { background: hsl(var(--muted-foreground) / 0.1); color: hsl(var(--muted-foreground)); }
 
-/* Form inputs */
-.input-field {
-  width: 100%;
-  background: var(--color-space-black);
-  border: 1px solid rgba(61, 90, 108, 0.4);
-  border-radius: 4px;
-  padding: 0.5rem 0.625rem;
-  font-family: var(--font-jetbrains);
-  font-size: 0.75rem;
-  color: var(--color-star-white);
+/* ─── SMUI Utility Classes ───────────────────────────────── */
+
+.card-glow {
+  box-shadow: 0 0 20px hsl(var(--primary) / 0.08), inset 0 1px 0 hsl(var(--primary) / 0.05);
 }
 
-.input-field::placeholder {
-  color: var(--color-hull-grey);
+@keyframes skeleton-pulse {
+  0%, 100% { opacity: 0.4; }
+  50% { opacity: 0.7; }
 }
 
-.input-field:focus {
-  border-color: var(--color-plasma-cyan);
-  outline: none;
-}
-
-.input-field:disabled {
-  opacity: 0.5;
-}
-
-select.input-field {
-  appearance: none;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%233d5a6c' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
-  background-repeat: no-repeat;
-  background-position: right 0.5rem center;
-  padding-right: 1.75rem;
-}
-
-select.input-field option {
-  background: var(--color-deep-void);
-  color: var(--color-star-white);
+.skeleton {
+  background: hsl(var(--muted));
+  animation: skeleton-pulse 2s ease-in-out infinite;
 }

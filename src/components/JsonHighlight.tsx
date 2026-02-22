@@ -1,7 +1,7 @@
 'use client'
 
 /**
- * Zero-dependency JSON syntax highlighter matching the SpaceMolt sci-fi theme.
+ * Zero-dependency JSON syntax highlighter matching the SMUI theme.
  * Tokenizes a JSON string and wraps each token in a colored span.
  */
 
@@ -18,17 +18,17 @@ interface Token {
 }
 
 const TOKEN_COLORS: Record<TokenType, string> = {
-  key: 'var(--color-plasma-cyan)',
-  string: 'var(--color-bio-green)',
-  number: 'var(--color-shell-orange)',
-  boolean: 'var(--color-void-purple)',
-  null: 'var(--color-hull-grey)',
-  brace: 'var(--color-chrome-silver)',
-  bracket: 'var(--color-chrome-silver)',
-  colon: 'var(--color-hull-grey)',
-  comma: 'var(--color-hull-grey)',
+  key: 'hsl(var(--primary))',
+  string: 'hsl(var(--smui-green))',
+  number: 'hsl(var(--smui-orange))',
+  boolean: 'hsl(var(--smui-purple))',
+  null: 'hsl(var(--border))',
+  brace: 'hsl(var(--muted-foreground))',
+  bracket: 'hsl(var(--muted-foreground))',
+  colon: 'hsl(var(--border))',
+  comma: 'hsl(var(--border))',
   whitespace: 'transparent',
-  text: 'var(--color-chrome-silver)',
+  text: 'hsl(var(--muted-foreground))',
 }
 
 function tokenize(input: string): Token[] {

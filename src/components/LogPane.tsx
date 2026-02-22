@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
 import { ChevronDown, ChevronRight } from 'lucide-react'
 import type { LogEntry, LogType } from '@/types'
+import { Button } from '@/components/ui/button'
 import { JsonHighlight } from './JsonHighlight'
 
 const FILTERS: { label: string; types: LogType[] | null }[] = [
@@ -35,6 +36,8 @@ const TYPE_LABELS: Record<string, string> = {
   system: 'SYSTEM',
 }
 
+const SUMMARY_EXPAND_THRESHOLD = 80
+
 interface Props {
   profileId: string
   connected?: boolean
@@ -44,6 +47,7 @@ export function LogPane({ profileId, connected }: Props) {
   const [entries, setEntries] = useState<LogEntry[]>([])
   const [filter, setFilter] = useState<LogType[] | null>(null)
   const [expanded, setExpanded] = useState<Set<number>>(new Set())
+  const [summaryExpanded, setSummaryExpanded] = useState<Set<number>>(new Set())
   const [autoScroll, setAutoScroll] = useState(true)
   const scrollRef = useRef<HTMLDivElement>(null)
   const eventSourceRef = useRef<EventSource | null>(null)
@@ -110,20 +114,29 @@ export function LogPane({ profileId, connected }: Props) {
     })
   }
 
+  function toggleSummaryExpand(id: number) {
+    setSummaryExpanded(prev => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
+  }
+
   const filtered = filter ? entries.filter(e => filter.includes(e.type)) : entries
 
   return (
     <div className="flex flex-col h-full">
       {/* Filter tabs */}
-      <div className="flex items-center gap-1 px-3 py-1.5 bg-deep-void border-b border-hull-grey/30">
+      <div className="flex items-center gap-1 px-3 py-1.5 bg-card border-b border-border/30">
         {FILTERS.map(f => (
           <button
             key={f.label}
             onClick={() => setFilter(f.types)}
-            className={`px-2.5 py-1 text-[10px] font-jetbrains uppercase tracking-wider rounded transition-colors ${
+            className={`px-2.5 py-1 text-[10px] font-jetbrains uppercase tracking-wider transition-colors ${
               (filter === null && f.types === null) || (filter && f.types && filter[0] === f.types[0])
-                ? 'bg-nebula-blue text-plasma-cyan'
-                : 'text-chrome-silver/60 hover:text-chrome-silver hover:bg-nebula-blue/30'
+                ? 'bg-secondary text-primary'
+                : 'text-muted-foreground/60 hover:text-muted-foreground hover:bg-secondary/30'
             }`}
           >
             {f.label}
@@ -136,7 +149,7 @@ export function LogPane({ profileId, connected }: Props) {
               setAutoScroll(true)
               if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight
             }}
-            className="px-2 py-0.5 text-[10px] font-jetbrains text-warning-yellow bg-warning-yellow/10 rounded"
+            className="px-2 py-0.5 text-[10px] font-jetbrains text-smui-yellow bg-smui-yellow/10"
           >
             <ChevronDown size={10} className="inline mr-1" />
             Follow
@@ -147,42 +160,62 @@ export function LogPane({ profileId, connected }: Props) {
       {/* Log entries */}
       <div ref={scrollRef} onScroll={handleScroll} className="flex-1 overflow-y-auto font-jetbrains text-xs">
         {filtered.length === 0 && (
-          <div className="flex items-center justify-center h-full text-hull-grey text-xs">
+          <div className="flex items-center justify-center h-full text-border text-xs">
             No log entries yet. Connect a profile to see activity.
           </div>
         )}
         {filtered.map(entry => {
           const isExpanded = expanded.has(entry.id)
+          const isSummaryExpanded = summaryExpanded.has(entry.id)
           const hasDetail = entry.detail && entry.detail !== entry.summary
+          const hasLongSummary = entry.summary.length > SUMMARY_EXPAND_THRESHOLD
+          const isClickable = hasDetail || hasLongSummary
 
           return (
-            <div key={entry.id} className="border-b border-hull-grey/10 hover:bg-nebula-blue/10">
+            <div key={entry.id} className="border-b border-border/10 hover:bg-secondary/10">
               <div
-                className={`flex items-start gap-2 px-3 py-1.5 ${hasDetail ? 'cursor-pointer' : ''}`}
-                onClick={() => hasDetail && toggleExpand(entry.id)}
+                className={`flex items-start gap-2 px-3 py-1.5 ${isClickable ? 'cursor-pointer' : ''}`}
+                onClick={() => {
+                  if (hasDetail) {
+                    toggleExpand(entry.id)
+                  } else if (hasLongSummary) {
+                    toggleSummaryExpand(entry.id)
+                  }
+                }}
               >
-                {hasDetail ? (
-                  isExpanded ? <ChevronDown size={10} className="text-hull-grey mt-0.5 shrink-0" /> : <ChevronRight size={10} className="text-hull-grey mt-0.5 shrink-0" />
+                {isClickable ? (
+                  (isExpanded || isSummaryExpanded)
+                    ? <ChevronDown size={10} className="text-border mt-0.5 shrink-0" />
+                    : <ChevronRight size={10} className="text-border mt-0.5 shrink-0" />
                 ) : (
                   <span className="w-[10px] shrink-0" />
                 )}
-                <span className="text-hull-grey shrink-0 w-14">
+                <span className="text-border shrink-0 w-14">
                   {formatTime(entry.timestamp)}
                 </span>
                 <span className={`log-badge ${BADGE_CLASS[entry.type] || 'log-badge-system'} shrink-0`}>
                   {TYPE_LABELS[entry.type] || entry.type}
                 </span>
-                <span className="text-chrome-silver truncate">{entry.summary}</span>
+                <span className={`text-muted-foreground ${isSummaryExpanded ? '' : 'truncate'}`}>
+                  {entry.summary}
+                </span>
               </div>
               {isExpanded && entry.detail && (
-                <div className="ml-8 mr-3 mb-1 max-h-72 overflow-y-auto rounded border border-hull-grey/20 bg-[#080c14]">
+                <div className="ml-8 mr-3 mb-1 max-h-72 overflow-y-auto border border-border/20 bg-smui-surface-0">
                   {looksLikeJson(entry.detail) ? (
                     <JsonHighlight json={entry.detail} className="px-3 py-2 text-[11px] font-jetbrains leading-relaxed" />
                   ) : (
-                    <pre className="px-3 py-2 text-[11px] font-jetbrains text-chrome-silver/80 whitespace-pre-wrap break-words leading-relaxed">
+                    <pre className="px-3 py-2 text-[11px] font-jetbrains text-muted-foreground/80 whitespace-pre-wrap break-words leading-relaxed">
                       {entry.detail}
                     </pre>
                   )}
+                </div>
+              )}
+              {isSummaryExpanded && !hasDetail && (
+                <div className="ml-8 mr-3 mb-1 border border-border/20 bg-smui-surface-0">
+                  <pre className="px-3 py-2 text-[11px] font-jetbrains text-muted-foreground/80 whitespace-pre-wrap break-words leading-relaxed">
+                    {entry.summary}
+                  </pre>
                 </div>
               )}
             </div>

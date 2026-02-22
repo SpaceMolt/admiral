@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { Settings } from 'lucide-react'
 import type { Profile, Provider } from '@/types'
+import { Button } from '@/components/ui/button'
 import { ProfileList } from './ProfileList'
 import { ProfileEditor } from './ProfileEditor'
 import { ProfileView } from './ProfileView'
@@ -101,17 +102,19 @@ export function Dashboard({ profiles: initialProfiles, providers, onRefresh, onS
   return (
     <div className="flex flex-col h-screen">
       {/* Top bar */}
-      <div className="flex items-center justify-between px-4 py-2 bg-deep-void border-b border-hull-grey/40">
-        <h1 className="font-orbitron text-lg font-bold tracking-wider bg-gradient-to-r from-plasma-cyan to-shell-orange bg-clip-text text-transparent">
+      <div className="flex items-center justify-between px-4 py-2 bg-card border-b border-border/40">
+        <h1 className="font-orbitron text-lg font-bold tracking-wider bg-gradient-to-r from-primary to-smui-orange bg-clip-text text-transparent">
           ADMIRAL
         </h1>
-        <button
+        <Button
+          variant="ghost"
+          size="sm"
           onClick={onShowProviders}
-          className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-jetbrains text-chrome-silver/70 hover:text-plasma-cyan transition-colors"
+          className="gap-1.5 text-xs font-jetbrains text-muted-foreground/70 hover:text-primary"
         >
           <Settings size={13} />
           Providers
-        </button>
+        </Button>
       </div>
 
       {/* Main content */}
@@ -156,8 +159,8 @@ export function Dashboard({ profiles: initialProfiles, providers, onRefresh, onS
           ) : (
             <div className="flex items-center justify-center h-full">
               <div className="text-center">
-                <p className="font-orbitron text-xl text-plasma-cyan mb-2 tracking-wider">Welcome to Admiral</p>
-                <p className="font-jetbrains text-sm text-chrome-silver">Create a profile to get started.</p>
+                <p className="font-orbitron text-xl text-primary mb-2 tracking-wider">Welcome to Admiral</p>
+                <p className="font-jetbrains text-sm text-muted-foreground">Create a profile to get started.</p>
               </div>
             </div>
           )}

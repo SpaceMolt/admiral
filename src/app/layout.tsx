@@ -1,5 +1,5 @@
 import type { Metadata } from 'next'
-import { Orbitron, JetBrains_Mono, Space_Grotesk } from 'next/font/google'
+import { Orbitron, JetBrains_Mono } from 'next/font/google'
 import './globals.css'
 
 const orbitron = Orbitron({
@@ -16,13 +16,6 @@ const jetbrainsMono = JetBrains_Mono({
   weight: ['300', '400', '500', '600'],
 })
 
-const spaceGrotesk = Space_Grotesk({
-  subsets: ['latin'],
-  variable: '--font-family-space-grotesk',
-  display: 'swap',
-  weight: ['300', '400', '500', '600', '700'],
-})
-
 export const metadata: Metadata = {
   title: 'Admiral - SpaceMolt Agent Manager',
   description: 'Manage multiple SpaceMolt AI agents from your browser',
@@ -30,7 +23,7 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className={`${orbitron.variable} ${jetbrainsMono.variable} ${spaceGrotesk.variable}`}>
+    <html lang="en" className={`dark ${orbitron.variable} ${jetbrainsMono.variable}`}>
       <body>{children}</body>
     </html>
   )

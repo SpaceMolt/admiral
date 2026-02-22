@@ -3,6 +3,11 @@
 import { useState } from 'react'
 import { X, Save } from 'lucide-react'
 import type { Profile, Provider } from '@/types'
+import { Input } from '@/components/ui/input'
+import { Select } from '@/components/ui/select'
+import { Textarea } from '@/components/ui/textarea'
+import { Button } from '@/components/ui/button'
+import { Separator } from '@/components/ui/separator'
 
 interface Props {
   profile?: Profile | null
@@ -49,92 +54,101 @@ export function ProfileEditor({ profile, providers, onSave, onCancel }: Props) {
   return (
     <div className="flex flex-col h-full">
       <div className="flex items-center justify-between px-6 pt-6 pb-4">
-        <h2 className="font-orbitron text-lg font-bold text-plasma-cyan uppercase tracking-wider">
+        <h2 className="font-orbitron text-lg font-bold text-primary uppercase tracking-wider">
           {isNew ? 'New Profile' : 'Edit Profile'}
         </h2>
-        <button onClick={onCancel} className="p-1 text-hull-grey hover:text-star-white transition-colors">
+        <Button variant="ghost" size="icon" onClick={onCancel} className="h-7 w-7 text-border hover:text-foreground">
           <X size={18} />
-        </button>
+        </Button>
       </div>
 
       <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto px-6 pb-6">
         <div className="max-w-lg space-y-5">
-          {error && <div className="text-claw-red text-xs font-jetbrains bg-claw-red/10 border border-claw-red/20 rounded px-3 py-2">{error}</div>}
+          {error && <div className="text-destructive text-xs font-jetbrains bg-destructive/10 border border-destructive/20 px-3 py-2">{error}</div>}
 
           <Field label="Profile Name" required>
-            <input value={name} onChange={e => setName(e.target.value)} placeholder="e.g. Vex, Trader, Scout" className="input-field" />
+            <Input value={name} onChange={e => setName(e.target.value)} placeholder="e.g. Vex, Trader, Scout" />
           </Field>
 
-          <div className="border-t border-hull-grey/20 pt-5">
-            <span className="font-jetbrains text-[10px] text-shell-orange uppercase tracking-wider font-semibold">SpaceMolt Credentials</span>
-            <p className="text-[10px] text-chrome-silver/50 font-jetbrains mt-1 mb-3">Leave blank to register as a new player on connect.</p>
+          <Separator />
+
+          <div>
+            <span className="font-jetbrains text-[10px] text-smui-orange uppercase tracking-wider font-semibold">SpaceMolt Credentials</span>
+            <p className="text-[10px] text-muted-foreground/50 font-jetbrains mt-1 mb-3">Leave blank to register as a new player on connect.</p>
 
             <div className="grid grid-cols-2 gap-4">
               <Field label="Username">
-                <input value={username} onChange={e => setUsername(e.target.value)} placeholder="(new player)" className="input-field" />
+                <Input value={username} onChange={e => setUsername(e.target.value)} placeholder="(new player)" />
               </Field>
               <Field label="Empire">
-                <select value={empire} onChange={e => setEmpire(e.target.value)} className="input-field">
+                <Select value={empire} onChange={e => setEmpire(e.target.value)}>
                   <option value="">Choose...</option>
                   {EMPIRES.map(e => <option key={e} value={e}>{e.charAt(0).toUpperCase() + e.slice(1)}</option>)}
-                </select>
+                </Select>
               </Field>
             </div>
 
             {username && (
               <Field label="Password" className="mt-3">
-                <input type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="256-bit hex" className="input-field" />
+                <Input type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="256-bit hex" />
               </Field>
             )}
           </div>
 
-          <div className="border-t border-hull-grey/20 pt-5">
-            <span className="font-jetbrains text-[10px] text-shell-orange uppercase tracking-wider font-semibold">Agent Configuration</span>
+          <Separator />
+
+          <div>
+            <span className="font-jetbrains text-[10px] text-smui-orange uppercase tracking-wider font-semibold">Agent Configuration</span>
 
             <div className="grid grid-cols-2 gap-4 mt-3">
               <Field label="Provider">
-                <select value={provider} onChange={e => setProvider(e.target.value)} className="input-field">
+                <Select value={provider} onChange={e => setProvider(e.target.value)}>
                   <option value="">Choose...</option>
                   {availableProviders.map(p => <option key={p} value={p}>{p === 'manual' ? 'Manual (no LLM)' : p}</option>)}
-                </select>
+                </Select>
               </Field>
               {provider && provider !== 'manual' && (
                 <Field label="Model">
-                  <input value={model} onChange={e => setModel(e.target.value)} placeholder="e.g. claude-sonnet-4-20250514" className="input-field" />
+                  <Input value={model} onChange={e => setModel(e.target.value)} placeholder="e.g. claude-sonnet-4-20250514" />
                 </Field>
               )}
             </div>
 
             <div className="grid grid-cols-2 gap-4 mt-3">
               <Field label="Connection Mode">
-                <select value={connectionMode} onChange={e => setConnectionMode(e.target.value)} className="input-field">
+                <Select value={connectionMode} onChange={e => setConnectionMode(e.target.value)}>
                   {CONNECTION_MODES.map(m => <option key={m} value={m}>{m.toUpperCase()}</option>)}
-                </select>
+                </Select>
               </Field>
               <Field label="Server URL">
-                <input value={serverUrl} onChange={e => setServerUrl(e.target.value)} className="input-field" />
+                <Input value={serverUrl} onChange={e => setServerUrl(e.target.value)} />
               </Field>
             </div>
 
             <Field label="Directive / Mission" className="mt-3">
-              <textarea
+              <Textarea
                 value={directive}
                 onChange={e => setDirective(e.target.value)}
                 placeholder="e.g. Mine ore and sell it until you can buy a better ship"
                 rows={3}
-                className="input-field resize-none"
+                className="resize-none"
               />
             </Field>
           </div>
 
-          <div className="flex justify-end gap-3 pt-5 border-t border-hull-grey/20">
-            <button type="button" onClick={onCancel} className="px-4 py-2 text-xs font-jetbrains text-chrome-silver hover:text-star-white transition-colors">
+          <Separator />
+
+          <div className="flex justify-end gap-3">
+            <Button type="button" variant="ghost" onClick={onCancel}>
               Cancel
-            </button>
-            <button type="submit" className="flex items-center gap-2 px-5 py-2 font-orbitron text-xs font-semibold uppercase tracking-wider bg-gradient-to-r from-shell-orange to-claw-red text-star-white border border-shell-orange rounded hover:shadow-[0_0_20px_rgba(255,107,53,0.4)] transition-shadow">
+            </Button>
+            <Button
+              type="submit"
+              className="gap-2 bg-gradient-to-r from-smui-orange to-destructive text-foreground font-orbitron text-xs font-semibold uppercase tracking-wider hover:shadow-[0_0_20px_hsl(var(--smui-orange)/0.4)]"
+            >
               <Save size={14} />
               {isNew ? 'Create' : 'Save'}
-            </button>
+            </Button>
           </div>
         </div>
       </form>
@@ -145,8 +159,8 @@ export function ProfileEditor({ profile, providers, onSave, onCancel }: Props) {
 function Field({ label, required, children, className }: { label: string; required?: boolean; children: React.ReactNode; className?: string }) {
   return (
     <label className={`block ${className || ''}`}>
-      <span className="font-jetbrains text-[10px] text-chrome-silver uppercase tracking-wider">
-        {label}{required && <span className="text-claw-red ml-0.5">*</span>}
+      <span className="font-jetbrains text-[10px] text-muted-foreground uppercase tracking-wider">
+        {label}{required && <span className="text-destructive ml-0.5">*</span>}
       </span>
       <div className="mt-1">{children}</div>
     </label>

@@ -3,6 +3,7 @@
 import { useState, useCallback } from 'react'
 import { Play, Square, Plug, PlugZap, Settings, Trash2 } from 'lucide-react'
 import type { Profile } from '@/types'
+import { Button } from '@/components/ui/button'
 import { PlayerStatus } from './PlayerStatus'
 import { CommandPanel } from './CommandPanel'
 import { QuickCommands } from './QuickCommands'
@@ -67,21 +68,21 @@ export function ProfileView({ profile, status, onEdit, onDelete, onRefresh }: Pr
   return (
     <div className="flex flex-col h-full">
       {/* Header bar */}
-      <div className="flex items-center gap-3 px-4 py-2.5 bg-deep-void border-b border-hull-grey/40">
+      <div className="flex items-center gap-3 px-4 py-2.5 bg-card border-b border-border/40">
         <div className={`status-dot ${
           status.running ? 'status-dot-green' :
           status.connected ? 'status-dot-orange' :
           'status-dot-grey'
         }`} />
-        <h2 className="font-orbitron text-sm font-bold text-star-white tracking-wider">{profile.name}</h2>
+        <h2 className="font-orbitron text-sm font-bold text-foreground tracking-wider">{profile.name}</h2>
         {profile.username && (
-          <span className="font-jetbrains text-[11px] text-chrome-silver/40">@{profile.username}</span>
+          <span className="font-jetbrains text-[11px] text-muted-foreground/40">@{profile.username}</span>
         )}
-        <span className="font-jetbrains text-[10px] text-hull-grey/80 uppercase tracking-wider px-1.5 py-0.5 border border-hull-grey/25 rounded bg-hull-grey/5">
+        <span className="font-jetbrains text-[10px] text-border/80 uppercase tracking-wider px-1.5 py-0.5 border border-border/25 bg-border/5">
           {profile.connection_mode}
         </span>
         {!isManual && profile.provider && (
-          <span className="font-jetbrains text-[10px] text-void-purple/80">
+          <span className="font-jetbrains text-[10px] text-smui-purple/80">
             {profile.provider}/{profile.model}
           </span>
         )}
@@ -89,31 +90,35 @@ export function ProfileView({ profile, status, onEdit, onDelete, onRefresh }: Pr
         <div className="flex-1" />
 
         {!status.connected ? (
-          <button
+          <Button
+            variant="outline"
+            size="sm"
             onClick={handleConnect}
             disabled={connecting}
-            className="flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-jetbrains font-semibold bg-bio-green/15 text-bio-green border border-bio-green/25 rounded hover:bg-bio-green/25 transition-colors disabled:opacity-50"
+            className="gap-1.5 font-jetbrains font-semibold bg-smui-green/15 text-smui-green border-smui-green/25 hover:bg-smui-green/25"
           >
             {connecting ? <PlugZap size={12} className="animate-pulse" /> : <Plug size={12} />}
             {connecting ? 'Connecting...' : (isManual ? 'Connect' : 'Connect + Start')}
-          </button>
+          </Button>
         ) : (
-          <button
+          <Button
+            variant="outline"
+            size="sm"
             onClick={handleDisconnect}
-            className="flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-jetbrains font-semibold bg-claw-red/15 text-claw-red border border-claw-red/25 rounded hover:bg-claw-red/25 transition-colors"
+            className="gap-1.5 font-jetbrains font-semibold bg-destructive/15 text-destructive border-destructive/25 hover:bg-destructive/25"
           >
             <Square size={12} />
             Disconnect
-          </button>
+          </Button>
         )}
 
         <div className="flex items-center gap-0.5 ml-1">
-          <button onClick={onEdit} className="p-1.5 text-hull-grey hover:text-chrome-silver transition-colors">
+          <Button variant="ghost" size="icon" onClick={onEdit} className="h-7 w-7 text-border hover:text-muted-foreground">
             <Settings size={14} />
-          </button>
-          <button onClick={onDelete} className="p-1.5 text-hull-grey hover:text-claw-red transition-colors">
+          </Button>
+          <Button variant="ghost" size="icon" onClick={onDelete} className="h-7 w-7 text-border hover:text-destructive">
             <Trash2 size={14} />
-          </button>
+          </Button>
         </div>
       </div>
 
@@ -124,7 +129,7 @@ export function ProfileView({ profile, status, onEdit, onDelete, onRefresh }: Pr
       <QuickCommands onSend={handleSendCommand} disabled={!status.connected} />
 
       {/* Manual command input */}
-      <CommandPanel onSend={handleSendCommand} disabled={!status.connected} />
+      <CommandPanel profileId={profile.id} onSend={handleSendCommand} disabled={!status.connected} />
 
       {/* Log pane */}
       <div className="flex-1 min-h-0">

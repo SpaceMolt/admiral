@@ -11,10 +11,13 @@
     "@mariozechner/pi-ai": "latest",
     "@types/ws": "^8.18.1",
     "better-sqlite3": "^11.7.0",
+    "class-variance-authority": "^0.7.1",
+    "clsx": "^2.1.1",
     "lucide-react": "^0.563.0",
     "next": "^15.3.3",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
+    "tailwind-merge": "^3.5.0",
     "ws": "^8.19.0"
   },
   "devDependencies": {

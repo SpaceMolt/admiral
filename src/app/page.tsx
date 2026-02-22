@@ -40,7 +40,7 @@ export default function Home() {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-screen">
-        <div className="text-chrome-silver font-jetbrains text-sm">Loading Admiral...</div>
+        <div className="text-muted-foreground font-jetbrains text-sm">Loading Admiral...</div>
       </div>
     )
   }
