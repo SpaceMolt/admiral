@@ -1,11 +1,10 @@
 'use client'
 
-import { useState, useEffect, useCallback, useRef } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { Settings, Sun, Moon } from 'lucide-react'
+import { useQueryState } from 'nuqs'
 import type { Profile, Provider } from '@/types'
-import { Button } from '@/components/ui/button'
 import { ProfileList } from './ProfileList'
-import { ProfileEditor } from './ProfileEditor'
 import { ProfileView } from './ProfileView'
 
 interface Props {
@@ -19,9 +18,11 @@ interface Props {
 
 export function Dashboard({ profiles: initialProfiles, providers, registrationCode, gameserverUrl, onRefresh, onShowProviders }: Props) {
   const [profiles, setProfiles] = useState(initialProfiles)
-  const [activeId, setActiveId] = useState<string | null>(initialProfiles[0]?.id || null)
-  const [showEditor, setShowEditor] = useState(false)
-  const [editingProfile, setEditingProfile] = useState<Profile | null>(null)
+  const [activeId, setActiveId] = useQueryState('profile', {
+    defaultValue: initialProfiles[0]?.id || '',
+    shallow: false,
+  })
+  const [autoEditName, setAutoEditName] = useState(false)
   const [statuses, setStatuses] = useState<Record<string, { connected: boolean; running: boolean }>>({})
   const [playerDataMap, setPlayerDataMap] = useState<Record<string, Record<string, unknown>>>({})
 
@@ -53,7 +54,15 @@ export function Dashboard({ profiles: initialProfiles, providers, registrationCo
     }
   }, [])
 
-  async function handleCreateProfile(data: Partial<Profile>) {
+  async function handleNewProfile() {
+    const mostRecent = profiles.length > 0 ? profiles[profiles.length - 1] : null
+    const data: Partial<Profile> = {
+      name: 'New Profile',
+      connection_mode: mostRecent?.connection_mode || 'http',
+      provider: mostRecent?.provider || null,
+      model: mostRecent?.model || null,
+      server_url: gameserverUrl,
+    }
     try {
       const resp = await fetch('/api/profiles', {
         method: 'POST',
@@ -64,26 +73,7 @@ export function Dashboard({ profiles: initialProfiles, providers, registrationCo
         const profile = await resp.json()
         setProfiles(prev => [...prev, profile])
         setActiveId(profile.id)
-        setShowEditor(false)
-      }
-    } catch {
-      // ignore
-    }
-  }
-
-  async function handleUpdateProfile(data: Partial<Profile>) {
-    if (!editingProfile) return
-    try {
-      const resp = await fetch(`/api/profiles/${editingProfile.id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data),
-      })
-      if (resp.ok) {
-        const updated = await resp.json()
-        setProfiles(prev => prev.map(p => p.id === updated.id ? updated : p))
-        setShowEditor(false)
-        setEditingProfile(null)
+        setAutoEditName(true)
       }
     } catch {
       // ignore
@@ -94,7 +84,7 @@ export function Dashboard({ profiles: initialProfiles, providers, registrationCo
     try {
       await fetch(`/api/profiles/${id}`, { method: 'DELETE' })
       setProfiles(prev => prev.filter(p => p.id !== id))
-      if (activeId === id) setActiveId(profiles.find(p => p.id !== id)?.id || null)
+      if (activeId === id) setActiveId(profiles.find(p => p.id !== id)?.id || '')
     } catch {
       // ignore
     }
@@ -133,26 +123,12 @@ export function Dashboard({ profiles: initialProfiles, providers, registrationCo
           statuses={statuses}
           playerDataMap={playerDataMap}
           onSelect={setActiveId}
-          onNew={() => {
-            setEditingProfile(null)
-            setShowEditor(true)
-          }}
+          onNew={handleNewProfile}
         />
 
         {/* Content area */}
         <div className="flex-1 min-w-0">
-          {showEditor ? (
-            <ProfileEditor
-              profile={editingProfile}
-              providers={providers}
-              defaultServerUrl={gameserverUrl}
-              onSave={editingProfile ? handleUpdateProfile : handleCreateProfile}
-              onCancel={() => {
-                setShowEditor(false)
-                setEditingProfile(null)
-              }}
-            />
-          ) : activeProfile ? (
+          {activeProfile ? (
             <ProfileView
               profile={activeProfile}
               providers={providers}
@@ -160,14 +136,12 @@ export function Dashboard({ profiles: initialProfiles, providers, registrationCo
               registrationCode={registrationCode}
               playerData={playerDataMap[activeProfile.id] || null}
               onPlayerData={(data) => setPlayerDataMap(prev => ({ ...prev, [activeProfile.id]: data }))}
-              onEdit={() => {
-                setEditingProfile(activeProfile)
-                setShowEditor(true)
-              }}
               onDelete={() => handleDeleteProfile(activeProfile.id)}
               onRefresh={() => {
                 refreshProfiles()
               }}
+              autoEditName={autoEditName}
+              onAutoEditNameDone={() => setAutoEditName(false)}
             />
           ) : (
             <div className="flex items-center justify-center h-full">
@@ -207,4 +181,3 @@ function ThemeToggle() {
     </button>
   )
 }
-

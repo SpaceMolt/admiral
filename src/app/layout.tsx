@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import Script from 'next/script'
 import { Orbitron, JetBrains_Mono } from 'next/font/google'
+import { NuqsAdapter } from 'nuqs/adapters/next/app'
 import './globals.css'
 
 const orbitron = Orbitron({
@@ -33,7 +34,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           } catch(e) {}
         `}</Script>
       </head>
-      <body>{children}</body>
+      <body><NuqsAdapter>{children}</NuqsAdapter></body>
     </html>
   )
 }

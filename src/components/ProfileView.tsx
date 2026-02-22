@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useCallback, useEffect, useRef } from 'react'
-import { Square, Plug, PlugZap, Settings, Trash2, Pencil, Check, X } from 'lucide-react'
+import { Square, Plug, PlugZap, Trash2, Pencil, Check, X } from 'lucide-react'
 import type { Profile, Provider } from '@/types'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -29,7 +29,7 @@ const CONNECTION_MODES: { value: string; label: string }[] = [
   { value: 'mcp_v2', label: 'MCP v2' },
 ]
 
-type EditingField = 'name' | 'mode' | 'provider' | null
+type EditingField = 'name' | 'mode' | 'provider' | 'credentials' | null
 
 interface Props {
   profile: Profile
@@ -38,12 +38,13 @@ interface Props {
   registrationCode?: string
   playerData: Record<string, unknown> | null
   onPlayerData: (data: Record<string, unknown>) => void
-  onEdit: () => void
   onDelete: () => void
   onRefresh: () => void
+  autoEditName?: boolean
+  onAutoEditNameDone?: () => void
 }
 
-export function ProfileView({ profile, providers, status, playerData, onPlayerData, onEdit, onDelete, onRefresh }: Props) {
+export function ProfileView({ profile, providers, status, playerData, onPlayerData, onDelete, onRefresh, autoEditName, onAutoEditNameDone }: Props) {
   const [showSidePane, setShowSidePane] = useState(true)
   const [sidePaneWidth, setSidePaneWidth] = useState(288)
   const [connecting, setConnecting] = useState(false)
@@ -59,11 +60,22 @@ export function ProfileView({ profile, providers, status, playerData, onPlayerDa
   const [editName, setEditName] = useState('')
   const [editProvider, setEditProvider] = useState('')
   const [editModel, setEditModel] = useState('')
+  const [editUsername, setEditUsername] = useState('')
+  const [editPassword, setEditPassword] = useState('')
   const editNameRef = useRef<HTMLInputElement>(null)
   const popoverRef = useRef<HTMLDivElement>(null)
 
   const isManual = !profile.provider || profile.provider === 'manual'
   const availableProviders = ['manual', ...providers.filter(p => p.status === 'valid' || p.api_key).map(p => p.id)]
+
+  // Auto-open name edit for new profiles
+  useEffect(() => {
+    if (autoEditName) {
+      setEditing('name')
+      setEditName(profile.name)
+      onAutoEditNameDone?.()
+    }
+  }, [autoEditName, profile.name, onAutoEditNameDone])
 
   // Close popover on outside click
   useEffect(() => {
@@ -188,6 +200,14 @@ export function ProfileView({ profile, providers, status, playerData, onPlayerDa
     }
     setEditing(null)
     await saveProfileField({ provider: newProvider, model: newModel }, true)
+  }
+
+  async function handleSaveCredentials() {
+    setEditing(null)
+    await saveProfileField({
+      username: editUsername || null,
+      password: editPassword || null,
+    })
   }
 
   // Fetch player status
@@ -349,9 +369,65 @@ export function ProfileView({ profile, providers, status, playerData, onPlayerDa
           )}
         </div>
 
-        {profile.username && (
-          <span className="text-[11px] text-muted-foreground">@{profile.username}</span>
-        )}
+        {/* Editable @username / credentials */}
+        <div className="relative">
+          <span
+            className={`text-[11px] cursor-pointer transition-colors ${
+              profile.username
+                ? 'text-muted-foreground hover:text-foreground'
+                : 'text-muted-foreground/40 italic hover:text-muted-foreground'
+            }`}
+            onClick={() => {
+              setEditing('credentials')
+              setEditUsername(profile.username || '')
+              setEditPassword(profile.password || '')
+            }}
+          >
+            {profile.username ? `@${profile.username}` : '@credentials'}
+          </span>
+          {editing === 'credentials' && (
+            <div ref={popoverRef} className="absolute z-50 top-full left-0 mt-1.5 bg-card border border-border shadow-lg p-2.5 min-w-[280px]">
+              <span className="text-[10px] text-[hsl(var(--smui-orange))] uppercase tracking-[1.5px] block mb-2">SpaceMolt Credentials</span>
+              <div className="space-y-2">
+                <div>
+                  <span className="text-[10px] text-muted-foreground uppercase tracking-[1.5px] block mb-1">Username</span>
+                  <Input
+                    value={editUsername}
+                    onChange={e => setEditUsername(e.target.value)}
+                    placeholder="(new player)"
+                    className="h-7 text-xs"
+                    onKeyDown={e => {
+                      if (e.key === 'Enter') handleSaveCredentials()
+                      if (e.key === 'Escape') setEditing(null)
+                    }}
+                  />
+                </div>
+                <div>
+                  <span className="text-[10px] text-muted-foreground uppercase tracking-[1.5px] block mb-1">Password</span>
+                  <Input
+                    type="password"
+                    value={editPassword}
+                    onChange={e => setEditPassword(e.target.value)}
+                    placeholder="256-bit hex"
+                    className="h-7 text-xs"
+                    onKeyDown={e => {
+                      if (e.key === 'Enter') handleSaveCredentials()
+                      if (e.key === 'Escape') setEditing(null)
+                    }}
+                  />
+                </div>
+                <div className="flex justify-end gap-1.5 pt-1 border-t border-border/50">
+                  <Button variant="ghost" size="sm" onClick={() => setEditing(null)} className="h-6 text-[10px] px-2">
+                    Cancel
+                  </Button>
+                  <Button size="sm" onClick={handleSaveCredentials} className="h-6 text-[10px] px-2 bg-primary text-primary-foreground hover:bg-primary/90">
+                    Save
+                  </Button>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
 
         {/* Editable connection mode */}
         <div className="relative">
@@ -491,14 +567,9 @@ export function ProfileView({ profile, providers, status, playerData, onPlayerDa
           </Button>
         )}
 
-        <div className="flex items-center gap-0.5 ml-1">
-          <Button variant="ghost" size="icon" onClick={onEdit} className="h-7 w-7 text-muted-foreground hover:text-foreground">
-            <Settings size={14} />
-          </Button>
-          <Button variant="ghost" size="icon" onClick={() => { if (window.confirm('Delete this profile and all its logs?')) onDelete() }} className="h-7 w-7 text-muted-foreground hover:text-destructive">
-            <Trash2 size={14} />
-          </Button>
-        </div>
+        <Button variant="ghost" size="icon" onClick={() => { if (window.confirm('Delete this profile and all its logs?')) onDelete() }} className="h-7 w-7 text-muted-foreground hover:text-destructive ml-1">
+          <Trash2 size={14} />
+        </Button>
       </div>
 
       {/* Directive */}

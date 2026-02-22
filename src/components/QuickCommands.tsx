@@ -39,15 +39,16 @@ export function QuickCommands({ onSend, disabled, showSidePane, onToggleSidePane
         </Button>
       ))}
       <div className="flex-1" />
-      <Button
-        variant="ghost"
-        size="icon"
+      <button
         onClick={onToggleSidePane}
-        className={`h-7 w-7 shrink-0 ${showSidePane ? 'text-primary' : 'text-muted-foreground hover:text-foreground'}`}
+        className={`flex items-center gap-1.5 px-2 py-1 text-[11px] uppercase tracking-[1.5px] transition-colors shrink-0 ${
+          showSidePane ? 'text-primary' : 'text-muted-foreground hover:text-foreground'
+        }`}
         title={showSidePane ? 'Hide side panel' : 'Show side panel'}
       >
         <PanelRight size={14} />
-      </Button>
+        <span>Log/TODO</span>
+      </button>
     </div>
   )
 }

@@ -1,8 +1,9 @@
 'use client'
 
 import { useState, useRef, useEffect, useCallback, useMemo } from 'react'
-import { ChevronDown, ChevronRight, ArrowDown, Check, Minus, X } from 'lucide-react'
+import { ArrowDown, Check, Copy, Minus, X } from 'lucide-react'
 import { useVirtualizer } from '@tanstack/react-virtual'
+import { useQueryState, parseAsInteger } from 'nuqs'
 import type { LogEntry, LogType } from '@/types'
 import { JsonHighlight } from './JsonHighlight'
 import { MarkdownRenderer } from './MarkdownRenderer'
@@ -41,8 +42,6 @@ const TYPE_LABELS: Record<string, string> = {
   system: 'SYSTEM',
 }
 
-const SUMMARY_EXPAND_THRESHOLD = 80
-
 interface Props {
   profileId: string
   connected?: boolean
@@ -51,8 +50,7 @@ interface Props {
 export function LogPane({ profileId, connected }: Props) {
   const [entries, setEntries] = useState<LogEntry[]>([])
   const [enabledFilters, setEnabledFilters] = useState<Set<string>>(() => new Set(ALL_FILTER_KEYS))
-  const [expanded, setExpanded] = useState<Set<number>>(new Set())
-  const [summaryExpanded, setSummaryExpanded] = useState<Set<number>>(new Set())
+  const [selectedLogId, setSelectedLogId] = useQueryState('log', parseAsInteger)
   const [autoScroll, setAutoScroll] = useState(true)
   const scrollRef = useRef<HTMLDivElement>(null)
   const eventSourceRef = useRef<EventSource | null>(null)
@@ -117,9 +115,6 @@ export function LogPane({ profileId, connected }: Props) {
     return map
   }, [entries])
 
-  // Track expand changes to force re-measure
-  const expandKey = useMemo(() => `${[...expanded].join(',')}_${[...summaryExpanded].join(',')}`, [expanded, summaryExpanded])
-
   // Virtualizer
   const virtualizer = useVirtualizer({
     count: filtered.length,
@@ -128,11 +123,6 @@ export function LogPane({ profileId, connected }: Props) {
     overscan: 20,
     getItemKey: (index) => filtered[index]?.id ?? index,
   })
-
-  // Re-measure all when expand state changes
-  useEffect(() => {
-    virtualizer.measure()
-  }, [expandKey])
 
   // Auto-scroll when new entries arrive
   useEffect(() => {
@@ -149,24 +139,6 @@ export function LogPane({ profileId, connected }: Props) {
     const isNearBottom = scrollHeight - scrollTop - clientHeight < 40
     setAutoScroll(isNearBottom)
   }, [])
-
-  function toggleExpand(id: number) {
-    setExpanded(prev => {
-      const next = new Set(prev)
-      if (next.has(id)) next.delete(id)
-      else next.add(id)
-      return next
-    })
-  }
-
-  function toggleSummaryExpand(id: number) {
-    setSummaryExpanded(prev => {
-      const next = new Set(prev)
-      if (next.has(id)) next.delete(id)
-      else next.add(id)
-      return next
-    })
-  }
 
   function toggleFilter(key: string) {
     setEnabledFilters(prev => {
@@ -186,14 +158,14 @@ export function LogPane({ profileId, connected }: Props) {
   async function handleClear() {
     if (!window.confirm('Clear all log history for this profile?')) return
     setEntries([])
-    setExpanded(new Set())
-    setSummaryExpanded(new Set())
     try {
       await fetch(`/api/profiles/${profileId}/logs`, { method: 'DELETE' })
     } catch {
       // ignore
     }
   }
+
+  const selectedEntry = selectedLogId != null ? entries.find(e => e.id === selectedLogId) ?? null : null
 
   const allChecked = enabledFilters.size === ALL_FILTER_KEYS.length
   const noneChecked = enabledFilters.size === 0
@@ -246,10 +218,7 @@ export function LogPane({ profileId, connected }: Props) {
                 entry={filtered[virtualRow.index]}
                 virtualRow={virtualRow}
                 measureElement={virtualizer.measureElement}
-                isExpanded={expanded.has(filtered[virtualRow.index].id)}
-                isSummaryExpanded={summaryExpanded.has(filtered[virtualRow.index].id)}
-                onToggleExpand={toggleExpand}
-                onToggleSummaryExpand={toggleSummaryExpand}
+                onSelect={(entry) => setSelectedLogId(entry.id)}
               />
             ))}
           </div>
@@ -269,23 +238,24 @@ export function LogPane({ profileId, connected }: Props) {
           <ArrowDown size={14} />
         </button>
       )}
+
+      {/* Detail overlay modal */}
+      {selectedEntry && (
+        <LogDetailModal
+          entry={selectedEntry}
+          onClose={() => setSelectedLogId(null)}
+        />
+      )}
     </div>
   )
 }
 
-function LogRow({ entry, virtualRow, measureElement, isExpanded, isSummaryExpanded, onToggleExpand, onToggleSummaryExpand }: {
+function LogRow({ entry, virtualRow, measureElement, onSelect }: {
   entry: LogEntry
   virtualRow: { index: number; start: number }
   measureElement: (el: HTMLElement | null) => void
-  isExpanded: boolean
-  isSummaryExpanded: boolean
-  onToggleExpand: (id: number) => void
-  onToggleSummaryExpand: (id: number) => void
+  onSelect: (entry: LogEntry) => void
 }) {
-  const hasDetail = entry.detail && entry.detail !== entry.summary && entry.type !== 'tool_call'
-  const hasLongSummary = entry.summary.length > SUMMARY_EXPAND_THRESHOLD
-  const isClickable = hasDetail || hasLongSummary
-
   return (
     <div
       data-index={virtualRow.index}
@@ -300,60 +270,131 @@ function LogRow({ entry, virtualRow, measureElement, isExpanded, isSummaryExpand
     >
       <div className="border-b border-border/30 hover:bg-secondary/20">
         <div
-          className={`flex items-start gap-2.5 px-3.5 py-2 ${isClickable ? 'cursor-pointer' : ''}`}
-          onClick={() => {
-            if (hasDetail) {
-              onToggleExpand(entry.id)
-            } else if (hasLongSummary) {
-              onToggleSummaryExpand(entry.id)
-            }
-          }}
+          className="flex items-start gap-2.5 px-3.5 py-2 cursor-pointer"
+          onClick={() => onSelect(entry)}
         >
-          {isClickable ? (
-            (isExpanded || isSummaryExpanded)
-              ? <ChevronDown size={10} className="text-muted-foreground mt-0.5 shrink-0" />
-              : <ChevronRight size={10} className="text-muted-foreground mt-0.5 shrink-0" />
-          ) : (
-            <span className="w-[10px] shrink-0" />
-          )}
+          <span className="w-[10px] shrink-0" />
           <span className="text-muted-foreground shrink-0 w-14">
             {formatTime(entry.timestamp)}
           </span>
           <span className={`log-badge ${BADGE_CLASS[entry.type] || 'log-badge-system'} shrink-0`}>
             {TYPE_LABELS[entry.type] || entry.type}
           </span>
-          <span className={`text-foreground/80 ${isSummaryExpanded ? '' : 'truncate'}`}>
+          <span className="text-foreground/80 truncate">
             {entry.summary}
           </span>
         </div>
-        {isExpanded && hasDetail && entry.detail && (
-          <div className="ml-9 mr-3.5 mb-2 max-h-72 overflow-y-auto border border-border bg-smui-surface-0">
-            {looksLikeJson(entry.detail) ? (
-              <JsonHighlight json={entry.detail} className="px-3.5 py-2.5 text-[11px] leading-relaxed" />
-            ) : entry.type === 'llm_thought' ? (
-              <div className="px-3.5 py-2.5">
-                <MarkdownRenderer content={entry.detail} />
-              </div>
-            ) : (
-              <pre className="px-3.5 py-2.5 text-[11px] text-muted-foreground whitespace-pre-wrap break-words leading-relaxed">
-                {entry.detail}
-              </pre>
-            )}
+      </div>
+    </div>
+  )
+}
+
+function LogDetailModal({ entry, onClose }: { entry: LogEntry; onClose: () => void }) {
+  const [copied, setCopied] = useState(false)
+
+  // Close on Escape
+  useEffect(() => {
+    function handleKeyDown(e: KeyboardEvent) {
+      if (e.key === 'Escape') onClose()
+    }
+    document.addEventListener('keydown', handleKeyDown)
+    document.body.style.overflow = 'hidden'
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown)
+      document.body.style.overflow = ''
+    }
+  }, [onClose])
+
+  const content = entry.detail && entry.detail !== entry.summary
+    ? entry.detail
+    : entry.summary
+
+  async function handleCopy() {
+    try {
+      if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(content)
+      } else {
+        // Fallback for non-HTTPS contexts
+        const textarea = document.createElement('textarea')
+        textarea.value = content
+        textarea.style.position = 'fixed'
+        textarea.style.opacity = '0'
+        document.body.appendChild(textarea)
+        textarea.select()
+        document.execCommand('copy')
+        document.body.removeChild(textarea)
+      }
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    } catch {
+      // ignore
+    }
+  }
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-8"
+      onClick={onClose}
+    >
+      {/* Backdrop */}
+      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
+
+      {/* Modal */}
+      <div
+        className="relative bg-card border border-border w-full max-w-[720px] max-h-[80vh] flex flex-col z-10"
+        onClick={e => e.stopPropagation()}
+      >
+        {/* Header */}
+        <div className="flex items-center justify-between py-2.5 px-3.5 border-b border-border shrink-0">
+          <div className="flex items-center gap-2.5">
+            <span className={`log-badge ${BADGE_CLASS[entry.type] || 'log-badge-system'}`}>
+              {TYPE_LABELS[entry.type] || entry.type}
+            </span>
+            <span className="text-[11px] text-muted-foreground">
+              {formatTime(entry.timestamp)}
+            </span>
           </div>
-        )}
-        {isSummaryExpanded && !hasDetail && (
-          <div className="ml-9 mr-3.5 mb-2 border border-border bg-smui-surface-0">
-            {entry.type === 'llm_thought' ? (
-              <div className="px-3.5 py-2.5">
-                <MarkdownRenderer content={entry.summary} />
-              </div>
-            ) : (
-              <pre className="px-3.5 py-2.5 text-[11px] text-muted-foreground whitespace-pre-wrap break-words leading-relaxed">
-                {entry.summary}
-              </pre>
-            )}
+          <div className="flex items-center gap-2">
+            <button
+              onClick={handleCopy}
+              className="text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
+              title="Copy"
+            >
+              {copied ? (
+                <Check className="w-3.5 h-3.5 text-[hsl(var(--smui-green))]" />
+              ) : (
+                <Copy className="w-3.5 h-3.5" />
+              )}
+            </button>
+            <button
+              onClick={onClose}
+              className="text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
+              title="Close (Esc)"
+            >
+              <X className="w-3.5 h-3.5" />
+            </button>
           </div>
-        )}
+        </div>
+
+        {/* Summary line */}
+        <div className="px-3.5 py-2 border-b border-border/50 text-xs text-foreground/70">
+          {entry.summary}
+        </div>
+
+        {/* Content */}
+        <div className="flex-1 overflow-auto">
+          {looksLikeJson(content) ? (
+            <JsonHighlight json={content} className="px-3.5 py-2.5 text-[11px] leading-relaxed" />
+          ) : entry.type === 'llm_thought' ? (
+            <div className="px-3.5 py-2.5">
+              <MarkdownRenderer content={content} />
+            </div>
+          ) : (
+            <pre className="px-3.5 py-2.5 text-[11px] text-muted-foreground whitespace-pre-wrap break-words leading-relaxed">
+              {content}
+            </pre>
+          )}
+        </div>
       </div>
     </div>
   )
