@@ -2,12 +2,12 @@
 
 import { Plus, Bot, User } from 'lucide-react'
 import type { Profile } from '@/types'
-import { Button } from '@/components/ui/button'
 
 interface Props {
   profiles: Profile[]
   activeId: string | null
   statuses: Record<string, { connected: boolean; running: boolean }>
+  playerDataMap: Record<string, Record<string, unknown>>
   onSelect: (id: string) => void
   onNew: () => void
 }
@@ -18,7 +18,7 @@ const MODE_LABELS: Record<string, string> = {
   mcp: 'MCP',
 }
 
-export function ProfileList({ profiles, activeId, statuses, onSelect, onNew }: Props) {
+export function ProfileList({ profiles, activeId, statuses, playerDataMap, onSelect, onNew }: Props) {
   return (
     <div className="w-56 bg-card border-r border-border flex flex-col h-full">
       <div className="px-3.5 py-2.5 border-b border-border">
@@ -30,6 +30,9 @@ export function ProfileList({ profiles, activeId, statuses, onSelect, onNew }: P
           const status = statuses[p.id] || { connected: false, running: false }
           const isActive = p.id === activeId
           const isManual = !p.provider || p.provider === 'manual'
+
+          const pd = playerDataMap[p.id]
+          const player = pd?.player as Record<string, unknown> | undefined
 
           return (
             <button
@@ -64,6 +67,19 @@ export function ProfileList({ profiles, activeId, statuses, onSelect, onNew }: P
                   </span>
                 )}
               </div>
+              {player && (
+                <div className="mt-1 ml-4 text-[9px] text-muted-foreground/70 leading-relaxed">
+                  <span className="text-[hsl(var(--smui-yellow))]">{Number(player.credits || 0).toLocaleString()}c</span>
+                  {' '}
+                  <span>{String(player.current_poi || player.current_system || '')}</span>
+                  {player.empire && (
+                    <>
+                      {' '}
+                      <span className="text-muted-foreground/40">{String(player.empire)}</span>
+                    </>
+                  )}
+                </div>
+              )}
             </button>
           )
         })}

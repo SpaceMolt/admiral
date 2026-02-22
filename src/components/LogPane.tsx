@@ -1,18 +1,20 @@
 'use client'
 
 import { useState, useRef, useEffect, useCallback, useMemo } from 'react'
-import { ChevronDown, ChevronRight, ArrowDown } from 'lucide-react'
+import { ChevronDown, ChevronRight, ArrowDown, Check, Minus } from 'lucide-react'
 import type { LogEntry, LogType } from '@/types'
 import { JsonHighlight, type DisplayFormat } from './JsonHighlight'
 import { MarkdownRenderer } from './MarkdownRenderer'
 
-const FILTERS: { label: string; types: LogType[] | null }[] = [
-  { label: 'All', types: null },
-  { label: 'LLM', types: ['llm_thought'] },
-  { label: 'Tools', types: ['tool_call', 'tool_result'] },
-  { label: 'Server', types: ['server_message', 'notification'] },
-  { label: 'Errors', types: ['error'] },
+const FILTER_GROUPS: { key: string; label: string; types: LogType[] }[] = [
+  { key: 'llm', label: 'LLM', types: ['llm_thought'] },
+  { key: 'tools', label: 'Tools', types: ['tool_call', 'tool_result'] },
+  { key: 'server', label: 'Server', types: ['server_message', 'notification'] },
+  { key: 'errors', label: 'Errors', types: ['error'] },
+  { key: 'system', label: 'System', types: ['connection', 'system'] },
 ]
+
+const ALL_FILTER_KEYS = FILTER_GROUPS.map(g => g.key)
 
 const BADGE_CLASS: Record<string, string> = {
   connection: 'log-badge-connection',
@@ -46,7 +48,7 @@ interface Props {
 
 export function LogPane({ profileId, connected, displayFormat = 'yaml' }: Props) {
   const [entries, setEntries] = useState<LogEntry[]>([])
-  const [filter, setFilter] = useState<LogType[] | null>(null)
+  const [enabledFilters, setEnabledFilters] = useState<Set<string>>(() => new Set(ALL_FILTER_KEYS))
   const [expanded, setExpanded] = useState<Set<number>>(new Set())
   const [summaryExpanded, setSummaryExpanded] = useState<Set<number>>(new Set())
   const [autoScroll, setAutoScroll] = useState(true)
@@ -143,52 +145,72 @@ export function LogPane({ profileId, connected, displayFormat = 'yaml' }: Props)
     })
   }
 
-  const filtered = filter ? entries.filter(e => filter.includes(e.type)) : entries
+  // Build set of allowed types from enabled filter groups
+  const allowedTypes = useMemo(() => {
+    const types = new Set<LogType>()
+    for (const g of FILTER_GROUPS) {
+      if (enabledFilters.has(g.key)) {
+        for (const t of g.types) types.add(t)
+      }
+    }
+    return types
+  }, [enabledFilters])
 
-  // Compute counts per filter
+  const filtered = useMemo(() =>
+    enabledFilters.size === ALL_FILTER_KEYS.length
+      ? entries
+      : entries.filter(e => allowedTypes.has(e.type)),
+    [entries, enabledFilters, allowedTypes]
+  )
+
+  // Compute counts per filter group
   const counts = useMemo(() => {
     const map: Record<string, number> = {}
-    for (const f of FILTERS) {
-      if (f.types === null) {
-        map[f.label] = entries.length
-      } else {
-        map[f.label] = entries.filter(e => f.types!.includes(e.type)).length
-      }
+    for (const g of FILTER_GROUPS) {
+      map[g.key] = entries.filter(e => g.types.includes(e.type)).length
     }
     return map
   }, [entries])
 
+  function toggleFilter(key: string) {
+    setEnabledFilters(prev => {
+      const next = new Set(prev)
+      if (next.has(key)) next.delete(key)
+      else next.add(key)
+      return next
+    })
+  }
+
+  function toggleAll() {
+    setEnabledFilters(prev =>
+      prev.size === ALL_FILTER_KEYS.length ? new Set() : new Set(ALL_FILTER_KEYS)
+    )
+  }
+
+  const allChecked = enabledFilters.size === ALL_FILTER_KEYS.length
+  const noneChecked = enabledFilters.size === 0
+  const allIndeterminate = !allChecked && !noneChecked
+
   return (
     <div className="flex flex-col h-full relative">
-      {/* Filter tabs - SMUI line variant */}
-      <div className="flex items-center bg-card border-b border-border">
-        <div className="flex items-center ml-1">
-          {FILTERS.map(f => {
-            const isActive = (filter === null && f.types === null) || (filter && f.types && filter[0] === f.types[0])
-            const count = counts[f.label] || 0
-            return (
-              <button
-                key={f.label}
-                onClick={() => setFilter(f.types)}
-                className={`relative px-3 py-2 text-xs font-medium uppercase tracking-wider transition-all ${
-                  isActive
-                    ? 'text-primary'
-                    : 'text-muted-foreground hover:text-foreground'
-                }`}
-              >
-                {f.label}
-                {count > 0 && (
-                  <span className={`ml-1.5 text-[10px] tabular-nums ${isActive ? 'text-primary/60' : 'text-muted-foreground/50'}`}>
-                    {count}
-                  </span>
-                )}
-                {isActive && (
-                  <span className="absolute bottom-0 left-0 right-0 h-px bg-primary" />
-                )}
-              </button>
-            )
-          })}
-        </div>
+      {/* Filter checkboxes */}
+      <div className="flex items-center gap-0.5 bg-card border-b border-border px-2 py-1.5">
+        <FilterCheckbox
+          label="All"
+          checked={allChecked}
+          indeterminate={allIndeterminate}
+          onChange={toggleAll}
+        />
+        <div className="w-px h-4 bg-border mx-1" />
+        {FILTER_GROUPS.map(g => (
+          <FilterCheckbox
+            key={g.key}
+            label={g.label}
+            count={counts[g.key] || 0}
+            checked={enabledFilters.has(g.key)}
+            onChange={() => toggleFilter(g.key)}
+          />
+        ))}
         <div className="flex-1" />
       </div>
 
@@ -283,6 +305,34 @@ export function LogPane({ profileId, connected, displayFormat = 'yaml' }: Props)
         </button>
       )}
     </div>
+  )
+}
+
+function FilterCheckbox({ label, count, checked, indeterminate, onChange }: {
+  label: string
+  count?: number
+  checked: boolean
+  indeterminate?: boolean
+  onChange: () => void
+}) {
+  return (
+    <button
+      onClick={onChange}
+      className="flex items-center gap-1.5 px-1.5 py-0.5 text-[11px] text-muted-foreground hover:text-foreground transition-colors"
+    >
+      <span className={`w-3 h-3 border flex items-center justify-center shrink-0 ${
+        checked || indeterminate
+          ? 'bg-primary/20 border-primary/60'
+          : 'border-border'
+      }`}>
+        {checked && <Check size={9} className="text-primary" />}
+        {indeterminate && <Minus size={9} className="text-primary" />}
+      </span>
+      <span className="uppercase tracking-wider font-medium">{label}</span>
+      {count !== undefined && count > 0 && (
+        <span className="text-[9px] tabular-nums text-muted-foreground/50">{count}</span>
+      )}
+    </button>
   )
 }
 

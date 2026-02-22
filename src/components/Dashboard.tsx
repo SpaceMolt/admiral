@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { Settings, Sun, Moon } from 'lucide-react'
 import type { Profile, Provider } from '@/types'
 import type { DisplayFormat } from '@/components/JsonHighlight'
@@ -26,6 +26,7 @@ export function Dashboard({ profiles: initialProfiles, providers, displayFormat,
   const [showEditor, setShowEditor] = useState(false)
   const [editingProfile, setEditingProfile] = useState<Profile | null>(null)
   const [statuses, setStatuses] = useState<Record<string, { connected: boolean; running: boolean }>>({})
+  const [playerDataMap, setPlayerDataMap] = useState<Record<string, Record<string, unknown>>>({})
 
   // Poll statuses
   useEffect(() => {
@@ -112,7 +113,7 @@ export function Dashboard({ profiles: initialProfiles, providers, displayFormat,
           <h1 className="font-orbitron text-sm font-bold tracking-[1.5px] text-primary uppercase">
             ADMIRAL
           </h1>
-          <span className="text-[11px] text-muted-foreground tracking-[1.5px] uppercase">Agent Manager</span>
+          <span className="text-[11px] text-muted-foreground tracking-[1.5px] uppercase">SpaceMolt Agent Manager</span>
         </div>
         <div className="flex items-center gap-3">
           <FormatToggle value={displayFormat} onChange={onDisplayFormatChange} />
@@ -134,6 +135,7 @@ export function Dashboard({ profiles: initialProfiles, providers, displayFormat,
           profiles={profiles}
           activeId={activeId}
           statuses={statuses}
+          playerDataMap={playerDataMap}
           onSelect={setActiveId}
           onNew={() => {
             setEditingProfile(null)
@@ -160,6 +162,8 @@ export function Dashboard({ profiles: initialProfiles, providers, displayFormat,
               status={statuses[activeProfile.id] || { connected: false, running: false }}
               displayFormat={displayFormat}
               registrationCode={registrationCode}
+              playerData={playerDataMap[activeProfile.id] || null}
+              onPlayerData={(data) => setPlayerDataMap(prev => ({ ...prev, [activeProfile.id]: data }))}
               onEdit={() => {
                 setEditingProfile(activeProfile)
                 setShowEditor(true)

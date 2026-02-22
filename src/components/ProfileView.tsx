@@ -15,13 +15,14 @@ interface Props {
   status: { connected: boolean; running: boolean }
   displayFormat: DisplayFormat
   registrationCode?: string
+  playerData: Record<string, unknown> | null
+  onPlayerData: (data: Record<string, unknown>) => void
   onEdit: () => void
   onDelete: () => void
   onRefresh: () => void
 }
 
-export function ProfileView({ profile, status, displayFormat, onEdit, onDelete, onRefresh }: Props) {
-  const [playerData, setPlayerData] = useState<Record<string, unknown> | null>(null)
+export function ProfileView({ profile, status, displayFormat, playerData, onPlayerData, onEdit, onDelete, onRefresh }: Props) {
   const [connecting, setConnecting] = useState(false)
   const [editingDirective, setEditingDirective] = useState(false)
   const [directiveValue, setDirectiveValue] = useState(profile.directive || '')
@@ -59,6 +60,29 @@ export function ProfileView({ profile, status, displayFormat, onEdit, onDelete, 
       setDirectiveValue(profile.directive || '')
     }
   }
+
+  // Auto-fetch status when connection becomes active
+  const prevConnected = useRef(false)
+  useEffect(() => {
+    if (status.connected && !prevConnected.current) {
+      // Just connected - auto-fetch status after a short delay for login to complete
+      const timer = setTimeout(() => {
+        fetch(`/api/profiles/${profile.id}/command`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ command: 'get_status' }),
+        })
+          .then(r => r.json())
+          .then(result => {
+            if (result.result) onPlayerData(result.result as Record<string, unknown>)
+          })
+          .catch(() => {})
+      }, 500)
+      prevConnected.current = status.connected
+      return () => clearTimeout(timer)
+    }
+    prevConnected.current = status.connected
+  }, [status.connected, profile.id, onPlayerData])
 
   // Focus command input on any keystroke (when not already in an input)
   useEffect(() => {
@@ -109,7 +133,7 @@ export function ProfileView({ profile, status, displayFormat, onEdit, onDelete, 
 
       // If this was get_status, update player data
       if (command === 'get_status' && result.result) {
-        setPlayerData(result.result as Record<string, unknown>)
+        onPlayerData(result.result as Record<string, unknown>)
       }
     } catch {
       // Error logged by agent
