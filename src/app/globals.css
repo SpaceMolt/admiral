@@ -136,26 +136,28 @@
 
 /* ─── Base Styles ────────────────────────────────────────── */
 
-* {
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
-}
+@layer base {
+  * {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+  }
 
-html, body {
-  height: 100%;
-  overflow: hidden;
-}
+  html, body {
+    height: 100%;
+    overflow: hidden;
+  }
 
-body {
-  font-family: var(--font-jetbrains);
-  background: hsl(var(--background));
-  color: hsl(var(--foreground));
-}
+  body {
+    font-family: var(--font-jetbrains);
+    background: hsl(var(--background));
+    color: hsl(var(--foreground));
+  }
 
-::selection {
-  background: hsl(var(--primary) / 0.2);
-  color: hsl(var(--foreground));
+  ::selection {
+    background: hsl(var(--primary) / 0.2);
+    color: hsl(var(--foreground));
+  }
 }
 
 /* ─── Scrollbar Styling ──────────────────────────────────── */
@@ -225,8 +227,12 @@ body {
 /* ─── SMUI Utility Classes ───────────────────────────────── */
 
 .card-glow {
-  box-shadow: 0 0 20px hsl(var(--primary) / 0.08), inset 0 1px 0 hsl(var(--primary) / 0.05);
-  transition: border-color 0.2s ease;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.card-glow:hover {
+  border-color: hsl(var(--smui-border-hover));
+  box-shadow: 0 0 16px hsl(var(--primary) / 0.06);
 }
 
 @keyframes skeleton-pulse {

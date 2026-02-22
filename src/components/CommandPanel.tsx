@@ -39,13 +39,15 @@ interface Props {
   profileId: string
   onSend: (command: string, args?: Record<string, unknown>) => void
   disabled: boolean
+  commandInputRef?: React.RefObject<HTMLInputElement | null>
 }
 
-export function CommandPanel({ profileId, onSend, disabled }: Props) {
+export function CommandPanel({ profileId, onSend, disabled, commandInputRef }: Props) {
   const [command, setCommand] = useState('')
   const [argsStr, setArgsStr] = useState('')
   const [historyIndex, setHistoryIndex] = useState(-1)
-  const commandRef = useRef<HTMLInputElement>(null)
+  const internalRef = useRef<HTMLInputElement>(null)
+  const commandRef = commandInputRef || internalRef
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -105,8 +107,8 @@ export function CommandPanel({ profileId, onSend, disabled }: Props) {
   }, [profileId, historyIndex])
 
   return (
-    <form onSubmit={handleSubmit} className="flex items-center gap-2.5 px-4 py-2.5 bg-card border-b border-border/30">
-      <span className="font-jetbrains text-[10px] text-muted-foreground/40 uppercase tracking-wider shrink-0">Cmd</span>
+    <form onSubmit={handleSubmit} className="flex items-center gap-2.5 px-3.5 py-2.5 bg-card border-t border-border">
+      <span className="text-[11px] text-muted-foreground uppercase tracking-[1.5px] shrink-0">Cmd</span>
       <Input
         ref={commandRef}
         value={command}
@@ -116,7 +118,7 @@ export function CommandPanel({ profileId, onSend, disabled }: Props) {
         disabled={disabled}
         className="flex-[2] min-w-0 h-7 text-xs"
       />
-      <span className="font-jetbrains text-[10px] text-muted-foreground/40 uppercase tracking-wider shrink-0">Args</span>
+      <span className="text-[11px] text-muted-foreground uppercase tracking-[1.5px] shrink-0">Args</span>
       <Input
         value={argsStr}
         onChange={e => { setArgsStr(e.target.value); setHistoryIndex(-1) }}
@@ -130,7 +132,7 @@ export function CommandPanel({ profileId, onSend, disabled }: Props) {
         variant="secondary"
         size="sm"
         disabled={disabled || !command.trim()}
-        className="gap-1.5 font-jetbrains text-muted-foreground hover:text-primary shrink-0"
+        className="gap-1.5 px-3 text-muted-foreground hover:text-primary shrink-0"
       >
         <Send size={12} />
         Send

@@ -7,7 +7,6 @@ import type { DisplayFormat } from '@/components/JsonHighlight'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card } from '@/components/ui/card'
-import { Separator } from '@/components/ui/separator'
 
 const DEFAULT_LOCAL_URLS: Record<string, string> = {
   ollama: 'http://localhost:11434',
@@ -121,28 +120,28 @@ export function ProviderSetup({ providers: initialProviders, displayFormat, onDi
   }
 
   return (
-    <div className="flex items-center justify-center min-h-screen p-8">
+    <div className="flex items-center justify-center min-h-screen p-8 overflow-y-auto h-screen">
       <div className="max-w-2xl w-full">
-        <h1 className="font-orbitron text-3xl font-bold text-primary mb-2 tracking-wider">ADMIRAL</h1>
-        <p className="text-muted-foreground font-jetbrains text-sm mb-8">SpaceMolt Agent Manager -- Configure your LLM providers to get started.</p>
+        <h1 className="font-orbitron text-heading font-medium text-primary mb-1 tracking-tight">ADMIRAL</h1>
+        <p className="text-[13px] text-muted-foreground mb-8 leading-relaxed">SpaceMolt Agent Manager -- Configure your LLM providers to get started.</p>
 
-        <div className="flex gap-3 mb-6">
+        <div className="flex gap-3 mb-5">
           <Button
-            variant="secondary"
+            variant="outline"
             onClick={detectLocal}
             disabled={detecting}
-            className="gap-2 font-jetbrains hover:text-primary"
+            className="gap-2 hover:text-primary hover:border-primary/40"
           >
             <Search size={14} />
             {detecting ? 'Scanning...' : 'Detect Local Providers'}
           </Button>
         </div>
 
-        <div className="space-y-2.5">
+        <div className="space-y-2">
           {providers.map(p => {
             const info = PROVIDER_INFO[p.id] || { label: p.id, description: '', isLocal: false, keyPlaceholder: '' }
             return (
-              <Card key={p.id} className="p-3.5">
+              <Card key={p.id} className="card-glow p-3.5">
                 <div className="flex items-center gap-3">
                   <div className={`status-dot ${
                     p.status === 'valid' ? 'status-dot-green' :
@@ -150,13 +149,13 @@ export function ProviderSetup({ providers: initialProviders, displayFormat, onDi
                     p.status === 'unreachable' ? 'status-dot-orange' :
                     'status-dot-grey'
                   }`} />
-                  <span className="font-jetbrains text-sm font-semibold text-foreground">{info.label}</span>
-                  <span className="font-jetbrains text-xs text-muted-foreground/50">{info.description}</span>
+                  <span className="text-sm font-medium text-foreground">{info.label}</span>
+                  <span className="text-xs text-muted-foreground">{info.description}</span>
                 </div>
 
                 {!info.isLocal && (
                   <div className="flex items-center gap-2.5 mt-2.5 ml-5">
-                    <KeyRound size={12} className="text-border/70 shrink-0" />
+                    <KeyRound size={12} className="text-muted-foreground shrink-0" />
                     <Input
                       type="password"
                       value={keys[p.id] || ''}
@@ -165,11 +164,11 @@ export function ProviderSetup({ providers: initialProviders, displayFormat, onDi
                       className="flex-1 h-7 text-xs"
                     />
                     <Button
-                      variant="secondary"
+                      variant="outline"
                       size="sm"
                       onClick={() => saveKey(p.id)}
                       disabled={saving[p.id]}
-                      className="font-jetbrains hover:text-primary"
+                      className="hover:text-primary hover:border-primary/40"
                     >
                       {saving[p.id] ? '...' : 'Save'}
                     </Button>
@@ -178,7 +177,7 @@ export function ProviderSetup({ providers: initialProviders, displayFormat, onDi
                 {info.isLocal && (
                   <>
                     <div className="flex items-center gap-2.5 mt-2.5 ml-5">
-                      <Server size={12} className="text-border/70 shrink-0" />
+                      <Server size={12} className="text-muted-foreground shrink-0" />
                       <Input
                         value={urls[p.id] || DEFAULT_LOCAL_URLS[p.id] || ''}
                         onChange={e => setUrls(u => ({ ...u, [p.id]: e.target.value }))}
@@ -186,20 +185,20 @@ export function ProviderSetup({ providers: initialProviders, displayFormat, onDi
                         className="flex-1 h-7 text-xs"
                       />
                       <Button
-                        variant="secondary"
+                        variant="outline"
                         size="sm"
                         onClick={() => saveLocalUrl(p.id)}
                         disabled={saving[p.id]}
-                        className="font-jetbrains hover:text-primary"
+                        className="hover:text-primary hover:border-primary/40"
                       >
                         {saving[p.id] ? '...' : 'Save'}
                       </Button>
                     </div>
                     <div className="flex items-center gap-1.5 mt-2 ml-5">
                       {p.status === 'valid' ? (
-                        <><Wifi size={11} className="text-smui-green" /><span className="text-[11px] font-jetbrains text-smui-green">Running</span></>
+                        <><Wifi size={11} className="text-[hsl(var(--smui-green))]" /><span className="text-[11px] text-[hsl(var(--smui-green))]">Running</span></>
                       ) : (
-                        <><WifiOff size={11} className="text-border/60" /><span className="text-[11px] font-jetbrains text-border/60">Not detected</span></>
+                        <><WifiOff size={11} className="text-muted-foreground" /><span className="text-[11px] text-muted-foreground">Not detected</span></>
                       )}
                     </div>
                   </>
@@ -210,54 +209,54 @@ export function ProviderSetup({ providers: initialProviders, displayFormat, onDi
         </div>
 
         {/* Display Preferences */}
-        <Separator className="my-6" />
+        <div className="h-[1px] bg-border my-6" />
         <div>
-          <span className="font-jetbrains text-[10px] text-smui-orange uppercase tracking-wider font-semibold">Display Preferences</span>
+          <span className="text-[11px] text-[hsl(var(--smui-orange))] uppercase tracking-[1.5px] font-medium">Display Preferences</span>
           <div className="flex items-center gap-4 mt-3">
-            <span className="font-jetbrains text-xs text-muted-foreground">Data format</span>
-            <div className="flex items-center bg-secondary/60 border border-border/30">
+            <span className="text-xs text-muted-foreground">Data format</span>
+            <div className="flex items-center border border-border">
               <button
                 onClick={() => onDisplayFormatChange('json')}
-                className={`px-3 py-1.5 text-xs font-jetbrains uppercase tracking-wider transition-colors ${
-                  displayFormat === 'json' ? 'bg-primary/15 text-primary' : 'text-muted-foreground/50 hover:text-muted-foreground'
+                className={`px-3 py-1.5 text-xs uppercase tracking-[1.5px] transition-colors ${
+                  displayFormat === 'json' ? 'bg-primary/15 text-primary' : 'text-muted-foreground hover:text-foreground'
                 }`}
               >
                 JSON
               </button>
               <button
                 onClick={() => onDisplayFormatChange('yaml')}
-                className={`px-3 py-1.5 text-xs font-jetbrains uppercase tracking-wider transition-colors ${
-                  displayFormat === 'yaml' ? 'bg-primary/15 text-primary' : 'text-muted-foreground/50 hover:text-muted-foreground'
+                className={`px-3 py-1.5 text-xs uppercase tracking-[1.5px] transition-colors ${
+                  displayFormat === 'yaml' ? 'bg-primary/15 text-primary' : 'text-muted-foreground hover:text-foreground'
                 }`}
               >
                 YAML
               </button>
             </div>
-            <span className="font-jetbrains text-[11px] text-muted-foreground/40">
+            <span className="text-[11px] text-muted-foreground">
               How expanded log entries display structured data
             </span>
           </div>
           <div className="flex items-center gap-4 mt-3">
-            <span className="font-jetbrains text-xs text-muted-foreground">Registration code</span>
+            <span className="text-xs text-muted-foreground">Registration code</span>
             <Input
               value={registrationCode}
               onChange={e => onRegistrationCodeChange(e.target.value)}
               placeholder="From spacemolt.com/dashboard"
               className="flex-1 h-7 text-xs max-w-[280px]"
             />
-            <span className="font-jetbrains text-[11px] text-muted-foreground/40">
+            <span className="text-[11px] text-muted-foreground">
               Required for new player registration
             </span>
           </div>
           <div className="flex items-center gap-4 mt-3">
-            <span className="font-jetbrains text-xs text-muted-foreground">Gameserver URL</span>
+            <span className="text-xs text-muted-foreground">Gameserver URL</span>
             <Input
               value={gameserverUrl}
               onChange={e => onGameserverUrlChange(e.target.value)}
               placeholder="https://game.spacemolt.com"
               className="flex-1 h-7 text-xs max-w-[280px]"
             />
-            <span className="font-jetbrains text-[11px] text-muted-foreground/40">
+            <span className="text-[11px] text-muted-foreground">
               Default server for new profiles
             </span>
           </div>
@@ -266,7 +265,7 @@ export function ProviderSetup({ providers: initialProviders, displayFormat, onDi
         <div className="flex justify-end mt-8">
           <Button
             onClick={onDone}
-            className="gap-2 font-orbitron text-sm font-semibold uppercase tracking-wider bg-gradient-to-r from-smui-orange to-destructive text-foreground hover:shadow-[0_0_30px_hsl(var(--smui-orange)/0.5)]"
+            className="gap-2 text-xs font-medium uppercase tracking-[1.5px]"
           >
             {hasValid ? 'Continue' : 'Skip for Now'}
             <ArrowRight size={16} />

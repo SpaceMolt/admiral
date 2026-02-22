@@ -1,7 +1,7 @@
 'use client'
 
-import { useState, useCallback } from 'react'
-import { Play, Square, Plug, PlugZap, Settings, Trash2 } from 'lucide-react'
+import { useState, useCallback, useEffect, useRef } from 'react'
+import { Square, Plug, PlugZap, Settings, Trash2 } from 'lucide-react'
 import type { Profile } from '@/types'
 import type { DisplayFormat } from '@/components/JsonHighlight'
 import { Button } from '@/components/ui/button'
@@ -23,8 +23,23 @@ interface Props {
 export function ProfileView({ profile, status, displayFormat, onEdit, onDelete, onRefresh }: Props) {
   const [playerData, setPlayerData] = useState<Record<string, unknown> | null>(null)
   const [connecting, setConnecting] = useState(false)
+  const commandInputRef = useRef<HTMLInputElement>(null)
 
   const isManual = !profile.provider || profile.provider === 'manual'
+
+  // Focus command input on any keystroke (when not already in an input)
+  useEffect(() => {
+    function handleKeyDown(e: KeyboardEvent) {
+      const tag = (e.target as HTMLElement)?.tagName
+      if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return
+      if (e.metaKey || e.ctrlKey || e.altKey) return
+      if (e.key.length === 1 && commandInputRef.current) {
+        commandInputRef.current.focus()
+      }
+    }
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [])
 
   async function handleConnect() {
     setConnecting(true)
@@ -71,21 +86,21 @@ export function ProfileView({ profile, status, displayFormat, onEdit, onDelete, 
   return (
     <div className="flex flex-col h-full">
       {/* Header bar */}
-      <div className="flex items-center gap-3 px-4 py-2.5 bg-card border-b border-border/40">
+      <div className="flex items-center gap-3 h-12 px-3.5 bg-card border-b border-border">
         <div className={`status-dot ${
           status.running ? 'status-dot-green' :
           status.connected ? 'status-dot-orange' :
           'status-dot-grey'
         }`} />
-        <h2 className="font-orbitron text-sm font-bold text-foreground tracking-wider">{profile.name}</h2>
+        <h2 className="text-sm font-semibold text-foreground tracking-wide">{profile.name}</h2>
         {profile.username && (
-          <span className="font-jetbrains text-[11px] text-muted-foreground/40">@{profile.username}</span>
+          <span className="text-[11px] text-muted-foreground">@{profile.username}</span>
         )}
-        <span className="font-jetbrains text-[10px] text-border/80 uppercase tracking-wider px-1.5 py-0.5 border border-border/25 bg-border/5">
+        <span className="text-[10px] text-muted-foreground uppercase tracking-[1.5px] px-2 py-0.5 border border-border">
           {profile.connection_mode}
         </span>
         {!isManual && profile.provider && (
-          <span className="font-jetbrains text-[10px] text-smui-purple/80">
+          <span className="text-[10px] text-[hsl(var(--smui-purple))]">
             {profile.provider}/{profile.model}
           </span>
         )}
@@ -98,7 +113,7 @@ export function ProfileView({ profile, status, displayFormat, onEdit, onDelete, 
             size="sm"
             onClick={handleConnect}
             disabled={connecting}
-            className="gap-1.5 font-jetbrains font-semibold bg-smui-green/15 text-smui-green border-smui-green/25 hover:bg-smui-green/25"
+            className="gap-1.5 font-semibold text-[hsl(var(--smui-green))] border-[hsl(var(--smui-green)/0.4)] hover:bg-[hsl(var(--smui-green)/0.1)]"
           >
             {connecting ? <PlugZap size={12} className="animate-pulse" /> : <Plug size={12} />}
             {connecting ? 'Connecting...' : (isManual ? 'Connect' : 'Connect + Start')}
@@ -108,7 +123,7 @@ export function ProfileView({ profile, status, displayFormat, onEdit, onDelete, 
             variant="outline"
             size="sm"
             onClick={handleDisconnect}
-            className="gap-1.5 font-jetbrains font-semibold bg-destructive/15 text-destructive border-destructive/25 hover:bg-destructive/25"
+            className="gap-1.5 font-semibold text-destructive border-destructive/40 hover:bg-destructive/10"
           >
             <Square size={12} />
             Disconnect
@@ -116,10 +131,10 @@ export function ProfileView({ profile, status, displayFormat, onEdit, onDelete, 
         )}
 
         <div className="flex items-center gap-0.5 ml-1">
-          <Button variant="ghost" size="icon" onClick={onEdit} className="h-7 w-7 text-border hover:text-muted-foreground">
+          <Button variant="ghost" size="icon" onClick={onEdit} className="h-7 w-7 text-muted-foreground hover:text-foreground">
             <Settings size={14} />
           </Button>
-          <Button variant="ghost" size="icon" onClick={() => { if (window.confirm('Delete this profile and all its logs?')) onDelete() }} className="h-7 w-7 text-border hover:text-destructive">
+          <Button variant="ghost" size="icon" onClick={() => { if (window.confirm('Delete this profile and all its logs?')) onDelete() }} className="h-7 w-7 text-muted-foreground hover:text-destructive">
             <Trash2 size={14} />
           </Button>
         </div>
@@ -131,13 +146,13 @@ export function ProfileView({ profile, status, displayFormat, onEdit, onDelete, 
       {/* Quick commands */}
       <QuickCommands onSend={handleSendCommand} disabled={!status.connected} />
 
-      {/* Manual command input */}
-      <CommandPanel profileId={profile.id} onSend={handleSendCommand} disabled={!status.connected} />
-
       {/* Log pane */}
       <div className="flex-1 min-h-0">
         <LogPane profileId={profile.id} connected={status.connected} displayFormat={displayFormat} />
       </div>
+
+      {/* Manual command input */}
+      <CommandPanel profileId={profile.id} onSend={handleSendCommand} disabled={!status.connected} commandInputRef={commandInputRef} />
     </div>
   )
 }

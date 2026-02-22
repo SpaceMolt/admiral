@@ -7,7 +7,6 @@ import { Input } from '@/components/ui/input'
 import { Select } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
 import { Button } from '@/components/ui/button'
-import { Separator } from '@/components/ui/separator'
 
 interface Props {
   profile?: Profile | null
@@ -54,28 +53,28 @@ export function ProfileEditor({ profile, providers, defaultServerUrl, onSave, on
 
   return (
     <div className="flex flex-col h-full">
-      <div className="flex items-center justify-between px-6 pt-6 pb-4">
-        <h2 className="font-orbitron text-lg font-bold text-primary uppercase tracking-wider">
+      <div className="flex items-center justify-between h-12 px-6 border-b border-border bg-card">
+        <h2 className="text-xs text-primary uppercase tracking-[1.5px] font-medium">
           {isNew ? 'New Profile' : 'Edit Profile'}
         </h2>
-        <Button variant="ghost" size="icon" onClick={onCancel} className="h-7 w-7 text-border hover:text-foreground">
-          <X size={18} />
+        <Button variant="ghost" size="icon" onClick={onCancel} className="h-7 w-7 text-muted-foreground hover:text-foreground">
+          <X size={16} />
         </Button>
       </div>
 
-      <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto px-6 pb-6">
+      <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto px-6 py-5">
         <div className="max-w-lg space-y-5">
-          {error && <div className="text-destructive text-xs font-jetbrains bg-destructive/10 border border-destructive/20 px-3 py-2">{error}</div>}
+          {error && <div className="text-destructive text-xs bg-destructive/10 border border-destructive/30 px-3 py-2">{error}</div>}
 
           <Field label="Profile Name" required>
             <Input value={name} onChange={e => setName(e.target.value)} placeholder="e.g. Vex, Trader, Scout" />
           </Field>
 
-          <Separator />
+          <div className="h-[1px] bg-border" />
 
           <div>
-            <span className="font-jetbrains text-[10px] text-smui-orange uppercase tracking-wider font-semibold">SpaceMolt Credentials</span>
-            <p className="text-[10px] text-muted-foreground/50 font-jetbrains mt-1 mb-3">Leave blank to register as a new player on connect.</p>
+            <span className="text-[11px] text-[hsl(var(--smui-orange))] uppercase tracking-[1.5px] font-medium">SpaceMolt Credentials</span>
+            <p className="text-[11px] text-muted-foreground mt-1 mb-3">Leave blank to register as a new player on connect.</p>
 
             <div className="grid grid-cols-2 gap-4">
               <Field label="Username">
@@ -96,10 +95,10 @@ export function ProfileEditor({ profile, providers, defaultServerUrl, onSave, on
             )}
           </div>
 
-          <Separator />
+          <div className="h-[1px] bg-border" />
 
           <div>
-            <span className="font-jetbrains text-[10px] text-smui-orange uppercase tracking-wider font-semibold">Agent Configuration</span>
+            <span className="text-[11px] text-[hsl(var(--smui-orange))] uppercase tracking-[1.5px] font-medium">Agent Configuration</span>
 
             <div className="grid grid-cols-2 gap-4 mt-3">
               <Field label="Provider">
@@ -137,7 +136,7 @@ export function ProfileEditor({ profile, providers, defaultServerUrl, onSave, on
             </Field>
           </div>
 
-          <Separator />
+          <div className="h-[1px] bg-border" />
 
           <div className="flex justify-end gap-3">
             <Button type="button" variant="ghost" onClick={onCancel}>
@@ -145,7 +144,7 @@ export function ProfileEditor({ profile, providers, defaultServerUrl, onSave, on
             </Button>
             <Button
               type="submit"
-              className="gap-2 bg-gradient-to-r from-smui-orange to-destructive text-foreground font-orbitron text-xs font-semibold uppercase tracking-wider hover:shadow-[0_0_20px_hsl(var(--smui-orange)/0.4)]"
+              className="gap-2 bg-primary text-primary-foreground hover:bg-primary/90 text-xs font-medium uppercase tracking-[1.5px]"
             >
               <Save size={14} />
               {isNew ? 'Create' : 'Save'}
@@ -160,7 +159,7 @@ export function ProfileEditor({ profile, providers, defaultServerUrl, onSave, on
 function Field({ label, required, children, className }: { label: string; required?: boolean; children: React.ReactNode; className?: string }) {
   return (
     <label className={`block ${className || ''}`}>
-      <span className="font-jetbrains text-[10px] text-muted-foreground uppercase tracking-wider">
+      <span className="text-[11px] text-muted-foreground uppercase tracking-[1.5px]">
         {label}{required && <span className="text-destructive ml-0.5">*</span>}
       </span>
       <div className="mt-1">{children}</div>

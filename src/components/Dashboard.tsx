@@ -107,21 +107,22 @@ export function Dashboard({ profiles: initialProfiles, providers, displayFormat,
   return (
     <div className="flex flex-col h-screen">
       {/* Top bar */}
-      <div className="flex items-center justify-between px-4 py-2.5 bg-card border-b border-border/40">
-        <h1 className="font-orbitron text-lg font-bold tracking-wider bg-gradient-to-r from-primary to-smui-orange bg-clip-text text-transparent">
-          ADMIRAL
-        </h1>
-        <div className="flex items-center gap-2">
+      <div className="sticky top-0 z-50 flex items-center justify-between h-12 px-6 bg-card border-b border-border">
+        <div className="flex items-baseline gap-3">
+          <h1 className="font-orbitron text-sm font-bold tracking-[1.5px] text-primary uppercase">
+            ADMIRAL
+          </h1>
+          <span className="text-[11px] text-muted-foreground tracking-[1.5px] uppercase">Agent Manager</span>
+        </div>
+        <div className="flex items-center gap-3">
           <FormatToggle value={displayFormat} onChange={onDisplayFormatChange} />
-          <Button
-            variant="ghost"
-            size="sm"
+          <button
             onClick={onShowProviders}
-            className="gap-1.5 text-xs font-jetbrains text-muted-foreground/70 hover:text-primary"
+            className="flex items-center gap-1.5 text-xs text-muted-foreground uppercase tracking-wider px-2.5 py-1.5 hover:text-foreground transition-colors"
           >
             <Settings size={13} />
-            Providers
-          </Button>
+            Settings
+          </button>
         </div>
       </div>
 
@@ -170,8 +171,8 @@ export function Dashboard({ profiles: initialProfiles, providers, displayFormat,
           ) : (
             <div className="flex items-center justify-center h-full">
               <div className="text-center">
-                <p className="font-orbitron text-xl text-primary mb-2 tracking-wider">Welcome to Admiral</p>
-                <p className="font-jetbrains text-sm text-muted-foreground">Create a profile to get started.</p>
+                <p className="font-orbitron text-heading text-primary mb-2 tracking-tight">Welcome to Admiral</p>
+                <p className="text-[13px] text-muted-foreground">Create a profile to get started.</p>
               </div>
             </div>
           )}
@@ -183,19 +184,20 @@ export function Dashboard({ profiles: initialProfiles, providers, displayFormat,
 
 function FormatToggle({ value, onChange }: { value: DisplayFormat; onChange: (v: DisplayFormat) => void }) {
   return (
-    <div className="flex items-center bg-secondary/60 border border-border/30">
+    <div className="flex items-center border border-border">
       <button
         onClick={() => onChange('json')}
-        className={`px-2 py-1 text-[10px] font-jetbrains uppercase tracking-wider transition-colors ${
-          value === 'json' ? 'bg-primary/15 text-primary' : 'text-muted-foreground/50 hover:text-muted-foreground'
+        className={`px-2.5 py-1 text-[11px] uppercase tracking-[1.5px] transition-colors ${
+          value === 'json' ? 'bg-primary/15 text-primary' : 'text-muted-foreground hover:text-foreground'
         }`}
       >
         JSON
       </button>
+      <div className="w-px h-5 bg-border" />
       <button
         onClick={() => onChange('yaml')}
-        className={`px-2 py-1 text-[10px] font-jetbrains uppercase tracking-wider transition-colors ${
-          value === 'yaml' ? 'bg-primary/15 text-primary' : 'text-muted-foreground/50 hover:text-muted-foreground'
+        className={`px-2.5 py-1 text-[11px] uppercase tracking-[1.5px] transition-colors ${
+          value === 'yaml' ? 'bg-primary/15 text-primary' : 'text-muted-foreground hover:text-foreground'
         }`}
       >
         YAML
