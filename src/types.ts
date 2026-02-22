@@ -36,6 +36,7 @@ export interface LogEntry {
 export type LogType =
   | 'connection'
   | 'error'
+  | 'llm_call'
   | 'llm_thought'
   | 'tool_call'
   | 'tool_result'

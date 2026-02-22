@@ -8,7 +8,7 @@ import { JsonHighlight, type DisplayFormat } from './JsonHighlight'
 import { MarkdownRenderer } from './MarkdownRenderer'
 
 const FILTER_GROUPS: { key: string; label: string; types: LogType[] }[] = [
-  { key: 'llm', label: 'LLM', types: ['llm_thought'] },
+  { key: 'llm', label: 'LLM', types: ['llm_call', 'llm_thought'] },
   { key: 'tools', label: 'Tools', types: ['tool_call', 'tool_result'] },
   { key: 'server', label: 'Server', types: ['server_message', 'notification'] },
   { key: 'errors', label: 'Errors', types: ['error'] },
@@ -20,6 +20,7 @@ const ALL_FILTER_KEYS = FILTER_GROUPS.map(g => g.key)
 const BADGE_CLASS: Record<string, string> = {
   connection: 'log-badge-connection',
   error: 'log-badge-error',
+  llm_call: 'log-badge-llm_call',
   llm_thought: 'log-badge-llm_thought',
   tool_call: 'log-badge-tool_call',
   tool_result: 'log-badge-tool_result',
@@ -31,6 +32,7 @@ const BADGE_CLASS: Record<string, string> = {
 const TYPE_LABELS: Record<string, string> = {
   connection: 'CONNECT',
   error: 'ERROR',
+  llm_call: 'CALL',
   llm_thought: 'LLM',
   tool_call: 'TOOL',
   tool_result: 'RESULT',

@@ -272,6 +272,7 @@
 }
 
 .log-badge-connection { background: hsl(var(--primary) / 0.04); color: hsl(var(--primary)); border-color: hsl(var(--primary) / 0.3); }
+.log-badge-llm_call { background: hsl(var(--smui-frost-2) / 0.04); color: hsl(var(--smui-frost-2)); border-color: hsl(var(--smui-frost-2) / 0.3); }
 .log-badge-llm_thought { background: hsl(var(--smui-purple) / 0.04); color: hsl(var(--smui-purple)); border-color: hsl(var(--smui-purple) / 0.3); }
 .log-badge-tool_call { background: hsl(var(--smui-orange) / 0.04); color: hsl(var(--smui-orange)); border-color: hsl(var(--smui-orange) / 0.3); }
 .log-badge-tool_result { background: hsl(var(--smui-green) / 0.04); color: hsl(var(--smui-green)); border-color: hsl(var(--smui-green) / 0.3); }
