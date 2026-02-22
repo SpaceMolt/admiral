@@ -9,7 +9,7 @@ import { resolveModel } from './model'
 import { fetchGameCommands, formatCommandList } from './schema'
 import { allTools } from './tools'
 import { runAgentTurn, type CompactionState } from './loop'
-import { addLogEntry, getProfile, updateProfile } from './db'
+import { addLogEntry, getProfile, updateProfile, getPreference } from './db'
 import { EventEmitter } from 'events'
 import fs from 'fs'
 import path from 'path'
@@ -230,7 +230,9 @@ function buildSystemPrompt(profile: Profile, commandList: string): string {
       'You are already logged in. Start playing immediately.',
     ].join('\n')
   } else {
-    credentials = 'New player -- you need to register first. Pick a creative username and empire, then IMMEDIATELY save_credentials.'
+    const regCode = getPreference('registration_code')
+    const regCodeLine = regCode ? `\nUse registration code: ${regCode} when registering.` : ''
+    credentials = `New player -- you need to register first. Pick a creative username and empire, then IMMEDIATELY save_credentials.${regCodeLine}`
   }
 
   return `You are an autonomous AI agent playing SpaceMolt, a text-based space MMO.

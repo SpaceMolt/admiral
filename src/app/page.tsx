@@ -12,6 +12,7 @@ export default function Home() {
   const [loading, setLoading] = useState(true)
   const [showProviderSetup, setShowProviderSetup] = useState(false)
   const [displayFormat, setDisplayFormat] = useState<DisplayFormat>('yaml')
+  const [registrationCode, setRegistrationCode] = useState('')
 
   useEffect(() => {
     loadData()
@@ -31,6 +32,9 @@ export default function Home() {
       setProfiles(profs)
       if (prefs.display_format === 'json' || prefs.display_format === 'yaml') {
         setDisplayFormat(prefs.display_format)
+      }
+      if (prefs.registration_code) {
+        setRegistrationCode(prefs.registration_code)
       }
 
       // Show provider setup if no profiles and no configured providers
@@ -57,6 +61,19 @@ export default function Home() {
     }
   }, [])
 
+  const handleSetRegistrationCode = useCallback(async (code: string) => {
+    setRegistrationCode(code)
+    try {
+      await fetch('/api/preferences', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ key: 'registration_code', value: code }),
+      })
+    } catch {
+      // ignore
+    }
+  }, [])
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-screen">
@@ -71,6 +88,8 @@ export default function Home() {
         providers={providers}
         displayFormat={displayFormat}
         onDisplayFormatChange={handleSetDisplayFormat}
+        registrationCode={registrationCode}
+        onRegistrationCodeChange={handleSetRegistrationCode}
         onDone={() => {
           setShowProviderSetup(false)
           loadData()
@@ -85,6 +104,7 @@ export default function Home() {
       providers={providers}
       displayFormat={displayFormat}
       onDisplayFormatChange={handleSetDisplayFormat}
+      registrationCode={registrationCode}
       onRefresh={loadData}
       onShowProviders={() => setShowProviderSetup(true)}
     />

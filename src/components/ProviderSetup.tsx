@@ -30,10 +30,12 @@ interface Props {
   providers: Provider[]
   displayFormat: DisplayFormat
   onDisplayFormatChange: (fmt: DisplayFormat) => void
+  registrationCode: string
+  onRegistrationCodeChange: (code: string) => void
   onDone: () => void
 }
 
-export function ProviderSetup({ providers: initialProviders, displayFormat, onDisplayFormatChange, onDone }: Props) {
+export function ProviderSetup({ providers: initialProviders, displayFormat, onDisplayFormatChange, registrationCode, onRegistrationCodeChange, onDone }: Props) {
   const [providers, setProviders] = useState(initialProviders)
   const [keys, setKeys] = useState<Record<string, string>>(() => {
     const m: Record<string, string> = {}
@@ -231,6 +233,18 @@ export function ProviderSetup({ providers: initialProviders, displayFormat, onDi
             </div>
             <span className="font-jetbrains text-[11px] text-muted-foreground/40">
               How expanded log entries display structured data
+            </span>
+          </div>
+          <div className="flex items-center gap-4 mt-3">
+            <span className="font-jetbrains text-xs text-muted-foreground">Registration code</span>
+            <Input
+              value={registrationCode}
+              onChange={e => onRegistrationCodeChange(e.target.value)}
+              placeholder="From spacemolt.com/dashboard"
+              className="flex-1 h-7 text-xs max-w-[280px]"
+            />
+            <span className="font-jetbrains text-[11px] text-muted-foreground/40">
+              Required for new player registration
             </span>
           </div>
         </div>

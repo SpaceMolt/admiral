@@ -14,6 +14,7 @@ interface Props {
   profile: Profile
   status: { connected: boolean; running: boolean }
   displayFormat: DisplayFormat
+  registrationCode?: string
   onEdit: () => void
   onDelete: () => void
   onRefresh: () => void

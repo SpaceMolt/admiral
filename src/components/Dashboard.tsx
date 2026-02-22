@@ -14,11 +14,12 @@ interface Props {
   providers: Provider[]
   displayFormat: DisplayFormat
   onDisplayFormatChange: (fmt: DisplayFormat) => void
+  registrationCode: string
   onRefresh: () => void
   onShowProviders: () => void
 }
 
-export function Dashboard({ profiles: initialProfiles, providers, displayFormat, onDisplayFormatChange, onRefresh, onShowProviders }: Props) {
+export function Dashboard({ profiles: initialProfiles, providers, displayFormat, onDisplayFormatChange, registrationCode, onRefresh, onShowProviders }: Props) {
   const [profiles, setProfiles] = useState(initialProfiles)
   const [activeId, setActiveId] = useState<string | null>(initialProfiles[0]?.id || null)
   const [showEditor, setShowEditor] = useState(false)
@@ -154,6 +155,7 @@ export function Dashboard({ profiles: initialProfiles, providers, displayFormat,
               profile={activeProfile}
               status={statuses[activeProfile.id] || { connected: false, running: false }}
               displayFormat={displayFormat}
+              registrationCode={registrationCode}
               onEdit={() => {
                 setEditingProfile(activeProfile)
                 setShowEditor(true)
