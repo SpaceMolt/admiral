@@ -1,7 +1,7 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
-import { RefreshCw, BookOpen, ListTodo, ChevronDown, ChevronRight } from 'lucide-react'
+import { useState, useEffect, useCallback, useRef } from 'react'
+import { RefreshCw, BookOpen, ListTodo, ChevronDown, ChevronRight, Activity } from 'lucide-react'
 import { MarkdownRenderer } from './MarkdownRenderer'
 
 interface CaptainsLogEntry {
@@ -14,14 +14,21 @@ interface Props {
   profileId: string
   todo: string
   connected: boolean
+  playerData: Record<string, unknown> | null
 }
 
-export function SidePane({ profileId, todo: initialTodo, connected }: Props) {
+export function SidePane({ profileId, todo: initialTodo, connected, playerData }: Props) {
   const [logEntries, setLogEntries] = useState<CaptainsLogEntry[]>([])
   const [logLoading, setLogLoading] = useState(false)
   const [todo, setTodo] = useState(initialTodo)
+  const [statusOpen, setStatusOpen] = useState(true)
   const [logOpen, setLogOpen] = useState(true)
   const [todoOpen, setTodoOpen] = useState(true)
+
+  // Resizable section heights (pixels, null = auto)
+  const [statusHeight, setStatusHeight] = useState<number | null>(null)
+  const [logHeight, setLogHeight] = useState<number | null>(null)
+  const resizingRef = useRef<string | null>(null)
 
   useEffect(() => { setTodo(initialTodo) }, [initialTodo])
 
@@ -92,10 +99,78 @@ export function SidePane({ profileId, todo: initialTodo, connected }: Props) {
     return () => clearInterval(interval)
   }, [refreshTodo])
 
+  const statusMessage = playerData
+    ? (playerData.player as Record<string, unknown> | undefined)?.status_message as string | undefined
+    : undefined
+
+  // Vertical resize handler
+  const handleResizeStart = useCallback((section: string, e: React.MouseEvent) => {
+    e.preventDefault()
+    resizingRef.current = section
+    const startY = e.clientY
+
+    // Get current heights from the DOM
+    const statusSection = document.getElementById('sidepane-status')
+    const logSection = document.getElementById('sidepane-log')
+
+    const startStatusH = statusSection?.getBoundingClientRect().height ?? 80
+    const startLogH = logSection?.getBoundingClientRect().height ?? 200
+
+    function onMouseMove(e: MouseEvent) {
+      const delta = e.clientY - startY
+      if (section === 'status-log') {
+        const newH = Math.max(40, startStatusH + delta)
+        setStatusHeight(newH)
+      } else if (section === 'log-todo') {
+        const newH = Math.max(40, startLogH + delta)
+        setLogHeight(newH)
+      }
+    }
+
+    function onMouseUp() {
+      resizingRef.current = null
+      document.removeEventListener('mousemove', onMouseMove)
+      document.removeEventListener('mouseup', onMouseUp)
+      document.body.style.cursor = ''
+      document.body.style.userSelect = ''
+    }
+
+    document.body.style.cursor = 'row-resize'
+    document.body.style.userSelect = 'none'
+    document.addEventListener('mousemove', onMouseMove)
+    document.addEventListener('mouseup', onMouseUp)
+  }, [])
+
   return (
     <div className="flex flex-col h-full bg-card/50 overflow-hidden">
+      {/* Status */}
+      <div id="sidepane-status" className="border-b border-border" style={statusHeight != null && statusOpen ? { height: statusHeight, minHeight: 40 } : undefined}>
+        <div className="flex items-center gap-2 w-full px-3 py-2 hover:bg-secondary/20 transition-colors">
+          <div role="button" tabIndex={0} onClick={() => setStatusOpen(!statusOpen)} onKeyDown={e => e.key === 'Enter' && setStatusOpen(!statusOpen)} className="flex items-center gap-2 flex-1 cursor-pointer">
+            {statusOpen ? <ChevronDown size={10} className="text-muted-foreground shrink-0" /> : <ChevronRight size={10} className="text-muted-foreground shrink-0" />}
+            <Activity size={11} className="text-muted-foreground shrink-0" />
+            <span className="text-[11px] uppercase tracking-[1.5px] font-medium text-foreground/80">Status</span>
+          </div>
+        </div>
+        {statusOpen && (
+          <div className="px-3 py-2 overflow-y-auto" style={statusHeight != null ? { height: statusHeight - 32 } : undefined}>
+            {statusMessage ? (
+              <span className="text-xs text-foreground/70">{statusMessage}</span>
+            ) : (
+              <span className="text-[11px] text-muted-foreground/50 italic">No status set</span>
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* Resize handle: status <-> log */}
+      <div
+        onMouseDown={(e) => handleResizeStart('status-log', e)}
+        className="h-1 shrink-0 cursor-row-resize bg-border hover:bg-primary/40 transition-colors"
+      />
+
       {/* Captain's Log */}
-      <div className="border-b border-border">
+      <div id="sidepane-log" className="border-b border-border" style={logHeight != null && logOpen ? { height: logHeight, minHeight: 40 } : undefined}>
         <div className="flex items-center gap-2 w-full px-3 py-2 hover:bg-secondary/20 transition-colors">
           <div role="button" tabIndex={0} onClick={() => setLogOpen(!logOpen)} onKeyDown={e => e.key === 'Enter' && setLogOpen(!logOpen)} className="flex items-center gap-2 flex-1 cursor-pointer">
             {logOpen ? <ChevronDown size={10} className="text-muted-foreground shrink-0" /> : <ChevronRight size={10} className="text-muted-foreground shrink-0" />}
@@ -112,7 +187,7 @@ export function SidePane({ profileId, todo: initialTodo, connected }: Props) {
           </button>
         </div>
         {logOpen && (
-          <div className="max-h-64 overflow-y-auto">
+          <div className="overflow-y-auto" style={logHeight != null ? { height: logHeight - 32 } : undefined}>
             {!connected ? (
               <div className="px-3 py-3 text-[11px] text-muted-foreground/50 italic">
                 Connect to load captain&apos;s log
@@ -135,6 +210,12 @@ export function SidePane({ profileId, todo: initialTodo, connected }: Props) {
           </div>
         )}
       </div>
+
+      {/* Resize handle: log <-> todo */}
+      <div
+        onMouseDown={(e) => handleResizeStart('log-todo', e)}
+        className="h-1 shrink-0 cursor-row-resize bg-border hover:bg-primary/40 transition-colors"
+      />
 
       {/* TODO */}
       <div className="flex-1 min-h-0 flex flex-col">

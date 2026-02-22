@@ -1,11 +1,10 @@
 'use client'
 
-import { useState } from 'react'
-import { KeyRound, Wifi, WifiOff, Search, Server } from 'lucide-react'
+import { useState, useEffect } from 'react'
+import { KeyRound, Wifi, WifiOff, Search, Server, X } from 'lucide-react'
 import type { Provider } from '@/types'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Card } from '@/components/ui/card'
 
 const DEFAULT_LOCAL_URLS: Record<string, string> = {
   ollama: 'http://127.0.0.1:11434',
@@ -31,10 +30,12 @@ interface Props {
   onRegistrationCodeChange: (code: string) => void
   gameserverUrl: string
   onGameserverUrlChange: (url: string) => void
-  onDone: () => void
+  maxTurns: number
+  onMaxTurnsChange: (turns: number) => void
+  onClose: () => void
 }
 
-export function ProviderSetup({ providers: initialProviders, registrationCode, onRegistrationCodeChange, gameserverUrl, onGameserverUrlChange, onDone }: Props) {
+export function ProviderSetup({ providers: initialProviders, registrationCode, onRegistrationCodeChange, gameserverUrl, onGameserverUrlChange, maxTurns, onMaxTurnsChange, onClose }: Props) {
   const [providers, setProviders] = useState(initialProviders)
   const [keys, setKeys] = useState<Record<string, string>>(() => {
     const m: Record<string, string> = {}
@@ -45,7 +46,6 @@ export function ProviderSetup({ providers: initialProviders, registrationCode, o
     const m: Record<string, string> = {}
     for (const p of initialProviders) {
       if (DEFAULT_LOCAL_URLS[p.id]) {
-        // Strip /v1 suffix for display (stored as .../v1 internally)
         const stored = p.base_url?.replace(/\/v1\/?$/, '') || ''
         m[p.id] = stored || DEFAULT_LOCAL_URLS[p.id]
       }
@@ -55,7 +55,18 @@ export function ProviderSetup({ providers: initialProviders, registrationCode, o
   const [saving, setSaving] = useState<Record<string, boolean>>({})
   const [detecting, setDetecting] = useState(false)
 
-  const hasValid = providers.some(p => p.status === 'valid')
+  // Close on Escape
+  useEffect(() => {
+    function handleKeyDown(e: KeyboardEvent) {
+      if (e.key === 'Escape') onClose()
+    }
+    document.addEventListener('keydown', handleKeyDown)
+    document.body.style.overflow = 'hidden'
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown)
+      document.body.style.overflow = ''
+    }
+  }, [onClose])
 
   async function saveKey(id: string) {
     setSaving(s => ({ ...s, [id]: true }))
@@ -91,7 +102,6 @@ export function ProviderSetup({ providers: initialProviders, registrationCode, o
   async function detectLocal() {
     setDetecting(true)
     try {
-      // Pass custom URLs for detection
       const customUrls: Record<string, string> = {}
       for (const [id, url] of Object.entries(urls)) {
         if (url && url !== DEFAULT_LOCAL_URLS[id]) {
@@ -118,131 +128,158 @@ export function ProviderSetup({ providers: initialProviders, registrationCode, o
   }
 
   return (
-    <div className="flex items-center justify-center min-h-screen p-8 overflow-y-auto h-screen">
-      <div className="max-w-2xl w-full">
-        <h1 className="font-orbitron text-heading font-medium text-primary mb-1 tracking-tight">ADMIRAL</h1>
-        <p className="text-[13px] text-muted-foreground mb-8 leading-relaxed">SpaceMolt Agent Manager -- Configure your LLM providers to get started.</p>
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-8"
+      onClick={onClose}
+    >
+      {/* Backdrop */}
+      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
 
-        <div className="flex gap-3 mb-5">
-          <Button
-            variant="outline"
-            onClick={detectLocal}
-            disabled={detecting}
-            className="gap-2 hover:text-primary hover:border-primary/40"
+      {/* Modal */}
+      <div
+        className="relative bg-card border border-border w-full max-w-[640px] max-h-[85vh] flex flex-col z-10"
+        onClick={e => e.stopPropagation()}
+      >
+        {/* Header */}
+        <div className="flex items-center justify-between py-2.5 px-4 border-b border-border shrink-0">
+          <h2 className="font-orbitron text-sm font-medium text-primary tracking-[1.5px] uppercase">Settings</h2>
+          <button
+            onClick={onClose}
+            className="text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
+            title="Close (Esc)"
           >
-            <Search size={14} />
-            {detecting ? 'Scanning...' : 'Detect Local Providers'}
-          </Button>
+            <X className="w-4 h-4" />
+          </button>
         </div>
 
-        <div className="space-y-2">
-          {providers.map(p => {
-            const info = PROVIDER_INFO[p.id] || { label: p.id, description: '', isLocal: false, keyPlaceholder: '' }
-            return (
-              <Card key={p.id} className="card-glow p-3.5">
-                <div className="flex items-center gap-3">
-                  <div className={`status-dot ${
-                    p.status === 'valid' ? 'status-dot-green' :
-                    p.status === 'invalid' ? 'status-dot-red' :
-                    p.status === 'unreachable' ? 'status-dot-orange' :
-                    'status-dot-grey'
-                  }`} />
-                  <span className="text-sm font-medium text-foreground">{info.label}</span>
-                  <span className="text-xs text-muted-foreground">{info.description}</span>
-                </div>
+        {/* Content - scrollable */}
+        <div className="flex-1 overflow-y-auto px-4 py-3 space-y-5">
+          {/* General section */}
+          <div>
+            <span className="text-[11px] text-[hsl(var(--smui-orange))] uppercase tracking-[1.5px] font-medium">General</span>
+            <div className="space-y-2.5 mt-2.5">
+              <div className="flex items-center gap-3">
+                <span className="text-xs text-muted-foreground w-28 shrink-0">Registration code</span>
+                <Input
+                  value={registrationCode}
+                  onChange={e => onRegistrationCodeChange(e.target.value)}
+                  placeholder="From spacemolt.com/dashboard"
+                  className="flex-1 h-7 text-xs"
+                />
+              </div>
+              <div className="flex items-center gap-3">
+                <span className="text-xs text-muted-foreground w-28 shrink-0">Gameserver URL</span>
+                <Input
+                  value={gameserverUrl}
+                  onChange={e => onGameserverUrlChange(e.target.value)}
+                  placeholder="https://game.spacemolt.com"
+                  className="flex-1 h-7 text-xs"
+                />
+              </div>
+              <div className="flex items-center gap-3">
+                <span className="text-xs text-muted-foreground w-28 shrink-0">Max agent turns</span>
+                <Input
+                  type="number"
+                  value={maxTurns}
+                  onChange={e => {
+                    const v = parseInt(e.target.value, 10)
+                    if (!isNaN(v) && v > 0) onMaxTurnsChange(v)
+                  }}
+                  min={1}
+                  max={200}
+                  className="w-20 h-7 text-xs"
+                />
+                <span className="text-[11px] text-muted-foreground">tool rounds per LLM turn</span>
+              </div>
+            </div>
+          </div>
 
-                {!info.isLocal && (
-                  <div className="flex items-center gap-2.5 mt-2.5 ml-5">
-                    <KeyRound size={12} className="text-muted-foreground shrink-0" />
-                    <Input
-                      type="password"
-                      value={keys[p.id] || ''}
-                      onChange={e => setKeys(k => ({ ...k, [p.id]: e.target.value }))}
-                      placeholder={info.keyPlaceholder || 'API key'}
-                      className="flex-1 h-7 text-xs"
-                    />
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => saveKey(p.id)}
-                      disabled={saving[p.id]}
-                      className="hover:text-primary hover:border-primary/40"
-                    >
-                      {saving[p.id] ? '...' : 'Save'}
-                    </Button>
+          {/* Providers section */}
+          <div>
+            <div className="flex items-center justify-between mb-2.5">
+              <span className="text-[11px] text-[hsl(var(--smui-cyan))] uppercase tracking-[1.5px] font-medium">Providers</span>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={detectLocal}
+                disabled={detecting}
+                className="gap-1.5 h-6 text-[10px] hover:text-primary hover:border-primary/40"
+              >
+                <Search size={11} />
+                {detecting ? 'Scanning...' : 'Detect Local'}
+              </Button>
+            </div>
+            <div className="space-y-1.5">
+              {providers.map(p => {
+                const info = PROVIDER_INFO[p.id] || { label: p.id, description: '', isLocal: false, keyPlaceholder: '' }
+                return (
+                  <div key={p.id} className="border border-border/60 bg-background/30 px-3 py-2">
+                    <div className="flex items-center gap-2.5">
+                      <div className={`status-dot ${
+                        p.status === 'valid' ? 'status-dot-green' :
+                        p.status === 'invalid' ? 'status-dot-red' :
+                        p.status === 'unreachable' ? 'status-dot-orange' :
+                        'status-dot-grey'
+                      }`} />
+                      <span className="text-xs font-medium text-foreground">{info.label}</span>
+                      <span className="text-[10px] text-muted-foreground">{info.description}</span>
+                    </div>
+
+                    {!info.isLocal && (
+                      <div className="flex items-center gap-2 mt-2 ml-4">
+                        <KeyRound size={10} className="text-muted-foreground shrink-0" />
+                        <Input
+                          type="password"
+                          value={keys[p.id] || ''}
+                          onChange={e => setKeys(k => ({ ...k, [p.id]: e.target.value }))}
+                          placeholder={info.keyPlaceholder || 'API key'}
+                          className="flex-1 h-6 text-[11px]"
+                        />
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => saveKey(p.id)}
+                          disabled={saving[p.id]}
+                          className="h-6 text-[10px] hover:text-primary hover:border-primary/40"
+                        >
+                          {saving[p.id] ? '...' : 'Save'}
+                        </Button>
+                      </div>
+                    )}
+                    {info.isLocal && (
+                      <>
+                        <div className="flex items-center gap-2 mt-2 ml-4">
+                          <Server size={10} className="text-muted-foreground shrink-0" />
+                          <Input
+                            value={urls[p.id] || DEFAULT_LOCAL_URLS[p.id] || ''}
+                            onChange={e => setUrls(u => ({ ...u, [p.id]: e.target.value }))}
+                            placeholder={DEFAULT_LOCAL_URLS[p.id] || 'http://host:port'}
+                            className="flex-1 h-6 text-[11px]"
+                          />
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => saveLocalUrl(p.id)}
+                            disabled={saving[p.id]}
+                            className="h-6 text-[10px] hover:text-primary hover:border-primary/40"
+                          >
+                            {saving[p.id] ? '...' : 'Save'}
+                          </Button>
+                        </div>
+                        <div className="flex items-center gap-1.5 mt-1.5 ml-4">
+                          {p.status === 'valid' ? (
+                            <><Wifi size={10} className="text-[hsl(var(--smui-green))]" /><span className="text-[10px] text-[hsl(var(--smui-green))]">Running</span></>
+                          ) : (
+                            <><WifiOff size={10} className="text-muted-foreground" /><span className="text-[10px] text-muted-foreground">Not detected</span></>
+                          )}
+                        </div>
+                      </>
+                    )}
                   </div>
-                )}
-                {info.isLocal && (
-                  <>
-                    <div className="flex items-center gap-2.5 mt-2.5 ml-5">
-                      <Server size={12} className="text-muted-foreground shrink-0" />
-                      <Input
-                        value={urls[p.id] || DEFAULT_LOCAL_URLS[p.id] || ''}
-                        onChange={e => setUrls(u => ({ ...u, [p.id]: e.target.value }))}
-                        placeholder={DEFAULT_LOCAL_URLS[p.id] || 'http://host:port'}
-                        className="flex-1 h-7 text-xs"
-                      />
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => saveLocalUrl(p.id)}
-                        disabled={saving[p.id]}
-                        className="hover:text-primary hover:border-primary/40"
-                      >
-                        {saving[p.id] ? '...' : 'Save'}
-                      </Button>
-                    </div>
-                    <div className="flex items-center gap-1.5 mt-2 ml-5">
-                      {p.status === 'valid' ? (
-                        <><Wifi size={11} className="text-[hsl(var(--smui-green))]" /><span className="text-[11px] text-[hsl(var(--smui-green))]">Running</span></>
-                      ) : (
-                        <><WifiOff size={11} className="text-muted-foreground" /><span className="text-[11px] text-muted-foreground">Not detected</span></>
-                      )}
-                    </div>
-                  </>
-                )}
-              </Card>
-            )
-          })}
-        </div>
-
-        {/* Preferences */}
-        <div className="h-[1px] bg-border my-6" />
-        <div>
-          <span className="text-[11px] text-[hsl(var(--smui-orange))] uppercase tracking-[1.5px] font-medium">Preferences</span>
-          <div className="flex items-center gap-4 mt-3">
-            <span className="text-xs text-muted-foreground">Registration code</span>
-            <Input
-              value={registrationCode}
-              onChange={e => onRegistrationCodeChange(e.target.value)}
-              placeholder="From spacemolt.com/dashboard"
-              className="flex-1 h-7 text-xs max-w-[280px]"
-            />
-            <span className="text-[11px] text-muted-foreground">
-              Required for new player registration
-            </span>
+                )
+              })}
+            </div>
           </div>
-          <div className="flex items-center gap-4 mt-3">
-            <span className="text-xs text-muted-foreground">Gameserver URL</span>
-            <Input
-              value={gameserverUrl}
-              onChange={e => onGameserverUrlChange(e.target.value)}
-              placeholder="https://game.spacemolt.com"
-              className="flex-1 h-7 text-xs max-w-[280px]"
-            />
-            <span className="text-[11px] text-muted-foreground">
-              Default server for new profiles
-            </span>
-          </div>
-        </div>
-
-        <div className="flex justify-end mt-8">
-          <Button
-            onClick={onDone}
-            className="gap-2 text-xs font-medium uppercase tracking-[1.5px]"
-          >
-            Save Settings
-          </Button>
         </div>
       </div>
     </div>

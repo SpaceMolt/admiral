@@ -122,10 +122,13 @@ export class Agent {
 
     while (this.running && !this.abortController.signal.aborted) {
       try {
+        const maxTurnsStr = getPreference('max_turns')
+        const maxToolRounds = maxTurnsStr ? parseInt(maxTurnsStr, 10) || undefined : undefined
+
         await runAgentTurn(
           model, context, this.connection, this.profileId,
           this.log, todo,
-          { signal: this.abortController.signal, apiKey },
+          { signal: this.abortController.signal, apiKey, maxToolRounds },
           compaction,
         )
       } catch (err) {

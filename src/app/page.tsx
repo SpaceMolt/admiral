@@ -9,9 +9,10 @@ export default function Home() {
   const [providers, setProviders] = useState<Provider[]>([])
   const [profiles, setProfiles] = useState<Profile[]>([])
   const [loading, setLoading] = useState(true)
-  const [showProviderSetup, setShowProviderSetup] = useState(false)
+  const [showSettings, setShowSettings] = useState(false)
   const [registrationCode, setRegistrationCode] = useState('')
   const [gameserverUrl, setGameserverUrl] = useState('https://game.spacemolt.com')
+  const [maxTurns, setMaxTurns] = useState(30)
 
   useEffect(() => {
     loadData()
@@ -35,10 +36,14 @@ export default function Home() {
       if (prefs.gameserver_url) {
         setGameserverUrl(prefs.gameserver_url)
       }
+      if (prefs.max_turns) {
+        const v = parseInt(prefs.max_turns, 10)
+        if (!isNaN(v) && v > 0) setMaxTurns(v)
+      }
 
-      // Show provider setup if no profiles and no configured providers
+      // Show settings if no profiles and no configured providers
       if (profs.length === 0 && !provs.some(p => p.status === 'valid')) {
-        setShowProviderSetup(true)
+        setShowSettings(true)
       }
     } catch {
       // API not ready yet
@@ -73,6 +78,19 @@ export default function Home() {
     }
   }, [])
 
+  const handleSetMaxTurns = useCallback(async (turns: number) => {
+    setMaxTurns(turns)
+    try {
+      await fetch('/api/preferences', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ key: 'max_turns', value: String(turns) }),
+      })
+    } catch {
+      // ignore
+    }
+  }, [])
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-screen">
@@ -81,30 +99,31 @@ export default function Home() {
     )
   }
 
-  if (showProviderSetup) {
-    return (
-      <ProviderSetup
+  return (
+    <>
+      <Dashboard
+        profiles={profiles}
         providers={providers}
         registrationCode={registrationCode}
-        onRegistrationCodeChange={handleSetRegistrationCode}
         gameserverUrl={gameserverUrl}
-        onGameserverUrlChange={handleSetGameserverUrl}
-        onDone={() => {
-          setShowProviderSetup(false)
-          loadData()
-        }}
+        onRefresh={loadData}
+        onShowProviders={() => setShowSettings(true)}
       />
-    )
-  }
-
-  return (
-    <Dashboard
-      profiles={profiles}
-      providers={providers}
-      registrationCode={registrationCode}
-      gameserverUrl={gameserverUrl}
-      onRefresh={loadData}
-      onShowProviders={() => setShowProviderSetup(true)}
-    />
+      {showSettings && (
+        <ProviderSetup
+          providers={providers}
+          registrationCode={registrationCode}
+          onRegistrationCodeChange={handleSetRegistrationCode}
+          gameserverUrl={gameserverUrl}
+          onGameserverUrlChange={handleSetGameserverUrl}
+          maxTurns={maxTurns}
+          onMaxTurnsChange={handleSetMaxTurns}
+          onClose={() => {
+            setShowSettings(false)
+            loadData()
+          }}
+        />
+      )}
+    </>
   )
 }

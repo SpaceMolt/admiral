@@ -369,7 +369,13 @@ export function ProfileView({ profile, providers, status, playerData, onPlayerDa
           )}
         </div>
 
-        {/* Editable @username / credentials */}
+        {/* Player color swatch + Editable @username / credentials */}
+        {playerData && (playerData.player as Record<string, unknown>)?.color_primary && (
+          <svg width="12" height="12" viewBox="0 0 12 12" className="shrink-0">
+            <polygon points="0,0 12,0 0,12" fill={(playerData.player as Record<string, unknown>).color_primary as string} />
+            <polygon points="12,0 12,12 0,12" fill={(playerData.player as Record<string, unknown>).color_secondary as string || (playerData.player as Record<string, unknown>).color_primary as string} />
+          </svg>
+        )}
         <div className="relative">
           <span
             className={`text-[11px] cursor-pointer transition-colors ${
@@ -625,7 +631,7 @@ export function ProfileView({ profile, providers, status, playerData, onPlayerDa
               className="w-1 shrink-0 cursor-col-resize bg-border hover:bg-primary/40 transition-colors"
             />
             <div style={{ width: sidePaneWidth }} className="shrink-0">
-              <SidePane profileId={profile.id} todo={profile.todo} connected={status.connected} />
+              <SidePane profileId={profile.id} todo={profile.todo} connected={status.connected} playerData={playerData} />
             </div>
           </>
         )}

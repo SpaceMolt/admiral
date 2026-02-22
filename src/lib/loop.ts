@@ -4,7 +4,7 @@ import type { GameConnection } from './connections/interface'
 import type { LogFn } from './tools'
 import { executeTool } from './tools'
 
-const MAX_TOOL_ROUNDS = 30
+const DEFAULT_MAX_TOOL_ROUNDS = 30
 const MAX_RETRIES = 3
 const RETRY_BASE_DELAY = 5000
 const LLM_TIMEOUT_MS = 120_000
@@ -17,6 +17,7 @@ const SUMMARY_MAX_TOKENS = 1024
 export interface LoopOptions {
   signal?: AbortSignal
   apiKey?: string
+  maxToolRounds?: number
 }
 
 export interface CompactionState {
@@ -33,9 +34,10 @@ export async function runAgentTurn(
   options?: LoopOptions,
   compaction?: CompactionState,
 ): Promise<void> {
+  const maxRounds = options?.maxToolRounds ?? DEFAULT_MAX_TOOL_ROUNDS
   let rounds = 0
 
-  while (rounds < MAX_TOOL_ROUNDS) {
+  while (rounds < maxRounds) {
     if (options?.signal?.aborted) return
 
     await compactContext(model, context, compaction, options)
@@ -175,7 +177,7 @@ export async function runAgentTurn(
     rounds++
   }
 
-  log('system', `Reached max tool rounds (${MAX_TOOL_ROUNDS}), ending turn`)
+  log('system', `Reached max tool rounds (${maxRounds}), ending turn`)
 }
 
 // ─── Context compaction ──────────────────────────────────────
