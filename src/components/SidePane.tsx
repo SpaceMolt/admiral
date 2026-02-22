@@ -96,22 +96,21 @@ export function SidePane({ profileId, todo: initialTodo, connected }: Props) {
     <div className="flex flex-col h-full bg-card/50 overflow-hidden">
       {/* Captain's Log */}
       <div className="border-b border-border">
-        <button
-          onClick={() => setLogOpen(!logOpen)}
-          className="flex items-center gap-2 w-full px-3 py-2 hover:bg-secondary/20 transition-colors"
-        >
-          {logOpen ? <ChevronDown size={10} className="text-muted-foreground shrink-0" /> : <ChevronRight size={10} className="text-muted-foreground shrink-0" />}
-          <BookOpen size={11} className="text-muted-foreground shrink-0" />
-          <span className="text-[11px] uppercase tracking-[1.5px] font-medium text-foreground/80">Log</span>
-          <span className="text-[9px] leading-none text-[hsl(var(--smui-cyan))] uppercase tracking-wider ml-auto">Server</span>
+        <div className="flex items-center gap-2 w-full px-3 py-2 hover:bg-secondary/20 transition-colors">
+          <div role="button" tabIndex={0} onClick={() => setLogOpen(!logOpen)} onKeyDown={e => e.key === 'Enter' && setLogOpen(!logOpen)} className="flex items-center gap-2 flex-1 cursor-pointer">
+            {logOpen ? <ChevronDown size={10} className="text-muted-foreground shrink-0" /> : <ChevronRight size={10} className="text-muted-foreground shrink-0" />}
+            <BookOpen size={11} className="text-muted-foreground shrink-0" />
+            <span className="text-[11px] uppercase tracking-[1.5px] font-medium text-foreground/80">Log</span>
+          </div>
+          <span className="text-[9px] leading-none text-[hsl(var(--smui-cyan))] uppercase tracking-wider">Server</span>
           <button
-            onClick={(e) => { e.stopPropagation(); fetchCaptainsLog() }}
+            onClick={fetchCaptainsLog}
             disabled={!connected || logLoading}
             className="text-muted-foreground hover:text-foreground disabled:opacity-30 transition-colors ml-1 shrink-0"
           >
             <RefreshCw size={10} className={logLoading ? 'animate-spin' : ''} />
           </button>
-        </button>
+        </div>
         {logOpen && (
           <div className="max-h-64 overflow-y-auto">
             {!connected ? (
@@ -139,21 +138,20 @@ export function SidePane({ profileId, todo: initialTodo, connected }: Props) {
 
       {/* TODO */}
       <div className="flex-1 min-h-0 flex flex-col">
-        <button
-          onClick={() => setTodoOpen(!todoOpen)}
-          className="flex items-center gap-2 w-full px-3 py-2 hover:bg-secondary/20 transition-colors border-b border-border"
-        >
-          {todoOpen ? <ChevronDown size={10} className="text-muted-foreground shrink-0" /> : <ChevronRight size={10} className="text-muted-foreground shrink-0" />}
-          <ListTodo size={11} className="text-muted-foreground shrink-0" />
-          <span className="text-[11px] uppercase tracking-[1.5px] font-medium text-foreground/80">TODO</span>
-          <span className="text-[9px] leading-none text-[hsl(var(--smui-orange))] uppercase tracking-wider ml-auto">Local</span>
+        <div className="flex items-center gap-2 w-full px-3 py-2 hover:bg-secondary/20 transition-colors border-b border-border">
+          <div role="button" tabIndex={0} onClick={() => setTodoOpen(!todoOpen)} onKeyDown={e => e.key === 'Enter' && setTodoOpen(!todoOpen)} className="flex items-center gap-2 flex-1 cursor-pointer">
+            {todoOpen ? <ChevronDown size={10} className="text-muted-foreground shrink-0" /> : <ChevronRight size={10} className="text-muted-foreground shrink-0" />}
+            <ListTodo size={11} className="text-muted-foreground shrink-0" />
+            <span className="text-[11px] uppercase tracking-[1.5px] font-medium text-foreground/80">TODO</span>
+          </div>
+          <span className="text-[9px] leading-none text-[hsl(var(--smui-orange))] uppercase tracking-wider">Local</span>
           <button
-            onClick={(e) => { e.stopPropagation(); refreshTodo() }}
+            onClick={refreshTodo}
             className="text-muted-foreground hover:text-foreground transition-colors ml-1 shrink-0"
           >
             <RefreshCw size={10} />
           </button>
-        </button>
+        </div>
         {todoOpen && (
           <div className="flex-1 overflow-y-auto">
             {!todo ? (

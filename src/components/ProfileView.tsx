@@ -24,7 +24,7 @@ interface Props {
 }
 
 export function ProfileView({ profile, status, displayFormat, playerData, onPlayerData, onEdit, onDelete, onRefresh }: Props) {
-  const [showSidePane, setShowSidePane] = useState(false)
+  const [showSidePane, setShowSidePane] = useState(true)
   const [sidePaneWidth, setSidePaneWidth] = useState(288)
   const [connecting, setConnecting] = useState(false)
   const [editingDirective, setEditingDirective] = useState(false)
