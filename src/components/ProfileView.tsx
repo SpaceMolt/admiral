@@ -638,7 +638,7 @@ export function ProfileView({ profile, providers, status, playerData, onPlayerDa
       </div>
 
       {/* Manual command input */}
-      <CommandPanel profileId={profile.id} onSend={handleSendCommand} disabled={!status.connected} commandInputRef={commandInputRef} />
+      <CommandPanel profileId={profile.id} onSend={handleSendCommand} disabled={!status.connected} commandInputRef={commandInputRef} serverUrl={profile.server_url} />
     </div>
   )
 }

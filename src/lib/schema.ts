@@ -1,11 +1,19 @@
+export interface GameCommandParam {
+  name: string
+  type: string
+  required: boolean
+  description: string
+}
+
 export interface GameCommandInfo {
   name: string
   description: string
   isMutation: boolean
+  params: GameCommandParam[]
 }
 
 /**
- * Fetch the OpenAPI spec from the gameserver and extract command names.
+ * Fetch the OpenAPI spec from the gameserver and extract commands with params.
  */
 export async function fetchGameCommands(baseUrl: string): Promise<GameCommandInfo[]> {
   const specUrl = baseUrl.replace(/\/v\d+\/?$/, '/openapi.json')
@@ -41,7 +49,26 @@ export async function fetchGameCommands(baseUrl: string): Promise<GameCommandInf
     const isMutation = !!op['x-is-mutation']
     const description = (op.summary as string) || name
 
-    commands.push({ name, description, isMutation })
+    const params: GameCommandParam[] = []
+    const rb = op.requestBody as Record<string, unknown> | undefined
+    if (rb) {
+      const content = (rb.content as Record<string, Record<string, unknown>>)?.['application/json']
+      const schema = content?.schema as Record<string, unknown> | undefined
+      if (schema) {
+        const props = (schema.properties ?? {}) as Record<string, Record<string, unknown>>
+        const required = new Set((schema.required ?? []) as string[])
+        for (const [pname, pinfo] of Object.entries(props)) {
+          params.push({
+            name: pname,
+            type: (pinfo.type as string) || 'string',
+            required: required.has(pname),
+            description: (pinfo.description as string) || '',
+          })
+        }
+      }
+    }
+
+    commands.push({ name, description, isMutation, params })
   }
 
   return commands
