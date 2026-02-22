@@ -9,6 +9,7 @@
   },
   "dependencies": {
     "@mariozechner/pi-ai": "latest",
+    "@tanstack/react-virtual": "^3.13.18",
     "@types/ws": "^8.18.1",
     "better-sqlite3": "^11.7.0",
     "class-variance-authority": "^0.7.1",

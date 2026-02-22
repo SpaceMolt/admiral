@@ -1,7 +1,8 @@
 'use client'
 
 import { useState, useRef, useEffect, useCallback, useMemo } from 'react'
-import { ChevronDown, ChevronRight, ArrowDown, Check, Minus } from 'lucide-react'
+import { ChevronDown, ChevronRight, ArrowDown, Check, Minus, Trash2 } from 'lucide-react'
+import { useVirtualizer } from '@tanstack/react-virtual'
 import type { LogEntry, LogType } from '@/types'
 import { JsonHighlight, type DisplayFormat } from './JsonHighlight'
 import { MarkdownRenderer } from './MarkdownRenderer'
@@ -53,18 +54,14 @@ export function LogPane({ profileId, connected, displayFormat = 'yaml' }: Props)
   const [summaryExpanded, setSummaryExpanded] = useState<Set<number>>(new Set())
   const [autoScroll, setAutoScroll] = useState(true)
   const scrollRef = useRef<HTMLDivElement>(null)
-  const bottomRef = useRef<HTMLDivElement>(null)
   const eventSourceRef = useRef<EventSource | null>(null)
-  // Track connection changes to re-establish SSE and pick up missed entries
   const [sseKey, setSseKey] = useState(0)
 
   useEffect(() => {
-    // When connection status changes, bump SSE key to re-establish the stream
     setSseKey(k => k + 1)
   }, [connected])
 
   useEffect(() => {
-    // Close previous SSE connection
     if (eventSourceRef.current) {
       eventSourceRef.current.close()
     }
@@ -76,11 +73,8 @@ export function LogPane({ profileId, connected, displayFormat = 'yaml' }: Props)
       try {
         const entry = JSON.parse(event.data) as LogEntry
         setEntries(prev => {
-          // Deduplicate by id
           if (prev.some(e => e.id === entry.id)) return prev
-          // Insert in order
           const next = [...prev, entry].sort((a, b) => a.id - b.id)
-          // Keep max 500 entries in memory
           if (next.length > 500) return next.slice(-400)
           return next
         })
@@ -94,56 +88,6 @@ export function LogPane({ profileId, connected, displayFormat = 'yaml' }: Props)
       eventSourceRef.current = null
     }
   }, [profileId, sseKey])
-
-  // Auto-scroll
-  useEffect(() => {
-    if (autoScroll && scrollRef.current) {
-      scrollRef.current.scrollTop = scrollRef.current.scrollHeight
-    }
-  }, [entries, autoScroll])
-
-  const handleScroll = useCallback(() => {
-    if (!scrollRef.current) return
-    const { scrollTop, scrollHeight, clientHeight } = scrollRef.current
-    const isNearBottom = scrollHeight - scrollTop - clientHeight < 40
-    setAutoScroll(isNearBottom)
-  }, [])
-
-  function toggleExpand(id: number) {
-    setExpanded(prev => {
-      const next = new Set(prev)
-      const opening = !next.has(id)
-      if (opening) next.add(id)
-      else next.delete(id)
-      if (opening) scrollEntryIntoView(id)
-      return next
-    })
-  }
-
-  function toggleSummaryExpand(id: number) {
-    setSummaryExpanded(prev => {
-      const next = new Set(prev)
-      const opening = !next.has(id)
-      if (opening) next.add(id)
-      else next.delete(id)
-      if (opening) scrollEntryIntoView(id)
-      return next
-    })
-  }
-
-  function scrollEntryIntoView(id: number) {
-    requestAnimationFrame(() => {
-      const el = document.getElementById(`log-entry-${id}`)
-      if (el && scrollRef.current) {
-        const container = scrollRef.current
-        const elRect = el.getBoundingClientRect()
-        const containerRect = container.getBoundingClientRect()
-        if (elRect.bottom > containerRect.bottom) {
-          el.scrollIntoView({ block: 'end', behavior: 'smooth' })
-        }
-      }
-    })
-  }
 
   // Build set of allowed types from enabled filter groups
   const allowedTypes = useMemo(() => {
@@ -172,6 +116,49 @@ export function LogPane({ profileId, connected, displayFormat = 'yaml' }: Props)
     return map
   }, [entries])
 
+  // Virtualizer
+  const virtualizer = useVirtualizer({
+    count: filtered.length,
+    getScrollElement: () => scrollRef.current,
+    estimateSize: () => 32,
+    overscan: 20,
+  })
+
+  // Auto-scroll when new entries arrive
+  useEffect(() => {
+    if (autoScroll && filtered.length > 0) {
+      virtualizer.scrollToIndex(filtered.length - 1, { align: 'end' })
+    }
+  }, [filtered.length, autoScroll])
+
+  const handleScroll = useCallback(() => {
+    if (!scrollRef.current) return
+    const { scrollTop, scrollHeight, clientHeight } = scrollRef.current
+    const isNearBottom = scrollHeight - scrollTop - clientHeight < 40
+    setAutoScroll(isNearBottom)
+  }, [])
+
+  function toggleExpand(id: number) {
+    setExpanded(prev => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
+    // Force virtualizer to re-measure after expansion
+    requestAnimationFrame(() => virtualizer.measure())
+  }
+
+  function toggleSummaryExpand(id: number) {
+    setSummaryExpanded(prev => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
+    requestAnimationFrame(() => virtualizer.measure())
+  }
+
   function toggleFilter(key: string) {
     setEnabledFilters(prev => {
       const next = new Set(prev)
@@ -185,6 +172,17 @@ export function LogPane({ profileId, connected, displayFormat = 'yaml' }: Props)
     setEnabledFilters(prev =>
       prev.size === ALL_FILTER_KEYS.length ? new Set() : new Set(ALL_FILTER_KEYS)
     )
+  }
+
+  async function handleClear() {
+    setEntries([])
+    setExpanded(new Set())
+    setSummaryExpanded(new Set())
+    try {
+      await fetch(`/api/profiles/${profileId}/logs`, { method: 'DELETE' })
+    } catch {
+      // ignore
+    }
   }
 
   const allChecked = enabledFilters.size === ALL_FILTER_KEYS.length
@@ -212,83 +210,110 @@ export function LogPane({ profileId, connected, displayFormat = 'yaml' }: Props)
           />
         ))}
         <div className="flex-1" />
+        {entries.length > 0 && (
+          <button
+            onClick={handleClear}
+            className="flex items-center gap-1 px-1.5 py-0.5 text-[10px] text-muted-foreground/50 hover:text-destructive transition-colors uppercase tracking-wider"
+            title="Clear log history"
+          >
+            <Trash2 size={10} />
+          </button>
+        )}
       </div>
 
-      {/* Log entries */}
+      {/* Virtualized log entries */}
       <div ref={scrollRef} onScroll={handleScroll} className="flex-1 overflow-y-auto text-xs">
-        {filtered.length === 0 && (
+        {filtered.length === 0 ? (
           <div className="flex items-center justify-center h-full text-muted-foreground text-xs">
             No log entries yet. Connect a profile to see activity.
           </div>
-        )}
-        {filtered.map(entry => {
-          const isExpanded = expanded.has(entry.id)
-          const isSummaryExpanded = summaryExpanded.has(entry.id)
-          const hasDetail = entry.detail && entry.detail !== entry.summary && entry.type !== 'tool_call'
-          const hasLongSummary = entry.summary.length > SUMMARY_EXPAND_THRESHOLD
-          const isClickable = hasDetail || hasLongSummary
+        ) : (
+          <div
+            style={{ height: virtualizer.getTotalSize(), width: '100%', position: 'relative' }}
+          >
+            {virtualizer.getVirtualItems().map(virtualRow => {
+              const entry = filtered[virtualRow.index]
+              const isExpanded = expanded.has(entry.id)
+              const isSummaryExpanded = summaryExpanded.has(entry.id)
+              const hasDetail = entry.detail && entry.detail !== entry.summary && entry.type !== 'tool_call'
+              const hasLongSummary = entry.summary.length > SUMMARY_EXPAND_THRESHOLD
+              const isClickable = hasDetail || hasLongSummary
 
-          return (
-            <div key={entry.id} id={`log-entry-${entry.id}`} className="border-b border-border/30 hover:bg-secondary/20">
-              <div
-                className={`flex items-start gap-2.5 px-3.5 py-2 ${isClickable ? 'cursor-pointer' : ''}`}
-                onClick={() => {
-                  if (hasDetail) {
-                    toggleExpand(entry.id)
-                  } else if (hasLongSummary) {
-                    toggleSummaryExpand(entry.id)
-                  }
-                }}
-              >
-                {isClickable ? (
-                  (isExpanded || isSummaryExpanded)
-                    ? <ChevronDown size={10} className="text-muted-foreground mt-0.5 shrink-0" />
-                    : <ChevronRight size={10} className="text-muted-foreground mt-0.5 shrink-0" />
-                ) : (
-                  <span className="w-[10px] shrink-0" />
-                )}
-                <span className="text-muted-foreground shrink-0 w-14">
-                  {formatTime(entry.timestamp)}
-                </span>
-                <span className={`log-badge ${BADGE_CLASS[entry.type] || 'log-badge-system'} shrink-0`}>
-                  {TYPE_LABELS[entry.type] || entry.type}
-                </span>
-                <span className={`text-foreground/80 ${isSummaryExpanded ? '' : 'truncate'}`}>
-                  {entry.summary}
-                </span>
-              </div>
-              {isExpanded && hasDetail && (
-                <div className="ml-9 mr-3.5 mb-2 max-h-72 overflow-y-auto border border-border bg-smui-surface-0">
-                  {looksLikeJson(entry.detail) ? (
-                    <JsonHighlight json={entry.detail} format={displayFormat} className="px-3.5 py-2.5 text-[11px] leading-relaxed" />
-                  ) : entry.type === 'llm_thought' ? (
-                    <div className="px-3.5 py-2.5">
-                      <MarkdownRenderer content={entry.detail} />
+              return (
+                <div
+                  key={entry.id}
+                  data-index={virtualRow.index}
+                  ref={virtualizer.measureElement}
+                  style={{
+                    position: 'absolute',
+                    top: 0,
+                    left: 0,
+                    width: '100%',
+                    transform: `translateY(${virtualRow.start}px)`,
+                  }}
+                >
+                  <div className="border-b border-border/30 hover:bg-secondary/20">
+                    <div
+                      className={`flex items-start gap-2.5 px-3.5 py-2 ${isClickable ? 'cursor-pointer' : ''}`}
+                      onClick={() => {
+                        if (hasDetail) {
+                          toggleExpand(entry.id)
+                        } else if (hasLongSummary) {
+                          toggleSummaryExpand(entry.id)
+                        }
+                      }}
+                    >
+                      {isClickable ? (
+                        (isExpanded || isSummaryExpanded)
+                          ? <ChevronDown size={10} className="text-muted-foreground mt-0.5 shrink-0" />
+                          : <ChevronRight size={10} className="text-muted-foreground mt-0.5 shrink-0" />
+                      ) : (
+                        <span className="w-[10px] shrink-0" />
+                      )}
+                      <span className="text-muted-foreground shrink-0 w-14">
+                        {formatTime(entry.timestamp)}
+                      </span>
+                      <span className={`log-badge ${BADGE_CLASS[entry.type] || 'log-badge-system'} shrink-0`}>
+                        {TYPE_LABELS[entry.type] || entry.type}
+                      </span>
+                      <span className={`text-foreground/80 ${isSummaryExpanded ? '' : 'truncate'}`}>
+                        {entry.summary}
+                      </span>
                     </div>
-                  ) : (
-                    <pre className="px-3.5 py-2.5 text-[11px] text-muted-foreground whitespace-pre-wrap break-words leading-relaxed">
-                      {entry.detail}
-                    </pre>
-                  )}
+                    {isExpanded && hasDetail && entry.detail && (
+                      <div className="ml-9 mr-3.5 mb-2 max-h-72 overflow-y-auto border border-border bg-smui-surface-0">
+                        {looksLikeJson(entry.detail) ? (
+                          <JsonHighlight json={entry.detail} format={displayFormat} className="px-3.5 py-2.5 text-[11px] leading-relaxed" />
+                        ) : entry.type === 'llm_thought' ? (
+                          <div className="px-3.5 py-2.5">
+                            <MarkdownRenderer content={entry.detail} />
+                          </div>
+                        ) : (
+                          <pre className="px-3.5 py-2.5 text-[11px] text-muted-foreground whitespace-pre-wrap break-words leading-relaxed">
+                            {entry.detail}
+                          </pre>
+                        )}
+                      </div>
+                    )}
+                    {isSummaryExpanded && !hasDetail && (
+                      <div className="ml-9 mr-3.5 mb-2 border border-border bg-smui-surface-0">
+                        {entry.type === 'llm_thought' ? (
+                          <div className="px-3.5 py-2.5">
+                            <MarkdownRenderer content={entry.summary} />
+                          </div>
+                        ) : (
+                          <pre className="px-3.5 py-2.5 text-[11px] text-muted-foreground whitespace-pre-wrap break-words leading-relaxed">
+                            {entry.summary}
+                          </pre>
+                        )}
+                      </div>
+                    )}
+                  </div>
                 </div>
-              )}
-              {isSummaryExpanded && !hasDetail && (
-                <div className="ml-9 mr-3.5 mb-2 border border-border bg-smui-surface-0">
-                  {entry.type === 'llm_thought' ? (
-                    <div className="px-3.5 py-2.5">
-                      <MarkdownRenderer content={entry.summary} />
-                    </div>
-                  ) : (
-                    <pre className="px-3.5 py-2.5 text-[11px] text-muted-foreground whitespace-pre-wrap break-words leading-relaxed">
-                      {entry.summary}
-                    </pre>
-                  )}
-                </div>
-              )}
-            </div>
-          )
-        })}
-        <div ref={bottomRef} />
+              )
+            })}
+          </div>
+        )}
       </div>
 
       {/* Floating scroll-to-bottom button */}
@@ -296,7 +321,7 @@ export function LogPane({ profileId, connected, displayFormat = 'yaml' }: Props)
         <button
           onClick={() => {
             setAutoScroll(true)
-            bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
+            virtualizer.scrollToIndex(filtered.length - 1, { align: 'end' })
           }}
           className="absolute bottom-4 right-4 w-8 h-8 flex items-center justify-center bg-card border border-border text-muted-foreground hover:text-foreground hover:border-primary/40 transition-all shadow-lg"
           title="Scroll to bottom"
@@ -318,7 +343,7 @@ function FilterCheckbox({ label, count, checked, indeterminate, onChange }: {
   return (
     <button
       onClick={onChange}
-      className="flex items-center gap-1.5 px-1.5 py-0.5 text-[11px] text-muted-foreground hover:text-foreground transition-colors"
+      className="flex items-center gap-1.5 px-1.5 py-0.5 text-[11px] text-muted-foreground hover:text-foreground transition-colors leading-none"
     >
       <span className={`w-3 h-3 border flex items-center justify-center shrink-0 ${
         checked || indeterminate

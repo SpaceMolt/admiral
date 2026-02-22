@@ -1,5 +1,6 @@
+import { NextResponse } from 'next/server'
 import { agentManager } from '@/lib/agent-manager'
-import { getLogEntries } from '@/lib/db'
+import { getLogEntries, clearLogs } from '@/lib/db'
 
 export async function GET(request: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
@@ -90,4 +91,10 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
       'Connection': 'keep-alive',
     },
   })
+}
+
+export async function DELETE(_request: Request, { params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params
+  clearLogs(id)
+  return NextResponse.json({ ok: true })
 }

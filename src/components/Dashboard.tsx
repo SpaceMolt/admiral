@@ -108,7 +108,7 @@ export function Dashboard({ profiles: initialProfiles, providers, displayFormat,
   return (
     <div className="flex flex-col h-screen">
       {/* Top bar */}
-      <div className="sticky top-0 z-50 flex items-center justify-between h-12 px-6 bg-card border-b border-border">
+      <div className="sticky top-0 z-50 flex items-center justify-between h-12 px-3.5 bg-card border-b border-border">
         <div className="flex items-baseline gap-3">
           <h1 className="font-orbitron text-sm font-bold tracking-[1.5px] text-primary uppercase">
             ADMIRAL

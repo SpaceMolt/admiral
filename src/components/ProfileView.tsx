@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useCallback, useEffect, useRef } from 'react'
-import { Square, Plug, PlugZap, Settings, Trash2, Pencil } from 'lucide-react'
+import { Square, Plug, PlugZap, Settings, Trash2, Pencil, PanelRight } from 'lucide-react'
 import type { Profile } from '@/types'
 import type { DisplayFormat } from '@/components/JsonHighlight'
 import { Button } from '@/components/ui/button'
@@ -9,6 +9,7 @@ import { PlayerStatus } from './PlayerStatus'
 import { CommandPanel } from './CommandPanel'
 import { QuickCommands } from './QuickCommands'
 import { LogPane } from './LogPane'
+import { SidePane } from './SidePane'
 
 interface Props {
   profile: Profile
@@ -23,6 +24,7 @@ interface Props {
 }
 
 export function ProfileView({ profile, status, displayFormat, playerData, onPlayerData, onEdit, onDelete, onRefresh }: Props) {
+  const [showSidePane, setShowSidePane] = useState(false)
   const [connecting, setConnecting] = useState(false)
   const [editingDirective, setEditingDirective] = useState(false)
   const [directiveValue, setDirectiveValue] = useState(profile.directive || '')
@@ -188,6 +190,9 @@ export function ProfileView({ profile, status, displayFormat, playerData, onPlay
         )}
 
         <div className="flex items-center gap-0.5 ml-1">
+          <Button variant="ghost" size="icon" onClick={() => setShowSidePane(v => !v)} className={`h-7 w-7 ${showSidePane ? 'text-primary' : 'text-muted-foreground hover:text-foreground'}`}>
+            <PanelRight size={14} />
+          </Button>
           <Button variant="ghost" size="icon" onClick={onEdit} className="h-7 w-7 text-muted-foreground hover:text-foreground">
             <Settings size={14} />
           </Button>
@@ -232,9 +237,14 @@ export function ProfileView({ profile, status, displayFormat, playerData, onPlay
       {/* Quick commands */}
       <QuickCommands onSend={handleSendCommand} disabled={!status.connected} />
 
-      {/* Log pane */}
-      <div className="flex-1 min-h-0">
-        <LogPane profileId={profile.id} connected={status.connected} displayFormat={displayFormat} />
+      {/* Log pane + side pane */}
+      <div className="flex flex-1 min-h-0">
+        <div className="flex-1 min-w-0">
+          <LogPane profileId={profile.id} connected={status.connected} displayFormat={displayFormat} />
+        </div>
+        {showSidePane && (
+          <SidePane profileId={profile.id} todo={profile.todo} connected={status.connected} />
+        )}
       </div>
 
       {/* Manual command input */}

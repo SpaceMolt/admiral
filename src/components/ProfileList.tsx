@@ -72,12 +72,12 @@ export function ProfileList({ profiles, activeId, statuses, playerDataMap, onSel
                   <span className="text-[hsl(var(--smui-yellow))]">{Number(player.credits || 0).toLocaleString()}c</span>
                   {' '}
                   <span>{String(player.current_poi || player.current_system || '')}</span>
-                  {player.empire && (
+                  {player.empire ? (
                     <>
                       {' '}
                       <span className="text-muted-foreground/40">{String(player.empire)}</span>
                     </>
-                  )}
+                  ) : null}
                 </div>
               )}
             </button>
