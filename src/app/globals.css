@@ -44,6 +44,9 @@
     --smui-surface-2: 216 15% 19%;
     --smui-surface-3: 217 17% 28%;
 
+    /* SMUI Border Hover */
+    --smui-border-hover: 193 44% 67%;
+
     /* Sidebar (matches SMUI) */
     --sidebar-background: 217 16% 15.5%;
     --sidebar-foreground: 213 27% 88%;
@@ -119,6 +122,16 @@
   --font-orbitron: var(--font-family-orbitron), 'Orbitron', sans-serif;
   --font-jetbrains: var(--font-family-jetbrains), 'JetBrains Mono', monospace;
   --font-sans: var(--font-family-jetbrains), 'JetBrains Mono', monospace;
+
+  /* SMUI Text Sizes */
+  --font-size-label: 11px;
+  --font-size-ui: 13px;
+  --font-size-heading: 22px;
+  --font-size-stat: 26px;
+  --font-size-hero: 42px;
+
+  /* SMUI Border Hover */
+  --color-smui-border-hover: hsl(var(--smui-border-hover));
 }
 
 /* ─── Base Styles ────────────────────────────────────────── */
@@ -141,7 +154,7 @@ body {
 }
 
 ::selection {
-  background: hsl(var(--primary) / 0.3);
+  background: hsl(var(--primary) / 0.2);
   color: hsl(var(--foreground));
 }
 
@@ -173,8 +186,8 @@ body {
 }
 
 .status-dot {
-  width: 8px;
-  height: 8px;
+  width: 5px;
+  height: 5px;
   border-radius: 50%;
   flex-shrink: 0;
 }
@@ -197,21 +210,23 @@ body {
   text-transform: uppercase;
   letter-spacing: 0.05em;
   white-space: nowrap;
+  border: 1px solid transparent;
 }
 
-.log-badge-connection { background: hsl(var(--primary) / 0.15); color: hsl(var(--primary)); }
-.log-badge-llm_thought { background: hsl(var(--smui-purple) / 0.15); color: hsl(var(--smui-purple)); }
-.log-badge-tool_call { background: hsl(var(--smui-orange) / 0.15); color: hsl(var(--smui-orange)); }
-.log-badge-tool_result { background: hsl(var(--smui-green) / 0.15); color: hsl(var(--smui-green)); }
-.log-badge-server_message { background: hsl(var(--smui-frost-3) / 0.15); color: hsl(var(--smui-frost-3)); }
-.log-badge-notification { background: hsl(var(--smui-yellow) / 0.15); color: hsl(var(--smui-yellow)); }
-.log-badge-error { background: hsl(var(--destructive) / 0.15); color: hsl(var(--destructive)); }
-.log-badge-system { background: hsl(var(--muted-foreground) / 0.1); color: hsl(var(--muted-foreground)); }
+.log-badge-connection { background: hsl(var(--primary) / 0.04); color: hsl(var(--primary)); border-color: hsl(var(--primary) / 0.3); }
+.log-badge-llm_thought { background: hsl(var(--smui-purple) / 0.04); color: hsl(var(--smui-purple)); border-color: hsl(var(--smui-purple) / 0.3); }
+.log-badge-tool_call { background: hsl(var(--smui-orange) / 0.04); color: hsl(var(--smui-orange)); border-color: hsl(var(--smui-orange) / 0.3); }
+.log-badge-tool_result { background: hsl(var(--smui-green) / 0.04); color: hsl(var(--smui-green)); border-color: hsl(var(--smui-green) / 0.3); }
+.log-badge-server_message { background: hsl(var(--smui-frost-3) / 0.04); color: hsl(var(--smui-frost-3)); border-color: hsl(var(--smui-frost-3) / 0.3); }
+.log-badge-notification { background: hsl(var(--smui-yellow) / 0.04); color: hsl(var(--smui-yellow)); border-color: hsl(var(--smui-yellow) / 0.3); }
+.log-badge-error { background: hsl(var(--destructive) / 0.04); color: hsl(var(--destructive)); border-color: hsl(var(--destructive) / 0.3); }
+.log-badge-system { background: hsl(var(--muted-foreground) / 0.04); color: hsl(var(--muted-foreground)); border-color: hsl(var(--muted-foreground) / 0.3); }
 
 /* ─── SMUI Utility Classes ───────────────────────────────── */
 
 .card-glow {
   box-shadow: 0 0 20px hsl(var(--primary) / 0.08), inset 0 1px 0 hsl(var(--primary) / 0.05);
+  transition: border-color 0.2s ease;
 }
 
 @keyframes skeleton-pulse {

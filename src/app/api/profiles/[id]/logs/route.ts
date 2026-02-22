@@ -20,9 +20,9 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
 
   const readable = new ReadableStream({
     start(controller) {
-      // Send recent history first
-      const recent = getLogEntries(id, undefined, 50)
-      for (const entry of recent.reverse()) {
+      // Send recent history first (getLogEntries returns DESC, reverse to chronological)
+      const recent = getLogEntries(id, undefined, 50).reverse()
+      for (const entry of recent) {
         if (closed) return
         controller.enqueue(encoder.encode(`data: ${JSON.stringify(entry)}\n\n`))
       }

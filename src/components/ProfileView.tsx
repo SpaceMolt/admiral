@@ -118,7 +118,7 @@ export function ProfileView({ profile, status, displayFormat, onEdit, onDelete, 
           <Button variant="ghost" size="icon" onClick={onEdit} className="h-7 w-7 text-border hover:text-muted-foreground">
             <Settings size={14} />
           </Button>
-          <Button variant="ghost" size="icon" onClick={onDelete} className="h-7 w-7 text-border hover:text-destructive">
+          <Button variant="ghost" size="icon" onClick={() => { if (window.confirm('Delete this profile and all its logs?')) onDelete() }} className="h-7 w-7 text-border hover:text-destructive">
             <Trash2 size={14} />
           </Button>
         </div>

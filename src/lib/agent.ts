@@ -34,8 +34,6 @@ export class Agent {
   private connection: GameConnection | null = null
   private running = false
   private abortController: AbortController | null = null
-  private todo = ''
-
   constructor(profileId: string) {
     this.profileId = profileId
   }
@@ -118,9 +116,7 @@ export class Agent {
     }
 
     const compaction: CompactionState = { summary: '' }
-    // Load persisted TODO from DB
-    this.todo = profile.todo || ''
-    const todo = { value: this.todo }
+    const todo = { value: profile.todo || '' }
 
     while (this.running && !this.abortController.signal.aborted) {
       try {
