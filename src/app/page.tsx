@@ -4,14 +4,12 @@ import { useState, useEffect, useCallback } from 'react'
 import { Dashboard } from '@/components/Dashboard'
 import { ProviderSetup } from '@/components/ProviderSetup'
 import type { Profile, Provider } from '@/types'
-import type { DisplayFormat } from '@/components/JsonHighlight'
 
 export default function Home() {
   const [providers, setProviders] = useState<Provider[]>([])
   const [profiles, setProfiles] = useState<Profile[]>([])
   const [loading, setLoading] = useState(true)
   const [showProviderSetup, setShowProviderSetup] = useState(false)
-  const [displayFormat, setDisplayFormat] = useState<DisplayFormat>('yaml')
   const [registrationCode, setRegistrationCode] = useState('')
   const [gameserverUrl, setGameserverUrl] = useState('https://game.spacemolt.com')
 
@@ -31,9 +29,6 @@ export default function Home() {
       const prefs: Record<string, string> = await prefRes.json()
       setProviders(provs)
       setProfiles(profs)
-      if (prefs.display_format === 'json' || prefs.display_format === 'yaml') {
-        setDisplayFormat(prefs.display_format)
-      }
       if (prefs.registration_code) {
         setRegistrationCode(prefs.registration_code)
       }
@@ -51,19 +46,6 @@ export default function Home() {
       setLoading(false)
     }
   }
-
-  const handleSetDisplayFormat = useCallback(async (fmt: DisplayFormat) => {
-    setDisplayFormat(fmt)
-    try {
-      await fetch('/api/preferences', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ key: 'display_format', value: fmt }),
-      })
-    } catch {
-      // ignore
-    }
-  }, [])
 
   const handleSetRegistrationCode = useCallback(async (code: string) => {
     setRegistrationCode(code)
@@ -103,8 +85,6 @@ export default function Home() {
     return (
       <ProviderSetup
         providers={providers}
-        displayFormat={displayFormat}
-        onDisplayFormatChange={handleSetDisplayFormat}
         registrationCode={registrationCode}
         onRegistrationCodeChange={handleSetRegistrationCode}
         gameserverUrl={gameserverUrl}
@@ -121,8 +101,6 @@ export default function Home() {
     <Dashboard
       profiles={profiles}
       providers={providers}
-      displayFormat={displayFormat}
-      onDisplayFormatChange={handleSetDisplayFormat}
       registrationCode={registrationCode}
       gameserverUrl={gameserverUrl}
       onRefresh={loadData}

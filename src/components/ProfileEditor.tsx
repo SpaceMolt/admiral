@@ -17,7 +17,13 @@ interface Props {
 }
 
 const EMPIRES = ['solarian', 'voidborn', 'crimson', 'nebula', 'outerrim']
-const CONNECTION_MODES = ['http', 'websocket', 'mcp']
+const CONNECTION_MODES: { value: string; label: string }[] = [
+  { value: 'http', label: 'HTTP API v1' },
+  { value: 'http_v2', label: 'HTTP API v2' },
+  { value: 'websocket', label: 'WebSocket' },
+  { value: 'mcp', label: 'MCP v1' },
+  { value: 'mcp_v2', label: 'MCP v2' },
+]
 
 export function ProfileEditor({ profile, providers, defaultServerUrl, onSave, onCancel }: Props) {
   const [name, setName] = useState(profile?.name || '')
@@ -117,7 +123,7 @@ export function ProfileEditor({ profile, providers, defaultServerUrl, onSave, on
             <div className="grid grid-cols-2 gap-4 mt-3">
               <Field label="Connection Mode">
                 <Select value={connectionMode} onChange={e => setConnectionMode(e.target.value)}>
-                  {CONNECTION_MODES.map(m => <option key={m} value={m}>{m.toUpperCase()}</option>)}
+                  {CONNECTION_MODES.map(m => <option key={m.value} value={m.value}>{m.label}</option>)}
                 </Select>
               </Field>
               <Field label="Server URL">

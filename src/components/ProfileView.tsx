@@ -3,7 +3,6 @@
 import { useState, useCallback, useEffect, useRef } from 'react'
 import { Square, Plug, PlugZap, Settings, Trash2, Pencil } from 'lucide-react'
 import type { Profile } from '@/types'
-import type { DisplayFormat } from '@/components/JsonHighlight'
 import { Button } from '@/components/ui/button'
 import { PlayerStatus } from './PlayerStatus'
 import { CommandPanel } from './CommandPanel'
@@ -11,10 +10,17 @@ import { QuickCommands } from './QuickCommands'
 import { LogPane } from './LogPane'
 import { SidePane } from './SidePane'
 
+const CONNECTION_MODE_LABELS: Record<string, string> = {
+  http: 'HTTP v1',
+  http_v2: 'HTTP v2',
+  websocket: 'WS',
+  mcp: 'MCP v1',
+  mcp_v2: 'MCP v2',
+}
+
 interface Props {
   profile: Profile
   status: { connected: boolean; running: boolean }
-  displayFormat: DisplayFormat
   registrationCode?: string
   playerData: Record<string, unknown> | null
   onPlayerData: (data: Record<string, unknown>) => void
@@ -23,7 +29,7 @@ interface Props {
   onRefresh: () => void
 }
 
-export function ProfileView({ profile, status, displayFormat, playerData, onPlayerData, onEdit, onDelete, onRefresh }: Props) {
+export function ProfileView({ profile, status, playerData, onPlayerData, onEdit, onDelete, onRefresh }: Props) {
   const [showSidePane, setShowSidePane] = useState(true)
   const [sidePaneWidth, setSidePaneWidth] = useState(288)
   const [connecting, setConnecting] = useState(false)
@@ -197,7 +203,7 @@ export function ProfileView({ profile, status, displayFormat, playerData, onPlay
           <span className="text-[11px] text-muted-foreground">@{profile.username}</span>
         )}
         <span className="text-[10px] text-muted-foreground uppercase tracking-[1.5px] px-2 py-0.5 border border-border">
-          {profile.connection_mode}
+          {CONNECTION_MODE_LABELS[profile.connection_mode] || profile.connection_mode}
         </span>
         {!isManual && profile.provider && (
           <span className="text-[10px] text-[hsl(var(--smui-purple))]">
@@ -283,7 +289,7 @@ export function ProfileView({ profile, status, displayFormat, playerData, onPlay
       {/* Log pane + side pane */}
       <div ref={containerRef} className="flex flex-1 min-h-0">
         <div className="flex-1 min-w-0">
-          <LogPane profileId={profile.id} connected={status.connected} displayFormat={displayFormat} />
+          <LogPane profileId={profile.id} connected={status.connected} />
         </div>
         {showSidePane && (
           <>

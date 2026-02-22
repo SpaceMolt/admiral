@@ -3,8 +3,10 @@ import type { GameConnection, CommandResult } from './connections/interface'
 import type { LogFn } from './tools'
 import type { Profile } from '@/types'
 import { HttpConnection } from './connections/http'
+import { HttpV2Connection } from './connections/http_v2'
 import { WebSocketConnection } from './connections/websocket'
 import { McpConnection } from './connections/mcp'
+import { McpV2Connection } from './connections/mcp_v2'
 import { resolveModel } from './model'
 import { fetchGameCommands, formatCommandList } from './schema'
 import { allTools } from './tools'
@@ -209,6 +211,10 @@ function createConnection(profile: Profile): GameConnection {
       return new WebSocketConnection(profile.server_url)
     case 'mcp':
       return new McpConnection(profile.server_url)
+    case 'mcp_v2':
+      return new McpV2Connection(profile.server_url)
+    case 'http_v2':
+      return new HttpV2Connection(profile.server_url)
     case 'http':
     default:
       return new HttpConnection(profile.server_url)

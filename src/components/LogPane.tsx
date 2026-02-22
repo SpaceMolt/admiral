@@ -4,7 +4,7 @@ import { useState, useRef, useEffect, useCallback, useMemo } from 'react'
 import { ChevronDown, ChevronRight, ArrowDown, Check, Minus, X } from 'lucide-react'
 import { useVirtualizer } from '@tanstack/react-virtual'
 import type { LogEntry, LogType } from '@/types'
-import { JsonHighlight, type DisplayFormat } from './JsonHighlight'
+import { JsonHighlight } from './JsonHighlight'
 import { MarkdownRenderer } from './MarkdownRenderer'
 
 const FILTER_GROUPS: { key: string; label: string; types: LogType[] }[] = [
@@ -46,10 +46,9 @@ const SUMMARY_EXPAND_THRESHOLD = 80
 interface Props {
   profileId: string
   connected?: boolean
-  displayFormat?: DisplayFormat
 }
 
-export function LogPane({ profileId, connected, displayFormat = 'yaml' }: Props) {
+export function LogPane({ profileId, connected }: Props) {
   const [entries, setEntries] = useState<LogEntry[]>([])
   const [enabledFilters, setEnabledFilters] = useState<Set<string>>(() => new Set(ALL_FILTER_KEYS))
   const [expanded, setExpanded] = useState<Set<number>>(new Set())
@@ -249,7 +248,6 @@ export function LogPane({ profileId, connected, displayFormat = 'yaml' }: Props)
                 measureElement={virtualizer.measureElement}
                 isExpanded={expanded.has(filtered[virtualRow.index].id)}
                 isSummaryExpanded={summaryExpanded.has(filtered[virtualRow.index].id)}
-                displayFormat={displayFormat}
                 onToggleExpand={toggleExpand}
                 onToggleSummaryExpand={toggleSummaryExpand}
               />
@@ -275,13 +273,12 @@ export function LogPane({ profileId, connected, displayFormat = 'yaml' }: Props)
   )
 }
 
-function LogRow({ entry, virtualRow, measureElement, isExpanded, isSummaryExpanded, displayFormat, onToggleExpand, onToggleSummaryExpand }: {
+function LogRow({ entry, virtualRow, measureElement, isExpanded, isSummaryExpanded, onToggleExpand, onToggleSummaryExpand }: {
   entry: LogEntry
   virtualRow: { index: number; start: number }
   measureElement: (el: HTMLElement | null) => void
   isExpanded: boolean
   isSummaryExpanded: boolean
-  displayFormat: DisplayFormat
   onToggleExpand: (id: number) => void
   onToggleSummaryExpand: (id: number) => void
 }) {
@@ -332,7 +329,7 @@ function LogRow({ entry, virtualRow, measureElement, isExpanded, isSummaryExpand
         {isExpanded && hasDetail && entry.detail && (
           <div className="ml-9 mr-3.5 mb-2 max-h-72 overflow-y-auto border border-border bg-smui-surface-0">
             {looksLikeJson(entry.detail) ? (
-              <JsonHighlight json={entry.detail} format={displayFormat} className="px-3.5 py-2.5 text-[11px] leading-relaxed" />
+              <JsonHighlight json={entry.detail} className="px-3.5 py-2.5 text-[11px] leading-relaxed" />
             ) : entry.type === 'llm_thought' ? (
               <div className="px-3.5 py-2.5">
                 <MarkdownRenderer content={entry.detail} />

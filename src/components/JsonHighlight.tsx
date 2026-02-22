@@ -1,15 +1,12 @@
 'use client'
 
 /**
- * Syntax highlighter for structured data, supporting JSON and YAML display.
+ * Syntax highlighter for JSON data.
  * Tokenizes and wraps each token in a colored span matching the SMUI theme.
  */
 
-export type DisplayFormat = 'json' | 'yaml'
-
 interface Props {
   json: string
-  format?: DisplayFormat
   className?: string
 }
 
@@ -33,8 +30,6 @@ const TOKEN_COLORS: Record<TokenType, string> = {
   whitespace: 'transparent',
   text: 'hsl(var(--muted-foreground))',
 }
-
-// ─── JSON tokenizer ─────────────────────────────────────
 
 function tokenize(input: string): Token[] {
   const tokens: Token[] = []
@@ -137,121 +132,6 @@ function tokenize(input: string): Token[] {
   return tokens
 }
 
-// ─── YAML tokenizer ─────────────────────────────────────
-
-function tokenizeYaml(input: string): Token[] {
-  const tokens: Token[] = []
-  const lines = input.split('\n')
-
-  for (let li = 0; li < lines.length; li++) {
-    if (li > 0) tokens.push({ type: 'whitespace', value: '\n' })
-    const line = lines[li]
-
-    // Leading whitespace
-    const indent = line.match(/^(\s*)/)?.[1] || ''
-    if (indent) tokens.push({ type: 'whitespace', value: indent })
-    const rest = line.slice(indent.length)
-
-    // List item marker
-    if (rest.startsWith('- ')) {
-      tokens.push({ type: 'text', value: '- ' })
-      tokenizeYamlValue(rest.slice(2), tokens)
-      continue
-    }
-
-    // Key: value line
-    const colonIdx = rest.indexOf(': ')
-    if (colonIdx >= 0) {
-      tokens.push({ type: 'key', value: rest.slice(0, colonIdx) })
-      tokens.push({ type: 'colon', value: ': ' })
-      tokenizeYamlValue(rest.slice(colonIdx + 2), tokens)
-      continue
-    }
-
-    // Bare key with trailing colon (object header)
-    if (rest.endsWith(':')) {
-      tokens.push({ type: 'key', value: rest.slice(0, -1) })
-      tokens.push({ type: 'colon', value: ':' })
-      continue
-    }
-
-    // Plain value line
-    if (rest) tokenizeYamlValue(rest, tokens)
-  }
-
-  return tokens
-}
-
-function tokenizeYamlValue(val: string, tokens: Token[]): void {
-  if (val === 'true' || val === 'false') {
-    tokens.push({ type: 'boolean', value: val })
-  } else if (val === 'null' || val === '~') {
-    tokens.push({ type: 'null', value: val })
-  } else if (/^-?\d+(\.\d+)?([eE][+-]?\d+)?$/.test(val)) {
-    tokens.push({ type: 'number', value: val })
-  } else if (val.startsWith('"') || val.startsWith("'")) {
-    tokens.push({ type: 'string', value: val })
-  } else {
-    tokens.push({ type: 'string', value: val })
-  }
-}
-
-// ─── JSON to YAML converter ─────────────────────────────
-
-function jsonToYaml(value: unknown, indent: number = 0): string {
-  const prefix = '  '.repeat(indent)
-
-  if (value === null || value === undefined) return 'null'
-  if (typeof value === 'boolean') return value ? 'true' : 'false'
-  if (typeof value === 'number') return String(value)
-  if (typeof value === 'string') {
-    // Needs quoting if it contains special chars or looks like a number/bool/null
-    if (value === '' || value === 'true' || value === 'false' || value === 'null' || value === '~' ||
-        /^[\d.eE+-]/.test(value) || /[:#\[\]{}&*!|>',@`]/.test(value) || value.includes('\n')) {
-      return JSON.stringify(value)
-    }
-    return value
-  }
-
-  if (Array.isArray(value)) {
-    if (value.length === 0) return '[]'
-    const lines: string[] = []
-    for (const item of value) {
-      const rendered = jsonToYaml(item, indent + 1)
-      if (typeof item === 'object' && item !== null && !Array.isArray(item)) {
-        // Object items: first key on same line as dash
-        const objLines = rendered.split('\n')
-        lines.push(`${prefix}- ${objLines[0].trimStart()}`)
-        for (let i = 1; i < objLines.length; i++) {
-          lines.push(`${prefix}  ${objLines[i].trimStart()}`)
-        }
-      } else {
-        lines.push(`${prefix}- ${rendered}`)
-      }
-    }
-    return lines.join('\n')
-  }
-
-  if (typeof value === 'object') {
-    const entries = Object.entries(value as Record<string, unknown>)
-    if (entries.length === 0) return '{}'
-    const lines: string[] = []
-    for (const [k, v] of entries) {
-      if (typeof v === 'object' && v !== null) {
-        lines.push(`${prefix}${k}:`)
-        lines.push(jsonToYaml(v, indent + 1))
-      } else {
-        lines.push(`${prefix}${k}: ${jsonToYaml(v, indent + 1)}`)
-      }
-    }
-    return lines.join('\n')
-  }
-
-  return String(value)
-}
-
-// ─── Formatting helpers ─────────────────────────────────
-
 function tryFormatJson(raw: string): string {
   try {
     const parsed = JSON.parse(raw)
@@ -261,21 +141,9 @@ function tryFormatJson(raw: string): string {
   }
 }
 
-function tryFormatYaml(raw: string): string {
-  try {
-    const parsed = JSON.parse(raw)
-    return jsonToYaml(parsed)
-  } catch {
-    return raw
-  }
-}
-
-// ─── Component ──────────────────────────────────────────
-
-export function JsonHighlight({ json, format = 'json', className }: Props) {
-  const isYaml = format === 'yaml'
-  const formatted = isYaml ? tryFormatYaml(json) : tryFormatJson(json)
-  const tokens = isYaml ? tokenizeYaml(formatted) : tokenize(formatted)
+export function JsonHighlight({ json, className }: Props) {
+  const formatted = tryFormatJson(json)
+  const tokens = tokenize(formatted)
 
   return (
     <pre className={className} style={{ margin: 0, whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>

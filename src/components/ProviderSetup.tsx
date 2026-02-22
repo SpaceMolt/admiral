@@ -3,7 +3,6 @@
 import { useState } from 'react'
 import { KeyRound, Wifi, WifiOff, Search, Server } from 'lucide-react'
 import type { Provider } from '@/types'
-import type { DisplayFormat } from '@/components/JsonHighlight'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card } from '@/components/ui/card'
@@ -28,8 +27,6 @@ const PROVIDER_INFO: Record<string, { label: string; description: string; isLoca
 
 interface Props {
   providers: Provider[]
-  displayFormat: DisplayFormat
-  onDisplayFormatChange: (fmt: DisplayFormat) => void
   registrationCode: string
   onRegistrationCodeChange: (code: string) => void
   gameserverUrl: string
@@ -37,7 +34,7 @@ interface Props {
   onDone: () => void
 }
 
-export function ProviderSetup({ providers: initialProviders, displayFormat, onDisplayFormatChange, registrationCode, onRegistrationCodeChange, gameserverUrl, onGameserverUrlChange, onDone }: Props) {
+export function ProviderSetup({ providers: initialProviders, registrationCode, onRegistrationCodeChange, gameserverUrl, onGameserverUrlChange, onDone }: Props) {
   const [providers, setProviders] = useState(initialProviders)
   const [keys, setKeys] = useState<Record<string, string>>(() => {
     const m: Record<string, string> = {}
@@ -209,34 +206,10 @@ export function ProviderSetup({ providers: initialProviders, displayFormat, onDi
           })}
         </div>
 
-        {/* Display Preferences */}
+        {/* Preferences */}
         <div className="h-[1px] bg-border my-6" />
         <div>
-          <span className="text-[11px] text-[hsl(var(--smui-orange))] uppercase tracking-[1.5px] font-medium">Display Preferences</span>
-          <div className="flex items-center gap-4 mt-3">
-            <span className="text-xs text-muted-foreground">Data format</span>
-            <div className="flex items-center border border-border">
-              <button
-                onClick={() => onDisplayFormatChange('json')}
-                className={`px-3 py-1.5 text-xs uppercase tracking-[1.5px] transition-colors ${
-                  displayFormat === 'json' ? 'bg-primary/15 text-primary' : 'text-muted-foreground hover:text-foreground'
-                }`}
-              >
-                JSON
-              </button>
-              <button
-                onClick={() => onDisplayFormatChange('yaml')}
-                className={`px-3 py-1.5 text-xs uppercase tracking-[1.5px] transition-colors ${
-                  displayFormat === 'yaml' ? 'bg-primary/15 text-primary' : 'text-muted-foreground hover:text-foreground'
-                }`}
-              >
-                YAML
-              </button>
-            </div>
-            <span className="text-[11px] text-muted-foreground">
-              How expanded log entries display structured data
-            </span>
-          </div>
+          <span className="text-[11px] text-[hsl(var(--smui-orange))] uppercase tracking-[1.5px] font-medium">Preferences</span>
           <div className="flex items-center gap-4 mt-3">
             <span className="text-xs text-muted-foreground">Registration code</span>
             <Input

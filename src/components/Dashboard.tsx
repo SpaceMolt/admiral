@@ -3,7 +3,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { Settings, Sun, Moon } from 'lucide-react'
 import type { Profile, Provider } from '@/types'
-import type { DisplayFormat } from '@/components/JsonHighlight'
 import { Button } from '@/components/ui/button'
 import { ProfileList } from './ProfileList'
 import { ProfileEditor } from './ProfileEditor'
@@ -12,15 +11,13 @@ import { ProfileView } from './ProfileView'
 interface Props {
   profiles: Profile[]
   providers: Provider[]
-  displayFormat: DisplayFormat
-  onDisplayFormatChange: (fmt: DisplayFormat) => void
   registrationCode: string
   gameserverUrl: string
   onRefresh: () => void
   onShowProviders: () => void
 }
 
-export function Dashboard({ profiles: initialProfiles, providers, displayFormat, onDisplayFormatChange, registrationCode, gameserverUrl, onRefresh, onShowProviders }: Props) {
+export function Dashboard({ profiles: initialProfiles, providers, registrationCode, gameserverUrl, onRefresh, onShowProviders }: Props) {
   const [profiles, setProfiles] = useState(initialProfiles)
   const [activeId, setActiveId] = useState<string | null>(initialProfiles[0]?.id || null)
   const [showEditor, setShowEditor] = useState(false)
@@ -116,7 +113,6 @@ export function Dashboard({ profiles: initialProfiles, providers, displayFormat,
           <span className="text-[11px] text-muted-foreground tracking-[1.5px] uppercase">SpaceMolt Agent Manager</span>
         </div>
         <div className="flex items-center gap-3">
-          <FormatToggle value={displayFormat} onChange={onDisplayFormatChange} />
           <ThemeToggle />
           <button
             onClick={onShowProviders}
@@ -160,7 +156,6 @@ export function Dashboard({ profiles: initialProfiles, providers, displayFormat,
             <ProfileView
               profile={activeProfile}
               status={statuses[activeProfile.id] || { connected: false, running: false }}
-              displayFormat={displayFormat}
               registrationCode={registrationCode}
               playerData={playerDataMap[activeProfile.id] || null}
               onPlayerData={(data) => setPlayerDataMap(prev => ({ ...prev, [activeProfile.id]: data }))}
@@ -212,26 +207,3 @@ function ThemeToggle() {
   )
 }
 
-function FormatToggle({ value, onChange }: { value: DisplayFormat; onChange: (v: DisplayFormat) => void }) {
-  return (
-    <div className="flex items-center border border-border">
-      <button
-        onClick={() => onChange('json')}
-        className={`px-2.5 py-1 text-[11px] uppercase tracking-[1.5px] transition-colors ${
-          value === 'json' ? 'bg-primary/15 text-primary' : 'text-muted-foreground hover:text-foreground'
-        }`}
-      >
-        JSON
-      </button>
-      <div className="w-px h-5 bg-border" />
-      <button
-        onClick={() => onChange('yaml')}
-        className={`px-2.5 py-1 text-[11px] uppercase tracking-[1.5px] transition-colors ${
-          value === 'yaml' ? 'bg-primary/15 text-primary' : 'text-muted-foreground hover:text-foreground'
-        }`}
-      >
-        YAML
-      </button>
-    </div>
-  )
-}

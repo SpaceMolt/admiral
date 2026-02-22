@@ -16,7 +16,7 @@ export interface Profile {
   model: string | null
   directive: string
   todo: string
-  connection_mode: 'http' | 'websocket' | 'mcp'
+  connection_mode: 'http' | 'http_v2' | 'websocket' | 'mcp' | 'mcp_v2'
   server_url: string
   autoconnect: boolean
   enabled: boolean

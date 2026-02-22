@@ -76,8 +76,8 @@ function migrate(db: Database.Database): void {
     );
   `)
 
-  // Seed defaults
-  db.exec("INSERT OR IGNORE INTO preferences (key, value) VALUES ('display_format', 'yaml')")
+  // Clean up legacy preferences
+  db.exec("DELETE FROM preferences WHERE key = 'display_format'")
 
   // Seed default providers
   const defaultProviders = [
