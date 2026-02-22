@@ -9,8 +9,8 @@ import { Input } from '@/components/ui/input'
 import { Card } from '@/components/ui/card'
 
 const DEFAULT_LOCAL_URLS: Record<string, string> = {
-  ollama: 'http://localhost:11434',
-  lmstudio: 'http://localhost:1234',
+  ollama: 'http://127.0.0.1:11434',
+  lmstudio: 'http://127.0.0.1:1234',
 }
 
 const PROVIDER_INFO: Record<string, { label: string; description: string; isLocal: boolean; keyPlaceholder: string }> = {

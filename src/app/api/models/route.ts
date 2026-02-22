@@ -10,8 +10,8 @@ const PROVIDER_API_URLS: Record<string, string> = {
 }
 
 const LOCAL_DEFAULTS: Record<string, string> = {
-  ollama: 'http://localhost:11434',
-  lmstudio: 'http://localhost:1234',
+  ollama: 'http://127.0.0.1:11434',
+  lmstudio: 'http://127.0.0.1:1234',
 }
 
 export async function GET(request: Request) {

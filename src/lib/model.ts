@@ -19,9 +19,9 @@ function parseModelString(modelStr: string): ParsedModel {
 }
 
 const CUSTOM_BASE_URLS: Record<string, string> = {
-  ollama: 'http://localhost:11434/v1',
-  lmstudio: 'http://localhost:1234/v1',
-  vllm: 'http://localhost:8000/v1',
+  ollama: 'http://127.0.0.1:11434/v1',
+  lmstudio: 'http://127.0.0.1:1234/v1',
+  vllm: 'http://127.0.0.1:8000/v1',
 }
 
 /**
