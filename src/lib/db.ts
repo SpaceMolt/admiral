@@ -68,6 +68,17 @@ function migrate(db: Database.Database): void {
     db.exec("ALTER TABLE profiles ADD COLUMN todo TEXT DEFAULT ''")
   }
 
+  // Preferences table
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS preferences (
+      key TEXT PRIMARY KEY,
+      value TEXT NOT NULL DEFAULT ''
+    );
+  `)
+
+  // Seed defaults
+  db.exec("INSERT OR IGNORE INTO preferences (key, value) VALUES ('display_format', 'yaml')")
+
   // Seed default providers
   const defaultProviders = [
     'anthropic', 'openai', 'groq', 'google', 'xai',
@@ -185,4 +196,24 @@ export function getLogEntries(profileId: string, afterId?: number, limit: number
 
 export function clearLogs(profileId: string): void {
   getDb().prepare('DELETE FROM log_entries WHERE profile_id = ?').run(profileId)
+}
+
+// ─── Preferences CRUD ─────────────────────────────────────
+
+export function getPreference(key: string): string | null {
+  const row = getDb().prepare('SELECT value FROM preferences WHERE key = ?').get(key) as { value: string } | undefined
+  return row?.value ?? null
+}
+
+export function setPreference(key: string, value: string): void {
+  getDb().prepare(
+    'INSERT INTO preferences (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = ?'
+  ).run(key, value, value)
+}
+
+export function getAllPreferences(): Record<string, string> {
+  const rows = getDb().prepare('SELECT key, value FROM preferences').all() as Array<{ key: string; value: string }>
+  const prefs: Record<string, string> = {}
+  for (const row of rows) prefs[row.key] = row.value
+  return prefs
 }

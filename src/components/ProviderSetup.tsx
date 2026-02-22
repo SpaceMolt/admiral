@@ -3,9 +3,11 @@
 import { useState } from 'react'
 import { KeyRound, Wifi, WifiOff, ArrowRight, Search, Server } from 'lucide-react'
 import type { Provider } from '@/types'
+import type { DisplayFormat } from '@/components/JsonHighlight'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card } from '@/components/ui/card'
+import { Separator } from '@/components/ui/separator'
 
 const DEFAULT_LOCAL_URLS: Record<string, string> = {
   ollama: 'http://localhost:11434',
@@ -26,10 +28,12 @@ const PROVIDER_INFO: Record<string, { label: string; description: string; isLoca
 
 interface Props {
   providers: Provider[]
+  displayFormat: DisplayFormat
+  onDisplayFormatChange: (fmt: DisplayFormat) => void
   onDone: () => void
 }
 
-export function ProviderSetup({ providers: initialProviders, onDone }: Props) {
+export function ProviderSetup({ providers: initialProviders, displayFormat, onDisplayFormatChange, onDone }: Props) {
   const [providers, setProviders] = useState(initialProviders)
   const [keys, setKeys] = useState<Record<string, string>>(() => {
     const m: Record<string, string> = {}
@@ -199,6 +203,36 @@ export function ProviderSetup({ providers: initialProviders, onDone }: Props) {
               </Card>
             )
           })}
+        </div>
+
+        {/* Display Preferences */}
+        <Separator className="my-6" />
+        <div>
+          <span className="font-jetbrains text-[10px] text-smui-orange uppercase tracking-wider font-semibold">Display Preferences</span>
+          <div className="flex items-center gap-4 mt-3">
+            <span className="font-jetbrains text-xs text-muted-foreground">Data format</span>
+            <div className="flex items-center bg-secondary/60 border border-border/30">
+              <button
+                onClick={() => onDisplayFormatChange('json')}
+                className={`px-3 py-1.5 text-xs font-jetbrains uppercase tracking-wider transition-colors ${
+                  displayFormat === 'json' ? 'bg-primary/15 text-primary' : 'text-muted-foreground/50 hover:text-muted-foreground'
+                }`}
+              >
+                JSON
+              </button>
+              <button
+                onClick={() => onDisplayFormatChange('yaml')}
+                className={`px-3 py-1.5 text-xs font-jetbrains uppercase tracking-wider transition-colors ${
+                  displayFormat === 'yaml' ? 'bg-primary/15 text-primary' : 'text-muted-foreground/50 hover:text-muted-foreground'
+                }`}
+              >
+                YAML
+              </button>
+            </div>
+            <span className="font-jetbrains text-[11px] text-muted-foreground/40">
+              How expanded log entries display structured data
+            </span>
+          </div>
         </div>
 
         <div className="flex justify-end mt-8">

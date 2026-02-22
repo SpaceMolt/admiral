@@ -3,6 +3,7 @@
 import { useState, useCallback } from 'react'
 import { Play, Square, Plug, PlugZap, Settings, Trash2 } from 'lucide-react'
 import type { Profile } from '@/types'
+import type { DisplayFormat } from '@/components/JsonHighlight'
 import { Button } from '@/components/ui/button'
 import { PlayerStatus } from './PlayerStatus'
 import { CommandPanel } from './CommandPanel'
@@ -12,12 +13,13 @@ import { LogPane } from './LogPane'
 interface Props {
   profile: Profile
   status: { connected: boolean; running: boolean }
+  displayFormat: DisplayFormat
   onEdit: () => void
   onDelete: () => void
   onRefresh: () => void
 }
 
-export function ProfileView({ profile, status, onEdit, onDelete, onRefresh }: Props) {
+export function ProfileView({ profile, status, displayFormat, onEdit, onDelete, onRefresh }: Props) {
   const [playerData, setPlayerData] = useState<Record<string, unknown> | null>(null)
   const [connecting, setConnecting] = useState(false)
 
@@ -133,7 +135,7 @@ export function ProfileView({ profile, status, onEdit, onDelete, onRefresh }: Pr
 
       {/* Log pane */}
       <div className="flex-1 min-h-0">
-        <LogPane profileId={profile.id} connected={status.connected} />
+        <LogPane profileId={profile.id} connected={status.connected} displayFormat={displayFormat} />
       </div>
     </div>
   )

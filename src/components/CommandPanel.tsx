@@ -105,7 +105,7 @@ export function CommandPanel({ profileId, onSend, disabled }: Props) {
   }, [profileId, historyIndex])
 
   return (
-    <form onSubmit={handleSubmit} className="flex items-center gap-2 px-4 py-2 bg-card border-b border-border/30">
+    <form onSubmit={handleSubmit} className="flex items-center gap-2.5 px-4 py-2.5 bg-card border-b border-border/30">
       <span className="font-jetbrains text-[10px] text-muted-foreground/40 uppercase tracking-wider shrink-0">Cmd</span>
       <Input
         ref={commandRef}

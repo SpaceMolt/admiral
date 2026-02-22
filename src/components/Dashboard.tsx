@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { Settings } from 'lucide-react'
 import type { Profile, Provider } from '@/types'
+import type { DisplayFormat } from '@/components/JsonHighlight'
 import { Button } from '@/components/ui/button'
 import { ProfileList } from './ProfileList'
 import { ProfileEditor } from './ProfileEditor'
@@ -11,11 +12,13 @@ import { ProfileView } from './ProfileView'
 interface Props {
   profiles: Profile[]
   providers: Provider[]
+  displayFormat: DisplayFormat
+  onDisplayFormatChange: (fmt: DisplayFormat) => void
   onRefresh: () => void
   onShowProviders: () => void
 }
 
-export function Dashboard({ profiles: initialProfiles, providers, onRefresh, onShowProviders }: Props) {
+export function Dashboard({ profiles: initialProfiles, providers, displayFormat, onDisplayFormatChange, onRefresh, onShowProviders }: Props) {
   const [profiles, setProfiles] = useState(initialProfiles)
   const [activeId, setActiveId] = useState<string | null>(initialProfiles[0]?.id || null)
   const [showEditor, setShowEditor] = useState(false)
@@ -102,19 +105,22 @@ export function Dashboard({ profiles: initialProfiles, providers, onRefresh, onS
   return (
     <div className="flex flex-col h-screen">
       {/* Top bar */}
-      <div className="flex items-center justify-between px-4 py-2 bg-card border-b border-border/40">
+      <div className="flex items-center justify-between px-4 py-2.5 bg-card border-b border-border/40">
         <h1 className="font-orbitron text-lg font-bold tracking-wider bg-gradient-to-r from-primary to-smui-orange bg-clip-text text-transparent">
           ADMIRAL
         </h1>
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={onShowProviders}
-          className="gap-1.5 text-xs font-jetbrains text-muted-foreground/70 hover:text-primary"
-        >
-          <Settings size={13} />
-          Providers
-        </Button>
+        <div className="flex items-center gap-2">
+          <FormatToggle value={displayFormat} onChange={onDisplayFormatChange} />
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={onShowProviders}
+            className="gap-1.5 text-xs font-jetbrains text-muted-foreground/70 hover:text-primary"
+          >
+            <Settings size={13} />
+            Providers
+          </Button>
+        </div>
       </div>
 
       {/* Main content */}
@@ -147,6 +153,7 @@ export function Dashboard({ profiles: initialProfiles, providers, onRefresh, onS
             <ProfileView
               profile={activeProfile}
               status={statuses[activeProfile.id] || { connected: false, running: false }}
+              displayFormat={displayFormat}
               onEdit={() => {
                 setEditingProfile(activeProfile)
                 setShowEditor(true)
@@ -166,6 +173,29 @@ export function Dashboard({ profiles: initialProfiles, providers, onRefresh, onS
           )}
         </div>
       </div>
+    </div>
+  )
+}
+
+function FormatToggle({ value, onChange }: { value: DisplayFormat; onChange: (v: DisplayFormat) => void }) {
+  return (
+    <div className="flex items-center bg-secondary/60 border border-border/30">
+      <button
+        onClick={() => onChange('json')}
+        className={`px-2 py-1 text-[10px] font-jetbrains uppercase tracking-wider transition-colors ${
+          value === 'json' ? 'bg-primary/15 text-primary' : 'text-muted-foreground/50 hover:text-muted-foreground'
+        }`}
+      >
+        JSON
+      </button>
+      <button
+        onClick={() => onChange('yaml')}
+        className={`px-2 py-1 text-[10px] font-jetbrains uppercase tracking-wider transition-colors ${
+          value === 'yaml' ? 'bg-primary/15 text-primary' : 'text-muted-foreground/50 hover:text-muted-foreground'
+        }`}
+      >
+        YAML
+      </button>
     </div>
   )
 }

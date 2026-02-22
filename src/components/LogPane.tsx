@@ -3,8 +3,7 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
 import { ChevronDown, ChevronRight } from 'lucide-react'
 import type { LogEntry, LogType } from '@/types'
-import { Button } from '@/components/ui/button'
-import { JsonHighlight } from './JsonHighlight'
+import { JsonHighlight, type DisplayFormat } from './JsonHighlight'
 
 const FILTERS: { label: string; types: LogType[] | null }[] = [
   { label: 'All', types: null },
@@ -41,9 +40,10 @@ const SUMMARY_EXPAND_THRESHOLD = 80
 interface Props {
   profileId: string
   connected?: boolean
+  displayFormat?: DisplayFormat
 }
 
-export function LogPane({ profileId, connected }: Props) {
+export function LogPane({ profileId, connected, displayFormat = 'yaml' }: Props) {
   const [entries, setEntries] = useState<LogEntry[]>([])
   const [filter, setFilter] = useState<LogType[] | null>(null)
   const [expanded, setExpanded] = useState<Set<number>>(new Set())
@@ -128,7 +128,7 @@ export function LogPane({ profileId, connected }: Props) {
   return (
     <div className="flex flex-col h-full">
       {/* Filter tabs */}
-      <div className="flex items-center gap-1 px-3 py-1.5 bg-card border-b border-border/30">
+      <div className="flex items-center gap-1.5 px-3.5 py-2 bg-card border-b border-border/30">
         {FILTERS.map(f => (
           <button
             key={f.label}
@@ -149,7 +149,7 @@ export function LogPane({ profileId, connected }: Props) {
               setAutoScroll(true)
               if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight
             }}
-            className="px-2 py-0.5 text-[10px] font-jetbrains text-smui-yellow bg-smui-yellow/10"
+            className="px-2.5 py-1 text-[10px] font-jetbrains text-smui-yellow bg-smui-yellow/10"
           >
             <ChevronDown size={10} className="inline mr-1" />
             Follow
@@ -174,7 +174,7 @@ export function LogPane({ profileId, connected }: Props) {
           return (
             <div key={entry.id} className="border-b border-border/10 hover:bg-secondary/10">
               <div
-                className={`flex items-start gap-2 px-3 py-1.5 ${isClickable ? 'cursor-pointer' : ''}`}
+                className={`flex items-start gap-2.5 px-3.5 py-2 ${isClickable ? 'cursor-pointer' : ''}`}
                 onClick={() => {
                   if (hasDetail) {
                     toggleExpand(entry.id)
@@ -201,19 +201,19 @@ export function LogPane({ profileId, connected }: Props) {
                 </span>
               </div>
               {isExpanded && entry.detail && (
-                <div className="ml-8 mr-3 mb-1 max-h-72 overflow-y-auto border border-border/20 bg-smui-surface-0">
+                <div className="ml-9 mr-3.5 mb-2 max-h-72 overflow-y-auto border border-border/20 bg-smui-surface-0">
                   {looksLikeJson(entry.detail) ? (
-                    <JsonHighlight json={entry.detail} className="px-3 py-2 text-[11px] font-jetbrains leading-relaxed" />
+                    <JsonHighlight json={entry.detail} format={displayFormat} className="px-3.5 py-2.5 text-[11px] font-jetbrains leading-relaxed" />
                   ) : (
-                    <pre className="px-3 py-2 text-[11px] font-jetbrains text-muted-foreground/80 whitespace-pre-wrap break-words leading-relaxed">
+                    <pre className="px-3.5 py-2.5 text-[11px] font-jetbrains text-muted-foreground/80 whitespace-pre-wrap break-words leading-relaxed">
                       {entry.detail}
                     </pre>
                   )}
                 </div>
               )}
               {isSummaryExpanded && !hasDetail && (
-                <div className="ml-8 mr-3 mb-1 border border-border/20 bg-smui-surface-0">
-                  <pre className="px-3 py-2 text-[11px] font-jetbrains text-muted-foreground/80 whitespace-pre-wrap break-words leading-relaxed">
+                <div className="ml-9 mr-3.5 mb-2 border border-border/20 bg-smui-surface-0">
+                  <pre className="px-3.5 py-2.5 text-[11px] font-jetbrains text-muted-foreground/80 whitespace-pre-wrap break-words leading-relaxed">
                     {entry.summary}
                   </pre>
                 </div>

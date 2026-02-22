@@ -19,7 +19,7 @@ export function PlayerStatus({ data }: Props) {
   const ship = (data.ship || {}) as Record<string, unknown>
 
   return (
-    <div className="flex items-center gap-4 px-4 py-2 bg-card border-b border-border/30 overflow-x-auto">
+    <div className="flex items-center gap-4 px-4 py-2.5 bg-card border-b border-border/30 overflow-x-auto">
       <Stat icon={<MapPin size={12} />} label={String(player.username || '?')} value={`${player.current_system || '?'} > ${player.current_poi || '?'}`} />
       <Stat icon={<DollarSign size={12} />} label="Credits" value={Number(player.credits || 0).toLocaleString()} color="text-smui-yellow" />
       <Stat icon={<Heart size={12} />} label="Hull" value={`${ship.hull || 0}/${ship.max_hull || 0}`} color="text-destructive" />
