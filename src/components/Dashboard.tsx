@@ -15,11 +15,12 @@ interface Props {
   displayFormat: DisplayFormat
   onDisplayFormatChange: (fmt: DisplayFormat) => void
   registrationCode: string
+  gameserverUrl: string
   onRefresh: () => void
   onShowProviders: () => void
 }
 
-export function Dashboard({ profiles: initialProfiles, providers, displayFormat, onDisplayFormatChange, registrationCode, onRefresh, onShowProviders }: Props) {
+export function Dashboard({ profiles: initialProfiles, providers, displayFormat, onDisplayFormatChange, registrationCode, gameserverUrl, onRefresh, onShowProviders }: Props) {
   const [profiles, setProfiles] = useState(initialProfiles)
   const [activeId, setActiveId] = useState<string | null>(initialProfiles[0]?.id || null)
   const [showEditor, setShowEditor] = useState(false)
@@ -144,6 +145,7 @@ export function Dashboard({ profiles: initialProfiles, providers, displayFormat,
             <ProfileEditor
               profile={editingProfile}
               providers={providers}
+              defaultServerUrl={gameserverUrl}
               onSave={editingProfile ? handleUpdateProfile : handleCreateProfile}
               onCancel={() => {
                 setShowEditor(false)

@@ -12,6 +12,7 @@ import { Separator } from '@/components/ui/separator'
 interface Props {
   profile?: Profile | null
   providers: Provider[]
+  defaultServerUrl?: string
   onSave: (data: Partial<Profile>) => void
   onCancel: () => void
 }
@@ -19,7 +20,7 @@ interface Props {
 const EMPIRES = ['solarian', 'voidborn', 'crimson', 'nebula', 'outerrim']
 const CONNECTION_MODES = ['http', 'websocket', 'mcp']
 
-export function ProfileEditor({ profile, providers, onSave, onCancel }: Props) {
+export function ProfileEditor({ profile, providers, defaultServerUrl, onSave, onCancel }: Props) {
   const [name, setName] = useState(profile?.name || '')
   const [username, setUsername] = useState(profile?.username || '')
   const [password, setPassword] = useState(profile?.password || '')
@@ -28,7 +29,7 @@ export function ProfileEditor({ profile, providers, onSave, onCancel }: Props) {
   const [model, setModel] = useState(profile?.model || '')
   const [directive, setDirective] = useState(profile?.directive || '')
   const [connectionMode, setConnectionMode] = useState<string>(profile?.connection_mode || 'http')
-  const [serverUrl, setServerUrl] = useState(profile?.server_url || 'https://game.spacemolt.com')
+  const [serverUrl, setServerUrl] = useState(profile?.server_url || defaultServerUrl || 'https://game.spacemolt.com')
   const [error, setError] = useState('')
 
   const isNew = !profile

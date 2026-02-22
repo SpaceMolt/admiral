@@ -32,10 +32,12 @@ interface Props {
   onDisplayFormatChange: (fmt: DisplayFormat) => void
   registrationCode: string
   onRegistrationCodeChange: (code: string) => void
+  gameserverUrl: string
+  onGameserverUrlChange: (url: string) => void
   onDone: () => void
 }
 
-export function ProviderSetup({ providers: initialProviders, displayFormat, onDisplayFormatChange, registrationCode, onRegistrationCodeChange, onDone }: Props) {
+export function ProviderSetup({ providers: initialProviders, displayFormat, onDisplayFormatChange, registrationCode, onRegistrationCodeChange, gameserverUrl, onGameserverUrlChange, onDone }: Props) {
   const [providers, setProviders] = useState(initialProviders)
   const [keys, setKeys] = useState<Record<string, string>>(() => {
     const m: Record<string, string> = {}
@@ -245,6 +247,18 @@ export function ProviderSetup({ providers: initialProviders, displayFormat, onDi
             />
             <span className="font-jetbrains text-[11px] text-muted-foreground/40">
               Required for new player registration
+            </span>
+          </div>
+          <div className="flex items-center gap-4 mt-3">
+            <span className="font-jetbrains text-xs text-muted-foreground">Gameserver URL</span>
+            <Input
+              value={gameserverUrl}
+              onChange={e => onGameserverUrlChange(e.target.value)}
+              placeholder="https://game.spacemolt.com"
+              className="flex-1 h-7 text-xs max-w-[280px]"
+            />
+            <span className="font-jetbrains text-[11px] text-muted-foreground/40">
+              Default server for new profiles
             </span>
           </div>
         </div>

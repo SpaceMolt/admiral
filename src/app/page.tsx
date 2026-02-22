@@ -13,6 +13,7 @@ export default function Home() {
   const [showProviderSetup, setShowProviderSetup] = useState(false)
   const [displayFormat, setDisplayFormat] = useState<DisplayFormat>('yaml')
   const [registrationCode, setRegistrationCode] = useState('')
+  const [gameserverUrl, setGameserverUrl] = useState('https://game.spacemolt.com')
 
   useEffect(() => {
     loadData()
@@ -35,6 +36,9 @@ export default function Home() {
       }
       if (prefs.registration_code) {
         setRegistrationCode(prefs.registration_code)
+      }
+      if (prefs.gameserver_url) {
+        setGameserverUrl(prefs.gameserver_url)
       }
 
       // Show provider setup if no profiles and no configured providers
@@ -74,6 +78,19 @@ export default function Home() {
     }
   }, [])
 
+  const handleSetGameserverUrl = useCallback(async (url: string) => {
+    setGameserverUrl(url)
+    try {
+      await fetch('/api/preferences', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ key: 'gameserver_url', value: url }),
+      })
+    } catch {
+      // ignore
+    }
+  }, [])
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-screen">
@@ -90,6 +107,8 @@ export default function Home() {
         onDisplayFormatChange={handleSetDisplayFormat}
         registrationCode={registrationCode}
         onRegistrationCodeChange={handleSetRegistrationCode}
+        gameserverUrl={gameserverUrl}
+        onGameserverUrlChange={handleSetGameserverUrl}
         onDone={() => {
           setShowProviderSetup(false)
           loadData()
@@ -105,6 +124,7 @@ export default function Home() {
       displayFormat={displayFormat}
       onDisplayFormatChange={handleSetDisplayFormat}
       registrationCode={registrationCode}
+      gameserverUrl={gameserverUrl}
       onRefresh={loadData}
       onShowProviders={() => setShowProviderSetup(true)}
     />
