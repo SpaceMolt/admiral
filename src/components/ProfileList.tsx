@@ -19,9 +19,9 @@ const MODE_LABELS: Record<string, string> = {
 
 export function ProfileList({ profiles, activeId, statuses, onSelect, onNew }: Props) {
   return (
-    <div className="w-56 bg-deep-void border-r border-hull-grey/50 flex flex-col h-full">
-      <div className="p-3 border-b border-hull-grey/50">
-        <h2 className="font-orbitron text-xs font-semibold text-chrome-silver uppercase tracking-widest">Profiles</h2>
+    <div className="w-56 bg-deep-void border-r border-hull-grey/40 flex flex-col h-full">
+      <div className="px-3 py-3 border-b border-hull-grey/40">
+        <h2 className="font-orbitron text-[11px] font-semibold text-chrome-silver/80 uppercase tracking-widest">Profiles</h2>
       </div>
 
       <div className="flex-1 overflow-y-auto">
@@ -68,10 +68,10 @@ export function ProfileList({ profiles, activeId, statuses, onSelect, onNew }: P
         })}
       </div>
 
-      <div className="p-3 border-t border-hull-grey/50">
+      <div className="p-3 border-t border-hull-grey/40">
         <button
           onClick={onNew}
-          className="w-full flex items-center justify-center gap-2 px-3 py-2 bg-nebula-blue border border-hull-grey rounded text-xs font-jetbrains text-chrome-silver hover:border-plasma-cyan hover:text-plasma-cyan transition-colors"
+          className="w-full flex items-center justify-center gap-2 px-3 py-2 bg-nebula-blue/60 border border-hull-grey/40 rounded text-xs font-jetbrains text-chrome-silver hover:border-plasma-cyan/50 hover:text-plasma-cyan transition-colors"
         >
           <Plus size={14} />
           New Profile

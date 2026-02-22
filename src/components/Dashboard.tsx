@@ -101,15 +101,15 @@ export function Dashboard({ profiles: initialProfiles, providers, onRefresh, onS
   return (
     <div className="flex flex-col h-screen">
       {/* Top bar */}
-      <div className="flex items-center justify-between px-4 py-2 bg-deep-void border-b border-hull-grey/50">
+      <div className="flex items-center justify-between px-4 py-2 bg-deep-void border-b border-hull-grey/40">
         <h1 className="font-orbitron text-lg font-bold tracking-wider bg-gradient-to-r from-plasma-cyan to-shell-orange bg-clip-text text-transparent">
           ADMIRAL
         </h1>
         <button
           onClick={onShowProviders}
-          className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-jetbrains text-chrome-silver hover:text-plasma-cyan transition-colors"
+          className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-jetbrains text-chrome-silver/70 hover:text-plasma-cyan transition-colors"
         >
-          <Settings size={14} />
+          <Settings size={13} />
           Providers
         </button>
       </div>

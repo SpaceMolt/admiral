@@ -6,18 +6,20 @@ import type { Provider, Profile, LogEntry } from '@/types'
 const DB_DIR = path.join(process.cwd(), 'data')
 const DB_PATH = path.join(DB_DIR, 'admiral.db')
 
-let _db: Database.Database | null = null
+// Persist DB instance across HMR in development
+const globalForDb = globalThis as unknown as { __admiralDb?: Database.Database }
 
 export function getDb(): Database.Database {
-  if (_db) return _db
+  if (globalForDb.__admiralDb) return globalForDb.__admiralDb
 
   fs.mkdirSync(DB_DIR, { recursive: true })
-  _db = new Database(DB_PATH)
-  _db.pragma('journal_mode = WAL')
-  _db.pragma('foreign_keys = ON')
+  const db = new Database(DB_PATH)
+  db.pragma('journal_mode = WAL')
+  db.pragma('foreign_keys = ON')
 
-  migrate(_db)
-  return _db
+  migrate(db)
+  globalForDb.__admiralDb = db
+  return db
 }
 
 function migrate(db: Database.Database): void {

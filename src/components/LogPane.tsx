@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
 import { ChevronDown, ChevronRight } from 'lucide-react'
 import type { LogEntry, LogType } from '@/types'
+import { JsonHighlight } from './JsonHighlight'
 
 const FILTERS: { label: string; types: LogType[] | null }[] = [
   { label: 'All', types: null },
@@ -36,20 +37,25 @@ const TYPE_LABELS: Record<string, string> = {
 
 interface Props {
   profileId: string
+  connected?: boolean
 }
 
-export function LogPane({ profileId }: Props) {
+export function LogPane({ profileId, connected }: Props) {
   const [entries, setEntries] = useState<LogEntry[]>([])
   const [filter, setFilter] = useState<LogType[] | null>(null)
   const [expanded, setExpanded] = useState<Set<number>>(new Set())
   const [autoScroll, setAutoScroll] = useState(true)
   const scrollRef = useRef<HTMLDivElement>(null)
   const eventSourceRef = useRef<EventSource | null>(null)
+  // Track connection changes to re-establish SSE and pick up missed entries
+  const [sseKey, setSseKey] = useState(0)
 
   useEffect(() => {
-    setEntries([])
-    setExpanded(new Set())
+    // When connection status changes, bump SSE key to re-establish the stream
+    setSseKey(k => k + 1)
+  }, [connected])
 
+  useEffect(() => {
     // Close previous SSE connection
     if (eventSourceRef.current) {
       eventSourceRef.current.close()
@@ -62,10 +68,11 @@ export function LogPane({ profileId }: Props) {
       try {
         const entry = JSON.parse(event.data) as LogEntry
         setEntries(prev => {
-          // Deduplicate
-          if (prev.length > 0 && prev[prev.length - 1].id === entry.id) return prev
+          // Deduplicate by id
+          if (prev.some(e => e.id === entry.id)) return prev
+          // Insert in order
+          const next = [...prev, entry].sort((a, b) => a.id - b.id)
           // Keep max 500 entries in memory
-          const next = [...prev, entry]
           if (next.length > 500) return next.slice(-400)
           return next
         })
@@ -78,7 +85,7 @@ export function LogPane({ profileId }: Props) {
       es.close()
       eventSourceRef.current = null
     }
-  }, [profileId])
+  }, [profileId, sseKey])
 
   // Auto-scroll
   useEffect(() => {
@@ -168,8 +175,14 @@ export function LogPane({ profileId }: Props) {
                 <span className="text-chrome-silver truncate">{entry.summary}</span>
               </div>
               {isExpanded && entry.detail && (
-                <div className="px-3 py-2 ml-8 mr-3 mb-1 bg-space-black/50 rounded text-[11px] text-chrome-silver/80 whitespace-pre-wrap break-all max-h-64 overflow-y-auto">
-                  {entry.detail}
+                <div className="ml-8 mr-3 mb-1 max-h-72 overflow-y-auto rounded border border-hull-grey/20 bg-[#080c14]">
+                  {looksLikeJson(entry.detail) ? (
+                    <JsonHighlight json={entry.detail} className="px-3 py-2 text-[11px] font-jetbrains leading-relaxed" />
+                  ) : (
+                    <pre className="px-3 py-2 text-[11px] font-jetbrains text-chrome-silver/80 whitespace-pre-wrap break-words leading-relaxed">
+                      {entry.detail}
+                    </pre>
+                  )}
                 </div>
               )}
             </div>
@@ -178,6 +191,12 @@ export function LogPane({ profileId }: Props) {
       </div>
     </div>
   )
+}
+
+function looksLikeJson(text: string): boolean {
+  const trimmed = text.trim()
+  return (trimmed.startsWith('{') && trimmed.endsWith('}')) ||
+         (trimmed.startsWith('[') && trimmed.endsWith(']'))
 }
 
 function formatTime(timestamp: string): string {

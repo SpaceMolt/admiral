@@ -6,33 +6,45 @@ interface DetectResult {
   baseUrl: string
 }
 
+const DEFAULT_URLS: Record<string, string> = {
+  ollama: 'http://localhost:11434',
+  lmstudio: 'http://localhost:1234',
+}
+
 /**
  * Detect local LLM providers (Ollama, LM Studio).
+ * Accepts optional custom URLs to override defaults (e.g. when running in a VM).
  */
-export async function detectLocalProviders(): Promise<DetectResult[]> {
+export async function detectLocalProviders(customUrls?: Record<string, string>): Promise<DetectResult[]> {
   const results: DetectResult[] = []
 
   // Check Ollama
-  const ollamaUrl = 'http://localhost:11434'
+  const ollamaUrl = customUrls?.ollama || getProvider('ollama')?.base_url?.replace(/\/v1\/?$/, '') || DEFAULT_URLS.ollama
   try {
     const resp = await fetch(`${ollamaUrl}/api/tags`, { signal: AbortSignal.timeout(3000) })
     if (resp.ok) {
       const existing = getProvider('ollama')
-      upsertProvider('ollama', existing?.api_key || '', `${ollamaUrl}/v1`, 'valid')
-      results.push({ id: 'ollama', status: 'valid', baseUrl: `${ollamaUrl}/v1` })
+      const baseUrl = `${ollamaUrl}/v1`
+      upsertProvider('ollama', existing?.api_key || '', baseUrl, 'valid')
+      results.push({ id: 'ollama', status: 'valid', baseUrl })
+    } else {
+      results.push({ id: 'ollama', status: 'unreachable', baseUrl: `${ollamaUrl}/v1` })
     }
   } catch {
     results.push({ id: 'ollama', status: 'unreachable', baseUrl: `${ollamaUrl}/v1` })
   }
 
   // Check LM Studio
-  const lmStudioUrl = 'http://localhost:1234'
+  const lmStudioUrl = customUrls?.lmstudio || getProvider('lmstudio')?.base_url?.replace(/\/v1\/?$/, '') || DEFAULT_URLS.lmstudio
   try {
     const resp = await fetch(`${lmStudioUrl}/v1/models`, { signal: AbortSignal.timeout(3000) })
     if (resp.ok) {
       const existing = getProvider('lmstudio')
-      upsertProvider('lmstudio', existing?.api_key || '', `${lmStudioUrl}/v1`, 'valid')
-      results.push({ id: 'lmstudio', status: 'valid', baseUrl: `${lmStudioUrl}/v1` })
+      const baseUrl = `${lmStudioUrl}/v1`
+      upsertProvider('lmstudio', existing?.api_key || '', baseUrl, 'valid')
+      results.push({ id: 'lmstudio', status: 'valid', baseUrl })
+    } else {
+      results.push({ id: 'lmstudio', status: 'unreachable', baseUrl: `${lmStudioUrl}/v1` })
     }
   } catch {
     results.push({ id: 'lmstudio', status: 'unreachable', baseUrl: `${lmStudioUrl}/v1` })

@@ -54,5 +54,7 @@ class AgentManager {
   }
 }
 
-// Singleton
-export const agentManager = new AgentManager()
+// Persist singleton across HMR in development
+const globalForAgentManager = globalThis as unknown as { __agentManager?: AgentManager }
+export const agentManager = globalForAgentManager.__agentManager || new AgentManager()
+globalForAgentManager.__agentManager = agentManager

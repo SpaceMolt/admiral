@@ -39,27 +39,27 @@ export function CommandPanel({ onSend, disabled }: Props) {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="flex items-center gap-2 px-3 py-2 bg-deep-void border-b border-hull-grey/30">
-      <span className="font-jetbrains text-[10px] text-chrome-silver/50 uppercase shrink-0">CMD:</span>
+    <form onSubmit={handleSubmit} className="flex items-center gap-2 px-4 py-2 bg-deep-void border-b border-hull-grey/30">
+      <span className="font-jetbrains text-[10px] text-chrome-silver/40 uppercase tracking-wider shrink-0">Cmd</span>
       <input
         value={command}
         onChange={e => setCommand(e.target.value)}
         placeholder="get_status"
         disabled={disabled}
-        className="flex-1 min-w-0 bg-space-black border border-hull-grey/30 rounded px-2 py-1.5 text-xs font-jetbrains text-star-white placeholder:text-hull-grey/50 focus:border-plasma-cyan focus:outline-none disabled:opacity-50"
+        className="flex-[2] min-w-0 bg-space-black border border-hull-grey/30 rounded px-2.5 py-1.5 text-xs font-jetbrains text-star-white placeholder:text-hull-grey/50 focus:border-plasma-cyan focus:outline-none disabled:opacity-40"
       />
-      <span className="font-jetbrains text-[10px] text-chrome-silver/50 uppercase shrink-0">Args:</span>
+      <span className="font-jetbrains text-[10px] text-chrome-silver/40 uppercase tracking-wider shrink-0">Args</span>
       <input
         value={argsStr}
         onChange={e => setArgsStr(e.target.value)}
         placeholder='{"key": "value"}'
         disabled={disabled}
-        className="w-48 bg-space-black border border-hull-grey/30 rounded px-2 py-1.5 text-xs font-jetbrains text-star-white placeholder:text-hull-grey/50 focus:border-plasma-cyan focus:outline-none disabled:opacity-50"
+        className="flex-[3] min-w-0 bg-space-black border border-hull-grey/30 rounded px-2.5 py-1.5 text-xs font-jetbrains text-star-white placeholder:text-hull-grey/50 focus:border-plasma-cyan focus:outline-none disabled:opacity-40"
       />
       <button
         type="submit"
         disabled={disabled || !command.trim()}
-        className="flex items-center gap-1.5 px-3 py-1.5 bg-nebula-blue border border-hull-grey rounded text-xs font-jetbrains text-chrome-silver hover:border-plasma-cyan hover:text-plasma-cyan transition-colors disabled:opacity-50 disabled:cursor-not-allowed shrink-0"
+        className="flex items-center gap-1.5 px-3.5 py-1.5 bg-nebula-blue border border-hull-grey/40 rounded text-xs font-jetbrains text-chrome-silver hover:border-plasma-cyan hover:text-plasma-cyan transition-colors disabled:opacity-30 disabled:cursor-not-allowed shrink-0"
       >
         <Send size={12} />
         Send

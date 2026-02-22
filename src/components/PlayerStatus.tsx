@@ -9,8 +9,8 @@ interface Props {
 export function PlayerStatus({ data }: Props) {
   if (!data) {
     return (
-      <div className="flex items-center gap-6 px-4 py-2 bg-deep-void border-b border-hull-grey/30">
-        <span className="font-jetbrains text-xs text-hull-grey">No player data. Send get_status to fetch.</span>
+      <div className="flex items-center gap-2 px-4 py-2.5 bg-deep-void border-b border-hull-grey/30">
+        <span className="font-jetbrains text-[11px] text-hull-grey/80 italic">No player data -- connect and send get_status to fetch.</span>
       </div>
     )
   }
