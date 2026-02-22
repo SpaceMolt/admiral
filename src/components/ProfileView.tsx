@@ -1,9 +1,12 @@
 'use client'
 
 import { useState, useCallback, useEffect, useRef } from 'react'
-import { Square, Plug, PlugZap, Settings, Trash2, Pencil } from 'lucide-react'
-import type { Profile } from '@/types'
+import { Square, Plug, PlugZap, Settings, Trash2, Pencil, Check, X } from 'lucide-react'
+import type { Profile, Provider } from '@/types'
 import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Select } from '@/components/ui/select'
+import { ModelPicker } from '@/components/ModelPicker'
 import { PlayerStatus } from './PlayerStatus'
 import { CommandPanel } from './CommandPanel'
 import { QuickCommands } from './QuickCommands'
@@ -18,8 +21,19 @@ const CONNECTION_MODE_LABELS: Record<string, string> = {
   mcp_v2: 'MCP v2',
 }
 
+const CONNECTION_MODES: { value: string; label: string }[] = [
+  { value: 'http', label: 'HTTP API v1' },
+  { value: 'http_v2', label: 'HTTP API v2' },
+  { value: 'websocket', label: 'WebSocket' },
+  { value: 'mcp', label: 'MCP v1' },
+  { value: 'mcp_v2', label: 'MCP v2' },
+]
+
+type EditingField = 'name' | 'mode' | 'provider' | null
+
 interface Props {
   profile: Profile
+  providers: Provider[]
   status: { connected: boolean; running: boolean }
   registrationCode?: string
   playerData: Record<string, unknown> | null
@@ -29,7 +43,7 @@ interface Props {
   onRefresh: () => void
 }
 
-export function ProfileView({ profile, status, playerData, onPlayerData, onEdit, onDelete, onRefresh }: Props) {
+export function ProfileView({ profile, providers, status, playerData, onPlayerData, onEdit, onDelete, onRefresh }: Props) {
   const [showSidePane, setShowSidePane] = useState(true)
   const [sidePaneWidth, setSidePaneWidth] = useState(288)
   const [connecting, setConnecting] = useState(false)
@@ -40,14 +54,53 @@ export function ProfileView({ profile, status, playerData, onPlayerData, onEdit,
   const resizingRef = useRef(false)
   const containerRef = useRef<HTMLDivElement>(null)
 
+  // Inline edit state
+  const [editing, setEditing] = useState<EditingField>(null)
+  const [editName, setEditName] = useState('')
+  const [editProvider, setEditProvider] = useState('')
+  const [editModel, setEditModel] = useState('')
+  const editNameRef = useRef<HTMLInputElement>(null)
+  const popoverRef = useRef<HTMLDivElement>(null)
+
   const isManual = !profile.provider || profile.provider === 'manual'
+  const availableProviders = ['manual', ...providers.filter(p => p.status === 'valid' || p.api_key).map(p => p.id)]
+
+  // Close popover on outside click
+  useEffect(() => {
+    if (!editing) return
+    function handleMouseDown(e: MouseEvent) {
+      if (popoverRef.current && !popoverRef.current.contains(e.target as Node)) {
+        setEditing(null)
+      }
+    }
+    document.addEventListener('mousedown', handleMouseDown)
+    return () => document.removeEventListener('mousedown', handleMouseDown)
+  }, [editing])
+
+  // Close popover on Escape
+  useEffect(() => {
+    if (!editing) return
+    function handleKeyDown(e: KeyboardEvent) {
+      if (e.key === 'Escape') setEditing(null)
+    }
+    document.addEventListener('keydown', handleKeyDown)
+    return () => document.removeEventListener('keydown', handleKeyDown)
+  }, [editing])
+
+  // Focus name input when editing name
+  useEffect(() => {
+    if (editing === 'name' && editNameRef.current) {
+      editNameRef.current.focus()
+      editNameRef.current.select()
+    }
+  }, [editing])
 
   // Sync directive when profile changes
   useEffect(() => {
     setDirectiveValue(profile.directive || '')
   }, [profile.directive])
 
-  // Focus input when entering edit mode
+  // Focus input when entering directive edit mode
   useEffect(() => {
     if (editingDirective && directiveInputRef.current) {
       directiveInputRef.current.focus()
@@ -67,9 +120,74 @@ export function ProfileView({ profile, status, playerData, onPlayerData, onEdit,
       })
       onRefresh()
     } catch {
-      // revert on failure
       setDirectiveValue(profile.directive || '')
     }
+  }
+
+  // Save profile field and optionally reconnect
+  async function saveProfileField(data: Partial<Profile>, reconnect?: boolean) {
+    const wasConnected = status.connected
+    try {
+      if (reconnect && wasConnected) {
+        await fetch(`/api/profiles/${profile.id}/connect`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'disconnect' }),
+        })
+      }
+
+      await fetch(`/api/profiles/${profile.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+      })
+
+      if (reconnect && wasConnected) {
+        // Determine connect action based on the new provider value
+        const newProvider = data.provider !== undefined ? data.provider : profile.provider
+        const newIsManual = !newProvider || newProvider === 'manual'
+        const action = newIsManual ? 'connect' : 'connect_llm'
+        await fetch(`/api/profiles/${profile.id}/connect`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action }),
+        })
+      }
+
+      onRefresh()
+    } catch {
+      // ignore
+    }
+  }
+
+  async function handleSaveName() {
+    const trimmed = editName.trim()
+    if (!trimmed || trimmed === profile.name) {
+      setEditing(null)
+      return
+    }
+    setEditing(null)
+    await saveProfileField({ name: trimmed })
+  }
+
+  async function handleSelectMode(mode: string) {
+    if (mode === profile.connection_mode) {
+      setEditing(null)
+      return
+    }
+    setEditing(null)
+    await saveProfileField({ connection_mode: mode as Profile['connection_mode'] }, true)
+  }
+
+  async function handleSaveProvider() {
+    const newProvider = editProvider || null
+    const newModel = editProvider === 'manual' ? null : (editModel || null)
+    if (newProvider === (profile.provider || null) && newModel === (profile.model || null)) {
+      setEditing(null)
+      return
+    }
+    setEditing(null)
+    await saveProfileField({ provider: newProvider, model: newModel }, true)
   }
 
   // Fetch player status
@@ -90,7 +208,6 @@ export function ProfileView({ profile, status, playerData, onPlayerData, onEdit,
   const prevConnected = useRef(false)
   useEffect(() => {
     if (status.connected && !prevConnected.current) {
-      // Just connected - fetch after short delay for login to complete
       const timer = setTimeout(fetchStatus, 1500)
       prevConnected.current = status.connected
       return () => clearTimeout(timer)
@@ -111,13 +228,14 @@ export function ProfileView({ profile, status, playerData, onPlayerData, onEdit,
       const tag = (e.target as HTMLElement)?.tagName
       if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return
       if (e.metaKey || e.ctrlKey || e.altKey) return
+      if (editing) return
       if (e.key.length === 1 && commandInputRef.current) {
         commandInputRef.current.focus()
       }
     }
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [])
+  }, [editing])
 
   // Resize handling
   const handleResizeStart = useCallback((e: React.MouseEvent) => {
@@ -180,7 +298,6 @@ export function ProfileView({ profile, status, playerData, onPlayerData, onEdit,
       })
       const result = await resp.json()
 
-      // If this was get_status, update player data
       if (command === 'get_status' && result.result) {
         onPlayerData(result.result as Record<string, unknown>)
       }
@@ -198,17 +315,155 @@ export function ProfileView({ profile, status, playerData, onPlayerData, onEdit,
           status.connected ? 'status-dot-orange' :
           'status-dot-grey'
         }`} />
-        <h2 className="text-sm font-semibold text-foreground tracking-wide">{profile.name}</h2>
+
+        {/* Editable profile name */}
+        <div className="relative">
+          <h2
+            className="text-sm font-semibold text-foreground tracking-wide cursor-pointer hover:text-primary transition-colors"
+            onClick={() => { setEditing('name'); setEditName(profile.name) }}
+          >
+            {profile.name}
+          </h2>
+          {editing === 'name' && (
+            <div ref={popoverRef} className="absolute z-50 top-full left-0 mt-1.5 bg-card border border-border shadow-lg p-2.5 min-w-[220px]">
+              <span className="text-[10px] text-muted-foreground uppercase tracking-[1.5px] block mb-1.5">Profile Name</span>
+              <div className="flex gap-1.5">
+                <Input
+                  ref={editNameRef}
+                  value={editName}
+                  onChange={e => setEditName(e.target.value)}
+                  onKeyDown={e => {
+                    if (e.key === 'Enter') handleSaveName()
+                    if (e.key === 'Escape') setEditing(null)
+                  }}
+                  className="h-7 text-xs"
+                />
+                <Button variant="ghost" size="icon" onClick={handleSaveName} className="h-7 w-7 shrink-0 text-[hsl(var(--smui-green))] hover:bg-[hsl(var(--smui-green)/0.1)]">
+                  <Check size={13} />
+                </Button>
+                <Button variant="ghost" size="icon" onClick={() => setEditing(null)} className="h-7 w-7 shrink-0 text-muted-foreground hover:text-foreground">
+                  <X size={13} />
+                </Button>
+              </div>
+            </div>
+          )}
+        </div>
+
         {profile.username && (
           <span className="text-[11px] text-muted-foreground">@{profile.username}</span>
         )}
-        <span className="text-[10px] text-muted-foreground uppercase tracking-[1.5px] px-2 py-0.5 border border-border">
-          {CONNECTION_MODE_LABELS[profile.connection_mode] || profile.connection_mode}
-        </span>
-        {!isManual && profile.provider && (
-          <span className="text-[10px] text-[hsl(var(--smui-purple))]">
-            {profile.provider}/{profile.model}
+
+        {/* Editable connection mode */}
+        <div className="relative">
+          <span
+            className="text-[10px] text-muted-foreground uppercase tracking-[1.5px] px-2 py-0.5 border border-border cursor-pointer hover:border-primary/40 hover:text-foreground transition-colors"
+            onClick={() => setEditing('mode')}
+          >
+            {CONNECTION_MODE_LABELS[profile.connection_mode] || profile.connection_mode}
           </span>
+          {editing === 'mode' && (
+            <div ref={popoverRef} className="absolute z-50 top-full left-0 mt-1.5 bg-card border border-border shadow-lg min-w-[180px]">
+              <span className="text-[10px] text-muted-foreground uppercase tracking-[1.5px] block px-3 pt-2 pb-1">Connection Mode</span>
+              {CONNECTION_MODES.map(m => (
+                <button
+                  key={m.value}
+                  onClick={() => handleSelectMode(m.value)}
+                  className={`w-full text-left px-3 py-1.5 text-xs transition-colors flex items-center gap-2 ${
+                    m.value === profile.connection_mode
+                      ? 'text-primary bg-primary/5'
+                      : 'text-foreground hover:bg-primary/10'
+                  }`}
+                >
+                  <div className={`w-3 h-3 border flex items-center justify-center shrink-0 ${
+                    m.value === profile.connection_mode ? 'border-primary' : 'border-border bg-background'
+                  }`}>
+                    {m.value === profile.connection_mode && <div className="w-1.5 h-1.5 bg-primary" />}
+                  </div>
+                  {m.label}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Editable provider/model */}
+        {!isManual && profile.provider && (
+          <div className="relative">
+            <span
+              className="text-[10px] text-[hsl(var(--smui-purple))] cursor-pointer hover:text-foreground transition-colors"
+              onClick={() => { setEditing('provider'); setEditProvider(profile.provider || ''); setEditModel(profile.model || '') }}
+            >
+              {profile.provider}/{profile.model}
+            </span>
+            {editing === 'provider' && (
+              <div ref={popoverRef} className="absolute z-50 top-full left-0 mt-1.5 bg-card border border-border shadow-lg p-2.5 min-w-[300px]">
+                <span className="text-[10px] text-muted-foreground uppercase tracking-[1.5px] block mb-1.5">Provider / Model</span>
+                <div className="space-y-2">
+                  <div>
+                    <span className="text-[10px] text-muted-foreground uppercase tracking-[1.5px] block mb-1">Provider</span>
+                    <Select value={editProvider} onChange={e => { setEditProvider(e.target.value); setEditModel('') }} className="h-7 text-xs">
+                      <option value="">Choose...</option>
+                      {availableProviders.map(p => <option key={p} value={p}>{p === 'manual' ? 'Manual (no LLM)' : p}</option>)}
+                    </Select>
+                  </div>
+                  {editProvider && editProvider !== 'manual' && (
+                    <div>
+                      <span className="text-[10px] text-muted-foreground uppercase tracking-[1.5px] block mb-1">Model</span>
+                      <ModelPicker provider={editProvider} value={editModel} onChange={setEditModel} />
+                    </div>
+                  )}
+                  <div className="flex justify-end gap-1.5 pt-1 border-t border-border/50">
+                    <Button variant="ghost" size="sm" onClick={() => setEditing(null)} className="h-6 text-[10px] px-2">
+                      Cancel
+                    </Button>
+                    <Button size="sm" onClick={handleSaveProvider} className="h-6 text-[10px] px-2 bg-primary text-primary-foreground hover:bg-primary/90">
+                      Save
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Show clickable provider/model area when manual or no provider set */}
+        {(isManual || !profile.provider) && (
+          <div className="relative">
+            <span
+              className="text-[10px] text-muted-foreground/50 italic cursor-pointer hover:text-foreground transition-colors"
+              onClick={() => { setEditing('provider'); setEditProvider(profile.provider || ''); setEditModel(profile.model || '') }}
+            >
+              {isManual && profile.provider ? 'manual' : 'no provider'}
+            </span>
+            {editing === 'provider' && (
+              <div ref={popoverRef} className="absolute z-50 top-full left-0 mt-1.5 bg-card border border-border shadow-lg p-2.5 min-w-[300px]">
+                <span className="text-[10px] text-muted-foreground uppercase tracking-[1.5px] block mb-1.5">Provider / Model</span>
+                <div className="space-y-2">
+                  <div>
+                    <span className="text-[10px] text-muted-foreground uppercase tracking-[1.5px] block mb-1">Provider</span>
+                    <Select value={editProvider} onChange={e => { setEditProvider(e.target.value); setEditModel('') }} className="h-7 text-xs">
+                      <option value="">Choose...</option>
+                      {availableProviders.map(p => <option key={p} value={p}>{p === 'manual' ? 'Manual (no LLM)' : p}</option>)}
+                    </Select>
+                  </div>
+                  {editProvider && editProvider !== 'manual' && (
+                    <div>
+                      <span className="text-[10px] text-muted-foreground uppercase tracking-[1.5px] block mb-1">Model</span>
+                      <ModelPicker provider={editProvider} value={editModel} onChange={setEditModel} />
+                    </div>
+                  )}
+                  <div className="flex justify-end gap-1.5 pt-1 border-t border-border/50">
+                    <Button variant="ghost" size="sm" onClick={() => setEditing(null)} className="h-6 text-[10px] px-2">
+                      Cancel
+                    </Button>
+                    <Button size="sm" onClick={handleSaveProvider} className="h-6 text-[10px] px-2 bg-primary text-primary-foreground hover:bg-primary/90">
+                      Save
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
         )}
 
         <div className="flex-1" />

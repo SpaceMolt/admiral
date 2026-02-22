@@ -155,6 +155,7 @@ export function Dashboard({ profiles: initialProfiles, providers, registrationCo
           ) : activeProfile ? (
             <ProfileView
               profile={activeProfile}
+              providers={providers}
               status={statuses[activeProfile.id] || { connected: false, running: false }}
               registrationCode={registrationCode}
               playerData={playerDataMap[activeProfile.id] || null}
