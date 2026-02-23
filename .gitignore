@@ -8,3 +8,4 @@ data/
 bun.lock
 bun.lockb
 package-lock.json
+tsconfig.tsbuildinfo
