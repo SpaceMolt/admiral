@@ -1,4 +1,5 @@
 import { getProvider, upsertProvider } from './db'
+import { LOCALHOST } from './localhost'
 
 interface DetectResult {
   id: string
@@ -7,8 +8,8 @@ interface DetectResult {
 }
 
 const DEFAULT_URLS: Record<string, string> = {
-  ollama: 'http://127.0.0.1:11434',
-  lmstudio: 'http://127.0.0.1:1234',
+  ollama: `http://${LOCALHOST}:11434`,
+  lmstudio: `http://${LOCALHOST}:1234`,
 }
 
 /**

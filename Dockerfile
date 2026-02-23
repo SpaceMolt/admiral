@@ -14,6 +14,7 @@ RUN corepack enable pnpm && pnpm install --frozen-lockfile
 FROM base AS builder
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
+ENV NEXT_PUBLIC_DOCKER=true
 RUN corepack enable pnpm && pnpm run build
 
 # ─── Runtime ─────────────────────────────────────────────
@@ -22,6 +23,7 @@ WORKDIR /app
 
 ENV NODE_ENV=production
 ENV PORT=3030
+ENV NEXT_PUBLIC_DOCKER=true
 
 # better-sqlite3 needs the native .node binary at runtime
 COPY --from=builder /app/.next/standalone ./

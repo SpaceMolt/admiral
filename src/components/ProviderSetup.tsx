@@ -5,10 +5,11 @@ import { KeyRound, Wifi, WifiOff, Search, Server, X } from 'lucide-react'
 import type { Provider } from '@/types'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { LOCALHOST } from '@/lib/localhost'
 
 const DEFAULT_LOCAL_URLS: Record<string, string> = {
-  ollama: 'http://127.0.0.1:11434',
-  lmstudio: 'http://127.0.0.1:1234',
+  ollama: `http://${LOCALHOST}:11434`,
+  lmstudio: `http://${LOCALHOST}:1234`,
 }
 
 const PROVIDER_INFO: Record<string, { label: string; description: string; isLocal: boolean; keyPlaceholder: string }> = {

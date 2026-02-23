@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { getModels, getProviders } from '@mariozechner/pi-ai'
 import type { KnownProvider } from '@mariozechner/pi-ai'
 import { getProvider } from '@/lib/db'
+import { LOCALHOST } from '@/lib/localhost'
 
 const PROVIDER_API_URLS: Record<string, string> = {
   openai: 'https://api.openai.com/v1/models',
@@ -11,8 +12,8 @@ const PROVIDER_API_URLS: Record<string, string> = {
 }
 
 const LOCAL_DEFAULTS: Record<string, string> = {
-  ollama: 'http://127.0.0.1:11434',
-  lmstudio: 'http://127.0.0.1:1234',
+  ollama: `http://${LOCALHOST}:11434`,
+  lmstudio: `http://${LOCALHOST}:1234`,
 }
 
 export async function GET(request: Request) {

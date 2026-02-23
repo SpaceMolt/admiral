@@ -1,6 +1,7 @@
 import { getModel, getModels, getProviders } from '@mariozechner/pi-ai'
 import type { Model, KnownProvider } from '@mariozechner/pi-ai'
 import { getProvider } from './db'
+import { LOCALHOST } from './localhost'
 
 interface ParsedModel {
   provider: string
@@ -19,9 +20,9 @@ function parseModelString(modelStr: string): ParsedModel {
 }
 
 const CUSTOM_BASE_URLS: Record<string, string> = {
-  ollama: 'http://127.0.0.1:11434/v1',
-  lmstudio: 'http://127.0.0.1:1234/v1',
-  vllm: 'http://127.0.0.1:8000/v1',
+  ollama: `http://${LOCALHOST}:11434/v1`,
+  lmstudio: `http://${LOCALHOST}:1234/v1`,
+  vllm: `http://${LOCALHOST}:8000/v1`,
   minimax: 'https://api.minimax.io/v1',
 }
 
