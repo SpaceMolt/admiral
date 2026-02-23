@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
-import { Settings, Sun, Moon } from 'lucide-react'
+import { Settings, Sun, Moon, Github } from 'lucide-react'
 import { useQueryState } from 'nuqs'
 import type { Profile, Provider } from '@/types'
 import { ProfileList } from './ProfileList'
@@ -103,6 +103,15 @@ export function Dashboard({ profiles: initialProfiles, providers, registrationCo
           <span className="text-[11px] text-muted-foreground tracking-[1.5px] uppercase">SpaceMolt Agent Manager</span>
         </div>
         <div className="flex items-center gap-3">
+          <a
+            href="https://github.com/SpaceMolt/admiral"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center justify-center w-7 h-7 text-muted-foreground hover:text-foreground transition-colors border border-border"
+            title="GitHub"
+          >
+            <Github size={13} />
+          </a>
           <ThemeToggle />
           <button
             onClick={onShowProviders}
