@@ -1,11 +1,13 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
-import { Settings, Sun, Moon, Github } from 'lucide-react'
+import { Settings, Sun, Moon, Github, AlertTriangle, Compass } from 'lucide-react'
 import { useQueryState } from 'nuqs'
 import type { Profile, Provider } from '@/types'
 import { ProfileList } from './ProfileList'
 import { ProfileView } from './ProfileView'
+import { NewProfileWizard } from './NewProfileWizard'
+import { AdmiralTour } from './AdmiralTour'
 
 interface Props {
   profiles: Profile[]
@@ -25,6 +27,8 @@ export function Dashboard({ profiles: initialProfiles, providers, registrationCo
   const [autoEditName, setAutoEditName] = useState(false)
   const [statuses, setStatuses] = useState<Record<string, { connected: boolean; running: boolean }>>({})
   const [playerDataMap, setPlayerDataMap] = useState<Record<string, Record<string, unknown>>>({})
+  const [showWizard, setShowWizard] = useState(false)
+  const [showTour, setShowTour] = useState(false)
 
   // Poll statuses
   useEffect(() => {
@@ -54,15 +58,12 @@ export function Dashboard({ profiles: initialProfiles, providers, registrationCo
     }
   }, [])
 
-  async function handleNewProfile() {
-    const mostRecent = profiles.length > 0 ? profiles[profiles.length - 1] : null
-    const data: Partial<Profile> = {
-      name: 'New Profile',
-      connection_mode: mostRecent?.connection_mode || 'http',
-      provider: mostRecent?.provider || null,
-      model: mostRecent?.model || null,
-      server_url: gameserverUrl,
-    }
+  function handleNewProfile() {
+    setShowWizard(true)
+  }
+
+  async function handleWizardCreate(data: Partial<Profile>) {
+    setShowWizard(false)
     try {
       const resp = await fetch('/api/profiles', {
         method: 'POST',
@@ -73,7 +74,13 @@ export function Dashboard({ profiles: initialProfiles, providers, registrationCo
         const profile = await resp.json()
         setProfiles(prev => [...prev, profile])
         setActiveId(profile.id)
-        setAutoEditName(true)
+        // If this is the first profile, offer the tour
+        if (profiles.length === 0) {
+          try {
+            const seen = localStorage.getItem('admiral-tour-seen')
+            if (!seen) setShowTour(true)
+          } catch { /* ignore */ }
+        }
       }
     } catch {
       // ignore
@@ -91,6 +98,8 @@ export function Dashboard({ profiles: initialProfiles, providers, registrationCo
   }
 
   const activeProfile = profiles.find(p => p.id === activeId)
+
+  const hasValidProvider = providers.some(p => p.status === 'valid' || p.api_key)
 
   return (
     <div className="flex flex-col h-screen">
@@ -114,6 +123,16 @@ export function Dashboard({ profiles: initialProfiles, providers, registrationCo
           </a>
           <ThemeToggle />
           <button
+            onClick={() => {
+              try { localStorage.removeItem('admiral-tour-seen') } catch {}
+              setShowTour(true)
+            }}
+            className="flex items-center justify-center w-7 h-7 text-muted-foreground hover:text-foreground transition-colors border border-border"
+            title="Take a tour"
+          >
+            <Compass size={13} />
+          </button>
+          <button
             onClick={onShowProviders}
             className="flex items-center gap-1.5 text-xs text-muted-foreground uppercase tracking-wider px-2.5 py-1.5 hover:text-foreground transition-colors"
           >
@@ -126,14 +145,16 @@ export function Dashboard({ profiles: initialProfiles, providers, registrationCo
       {/* Main content */}
       <div className="flex flex-1 min-h-0">
         {/* Sidebar */}
-        <ProfileList
-          profiles={profiles}
-          activeId={activeId}
-          statuses={statuses}
-          playerDataMap={playerDataMap}
-          onSelect={setActiveId}
-          onNew={handleNewProfile}
-        />
+        <div data-tour="sidebar">
+          <ProfileList
+            profiles={profiles}
+            activeId={activeId}
+            statuses={statuses}
+            playerDataMap={playerDataMap}
+            onSelect={setActiveId}
+            onNew={handleNewProfile}
+          />
+        </div>
 
         {/* Content area */}
         <div className="flex-1 min-w-0">
@@ -154,14 +175,80 @@ export function Dashboard({ profiles: initialProfiles, providers, registrationCo
             />
           ) : (
             <div className="flex items-center justify-center h-full">
-              <div className="text-center">
-                <p className="font-orbitron text-heading text-primary mb-2 tracking-tight">Welcome to Admiral</p>
-                <p className="text-[13px] text-muted-foreground">Create a profile to get started.</p>
+              <div className="text-center max-w-md px-6">
+                <h2 className="font-orbitron text-xl font-bold tracking-[1.5px] text-primary uppercase mb-3">
+                  ADMIRAL
+                </h2>
+                <p className="text-[11px] text-muted-foreground uppercase tracking-[1.5px] mb-6">
+                  SpaceMolt Agent Manager
+                </p>
+
+                {/* Warnings */}
+                <div className="space-y-2.5 mb-6 text-left">
+                  {!hasValidProvider && (
+                    <div className="flex items-start gap-2.5 px-3 py-2.5 border border-[hsl(var(--smui-orange)/0.4)] bg-[hsl(var(--smui-orange)/0.05)]">
+                      <AlertTriangle size={14} className="text-[hsl(var(--smui-orange))] shrink-0 mt-0.5" />
+                      <div>
+                        <p className="text-xs text-[hsl(var(--smui-orange))] font-medium">No model providers configured</p>
+                        <p className="text-[11px] text-muted-foreground mt-0.5">
+                          At least one LLM provider API key or local model is required for AI agents.{' '}
+                          <button onClick={onShowProviders} className="text-primary hover:underline">Open Settings</button>
+                        </p>
+                      </div>
+                    </div>
+                  )}
+                  {!registrationCode && (
+                    <div className="flex items-start gap-2.5 px-3 py-2.5 border border-[hsl(var(--smui-yellow)/0.4)] bg-[hsl(var(--smui-yellow)/0.05)]">
+                      <AlertTriangle size={14} className="text-[hsl(var(--smui-yellow))] shrink-0 mt-0.5" />
+                      <div>
+                        <p className="text-xs text-[hsl(var(--smui-yellow))] font-medium">No registration code</p>
+                        <p className="text-[11px] text-muted-foreground mt-0.5">
+                          Needed to register new players. Get one from{' '}
+                          <a href="https://spacemolt.com/dashboard" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">spacemolt.com/dashboard</a>
+                          {' '}and set it in{' '}
+                          <button onClick={onShowProviders} className="text-primary hover:underline">Settings</button>.
+                        </p>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                <button
+                  onClick={handleNewProfile}
+                  className="inline-flex items-center gap-2 px-5 py-2 text-xs font-medium uppercase tracking-[1.5px] text-primary-foreground bg-primary hover:bg-primary/90 transition-colors"
+                >
+                  Create Profile
+                </button>
               </div>
             </div>
           )}
         </div>
       </div>
+
+      {/* Wizard modal */}
+      {showWizard && (
+        <NewProfileWizard
+          providers={providers}
+          registrationCode={registrationCode}
+          gameserverUrl={gameserverUrl}
+          onClose={() => setShowWizard(false)}
+          onCreate={handleWizardCreate}
+          onShowSettings={() => {
+            setShowWizard(false)
+            onShowProviders()
+          }}
+        />
+      )}
+
+      {/* Tour */}
+      {showTour && activeProfile && (
+        <AdmiralTour
+          onComplete={() => {
+            setShowTour(false)
+            try { localStorage.setItem('admiral-tour-seen', '1') } catch {}
+          }}
+        />
+      )}
     </div>
   )
 }

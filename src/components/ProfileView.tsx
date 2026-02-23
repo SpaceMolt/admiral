@@ -335,7 +335,7 @@ export function ProfileView({ profile, providers, status, playerData, onPlayerDa
   return (
     <div className="flex flex-col h-full">
       {/* Header bar */}
-      <div className="flex items-center gap-3 h-12 px-3.5 bg-card border-b border-border">
+      <div data-tour="navbar" className="flex items-center gap-3 h-12 px-3.5 bg-card border-b border-border">
         <div className={`status-dot ${
           status.running ? 'status-dot-green' :
           status.connected ? 'status-dot-orange' :
@@ -343,7 +343,7 @@ export function ProfileView({ profile, providers, status, playerData, onPlayerDa
         }`} />
 
         {/* Editable profile name */}
-        <div className="relative">
+        <div className="relative" data-tour="profile-name">
           <h2
             className="text-sm font-semibold text-foreground tracking-wide cursor-pointer hover:text-primary transition-colors"
             onClick={() => { setEditing('name'); setEditName(profile.name) }}
@@ -382,7 +382,7 @@ export function ProfileView({ profile, providers, status, playerData, onPlayerDa
             <polygon points="12,0 12,12 0,12" fill={(playerData.player as Record<string, unknown>).color_secondary as string || (playerData.player as Record<string, unknown>).color_primary as string} />
           </svg>
         ) : null}
-        <div className="relative">
+        <div className="relative" data-tour="credentials">
           <span
             className={`text-[11px] cursor-pointer transition-colors ${
               profile.username
@@ -442,7 +442,7 @@ export function ProfileView({ profile, providers, status, playerData, onPlayerDa
         </div>
 
         {/* Editable connection mode */}
-        <div className="relative">
+        <div className="relative" data-tour="connection-mode">
           <span
             className="text-[10px] text-muted-foreground uppercase tracking-[1.5px] px-2 py-0.5 border border-border cursor-pointer hover:border-primary/40 hover:text-foreground transition-colors"
             onClick={() => setEditing('mode')}
@@ -476,7 +476,7 @@ export function ProfileView({ profile, providers, status, playerData, onPlayerDa
 
         {/* Editable provider/model */}
         {!isManual && profile.provider && (
-          <div className="relative">
+          <div className="relative" data-tour="provider-model">
             <span
               className="text-[10px] text-[hsl(var(--smui-purple))] cursor-pointer hover:text-foreground transition-colors"
               onClick={() => { setEditing('provider'); setEditProvider(profile.provider || ''); setEditModel(profile.model || '') }}
@@ -516,7 +516,7 @@ export function ProfileView({ profile, providers, status, playerData, onPlayerDa
 
         {/* Show clickable provider/model area when manual or no provider set */}
         {(isManual || !profile.provider) && (
-          <div className="relative">
+          <div className="relative" data-tour="provider-model">
             <span
               className="text-[10px] text-muted-foreground/50 italic cursor-pointer hover:text-foreground transition-colors"
               onClick={() => { setEditing('provider'); setEditProvider(profile.provider || ''); setEditModel(profile.model || '') }}
@@ -558,6 +558,7 @@ export function ProfileView({ profile, providers, status, playerData, onPlayerDa
 
         {!status.connected ? (
           <Button
+            data-tour="connect-btn"
             variant="outline"
             size="sm"
             onClick={handleConnect}
@@ -585,7 +586,7 @@ export function ProfileView({ profile, providers, status, playerData, onPlayerDa
       </div>
 
       {/* Directive */}
-      <div className="flex items-center gap-2 px-3.5 py-1.5 bg-card/50 border-b border-border/30">
+      <div data-tour="directive" className="flex items-center gap-2 px-3.5 py-1.5 bg-card/50 border-b border-border/30">
         <span className="text-[10px] text-muted-foreground uppercase tracking-[1.5px] shrink-0">Directive</span>
         {editingDirective ? (
           <input
@@ -626,7 +627,7 @@ export function ProfileView({ profile, providers, status, playerData, onPlayerDa
 
       {/* Log pane + side pane */}
       <div ref={containerRef} className="flex flex-1 min-h-0">
-        <div className="flex-1 min-w-0">
+        <div data-tour="log-pane" className="flex-1 min-w-0">
           <LogPane profileId={profile.id} connected={status.connected} />
         </div>
         {showSidePane && (
@@ -636,7 +637,7 @@ export function ProfileView({ profile, providers, status, playerData, onPlayerDa
               onMouseDown={handleResizeStart}
               className="w-1 shrink-0 cursor-col-resize bg-border hover:bg-primary/40 transition-colors"
             />
-            <div style={{ width: sidePaneWidth }} className="shrink-0">
+            <div data-tour="side-pane" style={{ width: sidePaneWidth }} className="shrink-0">
               <SidePane profileId={profile.id} todo={profile.todo} connected={status.connected} playerData={playerData} onRefreshStatus={fetchStatus} />
             </div>
           </>

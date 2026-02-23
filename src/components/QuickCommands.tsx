@@ -24,7 +24,7 @@ const QUICK_COMMANDS = [
 
 export function QuickCommands({ onSend, disabled, showSidePane, onToggleSidePane }: Props) {
   return (
-    <div className="flex items-center gap-1.5 px-3.5 py-2.5 bg-card border-b border-border overflow-x-auto">
+    <div data-tour="quick-commands" className="flex items-center gap-1.5 px-3.5 py-2.5 bg-card border-b border-border overflow-x-auto">
       <span className="text-[11px] text-muted-foreground uppercase tracking-[1.5px] shrink-0 mr-1">Quick</span>
       {QUICK_COMMANDS.map(q => (
         <Button

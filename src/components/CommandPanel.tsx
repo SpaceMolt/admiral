@@ -251,7 +251,7 @@ export function CommandPanel({ profileId, onSend, disabled, commandInputRef, ser
   }
 
   return (
-    <div className="relative">
+    <div className="relative" data-tour="command-panel">
       <form onSubmit={handleSubmit} className="flex items-center gap-2.5 px-3.5 py-2.5 bg-card border-t border-border">
         <span className="text-[11px] text-muted-foreground uppercase tracking-[1.5px] shrink-0">Cmd</span>
         <div className="relative flex-[2] min-w-0">
