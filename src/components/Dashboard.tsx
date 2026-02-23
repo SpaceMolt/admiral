@@ -30,6 +30,18 @@ export function Dashboard({ profiles: initialProfiles, providers, registrationCo
   const [showWizard, setShowWizard] = useState(false)
   const [showTour, setShowTour] = useState(false)
 
+  const activeProfile = profiles.find(p => p.id === activeId)
+
+  // Auto-show tour for new users who haven't seen it
+  useEffect(() => {
+    if (profiles.length > 0 && activeProfile && !showTour) {
+      try {
+        const seen = localStorage.getItem('admiral-tour-seen')
+        if (!seen) setShowTour(true)
+      } catch { /* ignore */ }
+    }
+  }, [profiles.length, !!activeProfile]) // eslint-disable-line react-hooks/exhaustive-deps
+
   // Poll statuses
   useEffect(() => {
     async function poll() {
@@ -74,13 +86,6 @@ export function Dashboard({ profiles: initialProfiles, providers, registrationCo
         const profile = await resp.json()
         setProfiles(prev => [...prev, profile])
         setActiveId(profile.id)
-        // If this is the first profile, offer the tour
-        if (profiles.length === 0) {
-          try {
-            const seen = localStorage.getItem('admiral-tour-seen')
-            if (!seen) setShowTour(true)
-          } catch { /* ignore */ }
-        }
       }
     } catch {
       // ignore
@@ -96,8 +101,6 @@ export function Dashboard({ profiles: initialProfiles, providers, registrationCo
       // ignore
     }
   }
-
-  const activeProfile = profiles.find(p => p.id === activeId)
 
   const hasValidProvider = providers.some(p => p.status === 'valid' || p.api_key)
 
