@@ -37,6 +37,7 @@ export class Agent {
   private running = false
   private abortController: AbortController | null = null
   private restartRequested = false
+  private pendingNudges: string[] = []
   constructor(profileId: string) {
     this.profileId = profileId
   }
@@ -129,6 +130,11 @@ export class Agent {
     const todo = { value: profile.todo || '' }
 
     while (this.running) {
+      // Reset abort controller if it was used (e.g. by a nudge wakeup)
+      if (this.abortController.signal.aborted) {
+        this.abortController = new AbortController()
+      }
+
       // Handle restart request (directive changed)
       if (this.restartRequested) {
         this.restartRequested = false
@@ -187,6 +193,16 @@ export class Agent {
 
       const nudgeParts: string[] = []
       if (pendingEvents) nudgeParts.push('## Events Since Last Action\n' + pendingEvents + '\n')
+
+      // Drain any human nudges
+      if (this.pendingNudges.length > 0) {
+        const nudges = this.pendingNudges.splice(0)
+        for (const n of nudges) {
+          nudgeParts.push(`## Human Nudge\nYour human operator has sent you guidance: ${n}\nTake this into account for your next actions.\n`)
+          this.log('system', `Nudge delivered: ${n.slice(0, 100)}`)
+        }
+      }
+
       nudgeParts.push('Continue your mission.')
 
       context.messages.push({
@@ -230,6 +246,13 @@ export class Agent {
   restartTurn(): void {
     if (!this.running) return
     this.restartRequested = true
+    this.abortController?.abort()
+  }
+
+  /** Inject a nudge message into the agent's context for the next turn. */
+  injectNudge(message: string): void {
+    this.pendingNudges.push(message)
+    // Wake the agent from sleep so it picks up the nudge quickly
     this.abortController?.abort()
   }
 

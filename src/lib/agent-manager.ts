@@ -46,6 +46,13 @@ class AgentManager {
     }
   }
 
+  nudge(profileId: string, message: string): void {
+    const agent = this.agents.get(profileId)
+    if (agent?.isRunning) {
+      agent.injectNudge(message)
+    }
+  }
+
   getStatus(profileId: string): { connected: boolean; running: boolean } {
     const agent = this.agents.get(profileId)
     return {

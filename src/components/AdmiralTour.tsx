@@ -13,7 +13,7 @@ const TOUR_STEPS: DriveStep[] = [
     element: '[data-tour="navbar"]',
     popover: {
       title: 'INLINE EDITING',
-      description: 'Everything in this bar is clickable. Edit the profile name, player credentials (@username), connection mode (HTTP/WS/MCP), and the LLM provider/model -- all inline, no forms needed.',
+      description: 'Everything in this bar is clickable. Edit the profile name, player credentials (@username), connection mode (HTTP/WS/MCP), and the LLM provider/model -- all inline. The panel icon on the left toggles the profile list.',
       side: 'bottom',
       align: 'start',
     },
@@ -46,6 +46,15 @@ const TOUR_STEPS: DriveStep[] = [
     },
   },
   {
+    element: '[data-tour="nudge-btn"]',
+    popover: {
+      title: 'NUDGE',
+      description: 'Send a one-time hint to your running agent without changing its directive. Press Enter as a shortcut. Supports up/down arrow history like a shell.',
+      side: 'bottom',
+      align: 'center',
+    },
+  },
+  {
     element: '[data-tour="log-pane"]',
     popover: {
       title: 'ACTIVITY LOG',
@@ -58,7 +67,7 @@ const TOUR_STEPS: DriveStep[] = [
     element: '[data-tour="side-pane"]',
     popover: {
       title: 'SIDE PANEL',
-      description: 'Server-side player status, captain\'s log entries, and local TODO notes. Toggle visibility with the Log/TODO button. Drag the divider to resize.',
+      description: 'Server-side player status, captain\'s log entries, and local TODO notes. Use the panel icon in the quick commands bar to show or hide this panel. Drag the divider to resize.',
       side: 'left',
       align: 'start',
     },
@@ -67,7 +76,7 @@ const TOUR_STEPS: DriveStep[] = [
     element: '[data-tour="sidebar"]',
     popover: {
       title: 'PROFILES',
-      description: 'Each profile is an independent agent with its own credentials, provider, and directives. Status dots show: grey = offline, orange = connected, green = agent running. Click + to create more.',
+      description: 'Each profile is an independent agent with its own credentials, provider, and directives. Status dots show: grey = offline, orange = connected, green = agent running. Click + to create more. This panel can be collapsed using the icon in the top bar.',
       side: 'right',
       align: 'start',
     },

@@ -4,6 +4,7 @@ const nextConfig: NextConfig = {
   output: 'standalone',
   serverExternalPackages: ['better-sqlite3'],
   allowedDevOrigins: ['192.168.64.10'],
+  devIndicators: false,
 }
 
 export default nextConfig

@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useCallback, useEffect, useRef } from 'react'
-import { Square, Plug, PlugZap, Trash2, Pencil, Check, X, PanelLeft, PanelLeftClose, PanelRightClose } from 'lucide-react'
+import { Square, Plug, PlugZap, Trash2, Pencil, Check, X, PanelLeft, PanelLeftClose, PanelRightClose, MessageSquare } from 'lucide-react'
 import type { Profile, Provider } from '@/types'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -109,6 +109,11 @@ export function ProfileView({ profile, providers, status, playerData, onPlayerDa
   const [connecting, setConnecting] = useState(false)
   const [showDirectiveModal, setShowDirectiveModal] = useState(false)
   const [directiveValue, setDirectiveValue] = useState(profile.directive || '')
+  const [showNudgeModal, setShowNudgeModal] = useState(false)
+  const [nudgeValue, setNudgeValue] = useState('')
+  const [nudgeHistoryIndex, setNudgeHistoryIndex] = useState(-1)
+  const [nudgePending, setNudgePending] = useState('')
+  const nudgeInputRef = useRef<HTMLInputElement>(null)
   const commandInputRef = useRef<HTMLInputElement>(null)
   const resizingRef = useRef(false)
   const containerRef = useRef<HTMLDivElement>(null)
@@ -201,6 +206,88 @@ export function ProfileView({ profile, providers, status, playerData, onPlayerDa
       onRefresh()
     } catch {
       setDirectiveValue(profile.directive || '')
+    }
+  }
+
+  // Nudge history helpers
+  const NUDGE_HISTORY_KEY = `admiral-nudge-history-${profile.id}`
+  const MAX_NUDGE_HISTORY = 20
+
+  function getNudgeHistory(): string[] {
+    try {
+      const raw = localStorage.getItem(NUDGE_HISTORY_KEY)
+      return raw ? JSON.parse(raw) : []
+    } catch { return [] }
+  }
+
+  function pushNudgeHistory(msg: string) {
+    const history = getNudgeHistory()
+    // Remove duplicates of the same message
+    const filtered = history.filter(h => h !== msg)
+    filtered.unshift(msg)
+    try { localStorage.setItem(NUDGE_HISTORY_KEY, JSON.stringify(filtered.slice(0, MAX_NUDGE_HISTORY))) } catch { /* ignore */ }
+  }
+
+  function openNudgeModal() {
+    setNudgeValue('')
+    setNudgePending('')
+    setNudgeHistoryIndex(-1)
+    setShowNudgeModal(true)
+  }
+
+  async function sendNudge() {
+    const trimmed = nudgeValue.trim()
+    if (!trimmed) return
+    setShowNudgeModal(false)
+    pushNudgeHistory(trimmed)
+    try {
+      await fetch(`/api/profiles/${profile.id}/nudge`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message: trimmed }),
+      })
+    } catch { /* ignore */ }
+  }
+
+  function handleNudgeKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {
+    if (e.key === 'Escape') {
+      setShowNudgeModal(false)
+      return
+    }
+    if (e.key === 'Enter') {
+      e.preventDefault()
+      sendNudge()
+      return
+    }
+    if (e.key === 'ArrowUp') {
+      e.preventDefault()
+      const history = getNudgeHistory()
+      if (history.length === 0) return
+      if (nudgeHistoryIndex === -1) {
+        // Save current input as pending before navigating history
+        setNudgePending(nudgeValue)
+        setNudgeHistoryIndex(0)
+        setNudgeValue(history[0])
+      } else if (nudgeHistoryIndex < history.length - 1) {
+        const next = nudgeHistoryIndex + 1
+        setNudgeHistoryIndex(next)
+        setNudgeValue(history[next])
+      }
+      return
+    }
+    if (e.key === 'ArrowDown') {
+      e.preventDefault()
+      if (nudgeHistoryIndex <= 0) {
+        // Restore pending input
+        setNudgeHistoryIndex(-1)
+        setNudgeValue(nudgePending)
+      } else {
+        const history = getNudgeHistory()
+        const next = nudgeHistoryIndex - 1
+        setNudgeHistoryIndex(next)
+        setNudgeValue(history[next])
+      }
+      return
     }
   }
 
@@ -321,20 +408,36 @@ export function ProfileView({ profile, providers, status, playerData, onPlayerDa
     return () => clearInterval(interval)
   }, [status.connected, fetchStatus])
 
-  // Focus command input on any keystroke (when not already in an input)
+  // Global keyboard shortcuts (when not in an input)
   useEffect(() => {
     function handleKeyDown(e: KeyboardEvent) {
       const tag = (e.target as HTMLElement)?.tagName
       if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return
       if (e.metaKey || e.ctrlKey || e.altKey) return
       if (editing) return
+      if (showDirectiveModal || showNudgeModal) return
+
+      // Enter opens nudge modal (only when agent is running)
+      if (e.key === 'Enter' && status.running) {
+        e.preventDefault()
+        openNudgeModal()
+        return
+      }
+
+      // / focuses the command input
+      if (e.key === '/' && commandInputRef.current) {
+        e.preventDefault()
+        commandInputRef.current.focus()
+        return
+      }
+
       if (e.key.length === 1 && commandInputRef.current) {
         commandInputRef.current.focus()
       }
     }
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [editing])
+  }, [editing, showDirectiveModal, showNudgeModal, status.running])
 
   // Resize handling
   const handleResizeStart = useCallback((e: React.MouseEvent) => {
@@ -703,6 +806,8 @@ export function ProfileView({ profile, providers, status, playerData, onPlayerDa
         disabled={!status.connected}
         showSidePane={showSidePane}
         onToggleSidePane={() => setShowSidePane(v => { const next = !v; try { localStorage.setItem('admiral-sidepane-open', String(next)) } catch {}; return next })}
+        onNudge={openNudgeModal}
+        running={status.running}
       />
 
       {/* Log pane + side pane */}
@@ -771,6 +876,65 @@ export function ProfileView({ profile, providers, status, playerData, onPlayerDa
                 <Button size="sm" onClick={saveDirective} className="h-7 text-[11px] px-3 bg-primary text-primary-foreground hover:bg-primary/90">
                   Save
                 </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Nudge modal */}
+      {showNudgeModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80" onClick={() => setShowNudgeModal(false)}>
+          <div className="bg-card border border-border shadow-lg w-full max-w-lg mx-4" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between px-4 py-3 border-b border-border">
+              <div className="flex items-center gap-2">
+                <MessageSquare size={13} className="text-primary" />
+                <span className="font-orbitron text-xs font-semibold tracking-[1.5px] text-primary uppercase">Nudge Agent</span>
+              </div>
+              <button onClick={() => setShowNudgeModal(false)} className="text-muted-foreground hover:text-foreground transition-colors">
+                <X size={14} />
+              </button>
+            </div>
+            <div className="p-4 space-y-3">
+              <p className="text-[11px] text-muted-foreground">
+                Send a one-time hint to your agent. This is injected into the conversation without changing the directive.
+              </p>
+              <input
+                ref={nudgeInputRef}
+                autoFocus
+                type="text"
+                value={nudgeValue}
+                onChange={e => {
+                  setNudgeValue(e.target.value)
+                  // Reset history position when user types
+                  if (nudgeHistoryIndex !== -1) {
+                    setNudgeHistoryIndex(-1)
+                    setNudgePending('')
+                  }
+                }}
+                onKeyDown={handleNudgeKeyDown}
+                placeholder="e.g. sell your ore before exploring further"
+                className="w-full bg-background border border-border px-3 py-2 text-xs text-foreground outline-none focus:border-primary/40 placeholder:text-muted-foreground/40"
+              />
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] text-muted-foreground/50">
+                  {getNudgeHistory().length > 0
+                    ? `${nudgeHistoryIndex >= 0 ? `${nudgeHistoryIndex + 1}/` : ''}${getNudgeHistory().length} in history, use \u2191/\u2193 to select`
+                    : ''}
+                </span>
+                <div className="flex gap-2">
+                  <Button variant="ghost" size="sm" onClick={() => setShowNudgeModal(false)} className="h-7 text-[11px] px-3">
+                    Cancel
+                  </Button>
+                  <Button
+                    size="sm"
+                    onClick={sendNudge}
+                    disabled={!nudgeValue.trim()}
+                    className="h-7 text-[11px] px-3 bg-primary text-primary-foreground hover:bg-primary/90"
+                  >
+                    Send
+                  </Button>
+                </div>
               </div>
             </div>
           </div>

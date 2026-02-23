@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useRef, useEffect, useCallback, useMemo } from 'react'
-import { ArrowDown, Check, Copy, Minus, X } from 'lucide-react'
+import { ArrowDown, ArrowUp, Check, Copy, Minus, X } from 'lucide-react'
 import { useVirtualizer } from '@tanstack/react-virtual'
 import { useQueryState, parseAsInteger } from 'nuqs'
 import type { LogEntry, LogType } from '@/types'
@@ -290,6 +290,9 @@ function LogRow({ entry, virtualRow, measureElement, onSelect }: {
 
 function LogDetailModal({ entry, onClose }: { entry: LogEntry; onClose: () => void }) {
   const [copied, setCopied] = useState(false)
+  const [showScrollTop, setShowScrollTop] = useState(false)
+  const [showScrollBottom, setShowScrollBottom] = useState(false)
+  const contentRef = useRef<HTMLDivElement>(null)
 
   // Close on Escape
   useEffect(() => {
@@ -303,6 +306,32 @@ function LogDetailModal({ entry, onClose }: { entry: LogEntry; onClose: () => vo
       document.body.style.overflow = ''
     }
   }, [onClose])
+
+  // Check scroll position on mount and after content renders
+  useEffect(() => {
+    const el = contentRef.current
+    if (!el) return
+    function check() {
+      if (!el) return
+      const { scrollTop, scrollHeight, clientHeight } = el
+      setShowScrollTop(scrollTop > 40)
+      setShowScrollBottom(scrollHeight - scrollTop - clientHeight > 40)
+    }
+    // Check after render
+    requestAnimationFrame(check)
+    // Also observe resize in case content changes layout
+    const ro = new ResizeObserver(check)
+    ro.observe(el)
+    return () => ro.disconnect()
+  }, [entry])
+
+  function handleContentScroll() {
+    const el = contentRef.current
+    if (!el) return
+    const { scrollTop, scrollHeight, clientHeight } = el
+    setShowScrollTop(scrollTop > 40)
+    setShowScrollBottom(scrollHeight - scrollTop - clientHeight > 40)
+  }
 
   const content = entry.detail && entry.detail !== entry.summary
     ? entry.detail
@@ -376,7 +405,7 @@ function LogDetailModal({ entry, onClose }: { entry: LogEntry; onClose: () => vo
         </div>
 
         {/* Content */}
-        <div className="flex-1 overflow-auto">
+        <div ref={contentRef} onScroll={handleContentScroll} className="flex-1 overflow-auto relative">
           {looksLikeJson(content) ? (
             <JsonHighlight json={content} className="px-3.5 py-2.5 text-[11px] leading-relaxed" />
           ) : entry.type === 'llm_thought' ? (
@@ -389,6 +418,26 @@ function LogDetailModal({ entry, onClose }: { entry: LogEntry; onClose: () => vo
             </pre>
           )}
         </div>
+
+        {/* Scroll buttons */}
+        {showScrollTop && (
+          <button
+            onClick={() => contentRef.current?.scrollTo({ top: 0, behavior: 'smooth' })}
+            className="absolute bottom-12 right-3 w-7 h-7 flex items-center justify-center bg-card border border-border text-muted-foreground hover:text-foreground hover:border-primary/40 transition-all shadow-lg"
+            title="Scroll to top"
+          >
+            <ArrowUp size={13} />
+          </button>
+        )}
+        {showScrollBottom && (
+          <button
+            onClick={() => contentRef.current?.scrollTo({ top: contentRef.current.scrollHeight, behavior: 'smooth' })}
+            className="absolute bottom-3 right-3 w-7 h-7 flex items-center justify-center bg-card border border-border text-muted-foreground hover:text-foreground hover:border-primary/40 transition-all shadow-lg"
+            title="Scroll to bottom"
+          >
+            <ArrowDown size={13} />
+          </button>
+        )}
       </div>
     </div>
   )
