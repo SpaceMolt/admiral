@@ -307,7 +307,7 @@ export function CommandPanel({ profileId, onSend, disabled, commandInputRef, ser
                 <Zap size={10} className="text-[hsl(var(--smui-orange))] shrink-0 mt-0.5" />
               )}
               {!cmd.isMutation && (
-                <SearchIcon size={10} className="text-[hsl(var(--smui-cyan))] shrink-0 mt-0.5" />
+                <SearchIcon size={10} className="text-[hsl(var(--smui-frost-2))] shrink-0 mt-0.5" />
               )}
               <span className="text-[11px] text-muted-foreground truncate flex-1">
                 {cmd.description}

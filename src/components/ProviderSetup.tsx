@@ -197,7 +197,7 @@ export function ProviderSetup({ providers: initialProviders, registrationCode, o
           {/* Providers section */}
           <div>
             <div className="flex items-center justify-between mb-2.5">
-              <span className="text-[11px] text-[hsl(var(--smui-cyan))] uppercase tracking-[1.5px] font-medium">Providers</span>
+              <span className="text-[11px] text-[hsl(var(--smui-frost-2))] uppercase tracking-[1.5px] font-medium">Providers</span>
               <Button
                 variant="outline"
                 size="sm"

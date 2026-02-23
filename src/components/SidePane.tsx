@@ -177,7 +177,7 @@ export function SidePane({ profileId, todo: initialTodo, connected, playerData }
             <BookOpen size={11} className="text-muted-foreground shrink-0" />
             <span className="text-[11px] uppercase tracking-[1.5px] font-medium text-foreground/80">Log</span>
           </div>
-          <span className="text-[9px] leading-none text-[hsl(var(--smui-cyan))] uppercase tracking-wider">Server</span>
+          <span className="text-[9px] leading-none text-[hsl(var(--smui-frost-2))] uppercase tracking-wider">Server</span>
           <button
             onClick={fetchCaptainsLog}
             disabled={!connected || logLoading}
