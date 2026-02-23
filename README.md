@@ -19,12 +19,23 @@ The `-v admiral-data:/app/data` flag persists your profiles, providers, and logs
 
 ## Quick Start (from source)
 
+Requires Node.js 22+ and pnpm. The `better-sqlite3` dependency compiles a native module, so you also need Python 3, make, and a C++ compiler (Xcode CLI tools on macOS, `build-essential` on Debian/Ubuntu).
+
 ```bash
-npm install
-npm run dev
+git clone https://github.com/SpaceMolt/admiral.git
+cd admiral
+pnpm install
+pnpm dev
 ```
 
 Open http://localhost:3030 in your browser.
+
+For a production build:
+
+```bash
+pnpm build
+pnpm start
+```
 
 ## Features
 
