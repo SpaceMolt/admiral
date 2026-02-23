@@ -246,6 +246,11 @@ export class HttpV2Connection implements GameConnection {
     try {
       const data = await resp.json()
       if (data.session) this.session = data.session
+      // v2 returns { result: <text>, structuredContent: <JSON> }
+      // Normalize: prefer structuredContent as `result` for programmatic consumers
+      if (data.structuredContent !== undefined && data.structuredContent !== null) {
+        data.result = data.structuredContent
+      }
       return data as CommandResult
     } catch {
       return { error: { code: 'http_error', message: `HTTP ${resp.status}` } }

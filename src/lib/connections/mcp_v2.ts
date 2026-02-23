@@ -162,6 +162,10 @@ export class McpV2Connection implements GameConnection {
   private parseToolResult(result: unknown): Record<string, unknown> | null {
     if (!result) return null
     const r = result as Record<string, unknown>
+    // MCP v2 returns structuredContent with the actual JSON data
+    if (r.structuredContent && typeof r.structuredContent === 'object') {
+      return r.structuredContent as Record<string, unknown>
+    }
     if (r.content && Array.isArray(r.content)) {
       for (const block of r.content) {
         const b = block as Record<string, unknown>
