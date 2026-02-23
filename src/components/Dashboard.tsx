@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
-import { Settings, Sun, Moon, Github, AlertTriangle, Compass } from 'lucide-react'
+import { Settings, Sun, Moon, Github, AlertTriangle, CircleHelp } from 'lucide-react'
 import { useQueryState } from 'nuqs'
 import type { Profile, Provider } from '@/types'
 import { ProfileList } from './ProfileList'
@@ -130,7 +130,7 @@ export function Dashboard({ profiles: initialProfiles, providers, registrationCo
             className="flex items-center justify-center w-7 h-7 text-muted-foreground hover:text-foreground transition-colors border border-border"
             title="Take a tour"
           >
-            <Compass size={13} />
+            <CircleHelp size={13} />
           </button>
           <button
             onClick={onShowProviders}
