@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback, useRef } from 'react'
-import { RefreshCw, BookOpen, ListTodo, ChevronDown, ChevronRight, Activity } from 'lucide-react'
+import { RefreshCw, BookOpen, ListTodo, ChevronDown, ChevronRight, Activity, Trash2 } from 'lucide-react'
 import { MarkdownRenderer } from './MarkdownRenderer'
 
 interface CaptainsLogEntry {
@@ -92,6 +92,29 @@ export function SidePane({ profileId, todo: initialTodo, connected, playerData, 
     }
   }, [profileId])
 
+  const clearTodo = useCallback(async () => {
+    try {
+      await fetch(`/api/profiles/${profileId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ todo: '' }),
+      })
+      setTodo('')
+    } catch { /* ignore */ }
+  }, [profileId])
+
+  const clearStatus = useCallback(async () => {
+    if (!connected) return
+    try {
+      await fetch(`/api/profiles/${profileId}/command`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ command: 'set_status', args: { status_message: '' } }),
+      })
+      onRefreshStatus?.()
+    } catch { /* ignore */ }
+  }, [profileId, connected, onRefreshStatus])
+
   // Fetch log when connected
   useEffect(() => {
     if (connected) fetchCaptainsLog()
@@ -169,6 +192,16 @@ export function SidePane({ profileId, todo: initialTodo, connected, playerData, 
             <span className="text-[11px] uppercase tracking-[1.5px] font-medium text-foreground/80">Status</span>
           </div>
           <span className="text-[9px] leading-none text-[hsl(var(--smui-green))] uppercase tracking-wider">Server</span>
+          {statusMessage && (
+            <button
+              onClick={clearStatus}
+              disabled={!connected}
+              className="text-muted-foreground/40 hover:text-destructive disabled:opacity-30 transition-colors shrink-0"
+              title="Clear status message"
+            >
+              <Trash2 size={10} />
+            </button>
+          )}
           <button
             onClick={onRefreshStatus}
             disabled={!connected}
@@ -251,6 +284,15 @@ export function SidePane({ profileId, todo: initialTodo, connected, playerData, 
             <span className="text-[11px] uppercase tracking-[1.5px] font-medium text-foreground/80">TODO</span>
           </div>
           <span className="text-[9px] leading-none text-[hsl(var(--smui-orange))] uppercase tracking-wider">Local</span>
+          {todo && (
+            <button
+              onClick={clearTodo}
+              className="text-muted-foreground/40 hover:text-destructive transition-colors shrink-0"
+              title="Clear TODO list"
+            >
+              <Trash2 size={10} />
+            </button>
+          )}
           <button
             onClick={refreshTodo}
             className="text-muted-foreground hover:text-foreground transition-colors ml-1 shrink-0"
