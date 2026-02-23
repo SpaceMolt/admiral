@@ -16,6 +16,12 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
   const body = await request.json()
   const profile = updateProfile(id, body)
   if (!profile) return NextResponse.json({ error: 'Not found' }, { status: 404 })
+
+  // Restart the agent turn when directive changes so it picks up immediately
+  if (body.directive !== undefined) {
+    agentManager.restartTurn(id)
+  }
+
   return NextResponse.json(profile)
 }
 

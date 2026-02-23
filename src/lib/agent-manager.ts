@@ -39,6 +39,13 @@ class AgentManager {
     this.agents.delete(profileId)
   }
 
+  restartTurn(profileId: string): void {
+    const agent = this.agents.get(profileId)
+    if (agent?.isRunning) {
+      agent.restartTurn()
+    }
+  }
+
   getStatus(profileId: string): { connected: boolean; running: boolean } {
     const agent = this.agents.get(profileId)
     return {

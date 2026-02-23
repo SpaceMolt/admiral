@@ -36,6 +36,7 @@ export class Agent {
   private connection: GameConnection | null = null
   private running = false
   private abortController: AbortController | null = null
+  private restartRequested = false
   constructor(profileId: string) {
     this.profileId = profileId
   }
@@ -120,7 +121,25 @@ export class Agent {
     const compaction: CompactionState = { summary: '' }
     const todo = { value: profile.todo || '' }
 
-    while (this.running && !this.abortController.signal.aborted) {
+    while (this.running) {
+      // Handle restart request (directive changed)
+      if (this.restartRequested) {
+        this.restartRequested = false
+        this.abortController = new AbortController()
+
+        const freshProfile = getProfile(this.profileId)
+        if (freshProfile) {
+          context.systemPrompt = buildSystemPrompt(freshProfile, commandList)
+          const directive = freshProfile.directive || 'Play the game. Mine ore, sell it, and grow stronger.'
+          context.messages.push({
+            role: 'user' as const,
+            content: `## Directive Updated\nYour mission has changed. New directive: ${directive}\n\nAdjust your strategy and actions to follow this new directive immediately.`,
+            timestamp: Date.now(),
+          })
+          this.log('system', `Directive updated, restarting turn: ${directive}`)
+        }
+      }
+
       try {
         const maxTurnsStr = getPreference('max_turns')
         const maxToolRounds = maxTurnsStr ? parseInt(maxTurnsStr, 10) || undefined : undefined
@@ -132,12 +151,16 @@ export class Agent {
           compaction,
         )
       } catch (err) {
-        if (this.abortController.signal.aborted) break
+        if (!this.running) break
+        if (this.restartRequested) continue
         this.log('error', `Turn error: ${err instanceof Error ? err.message : String(err)}`)
       }
 
       if (!this.running) break
-      await sleep(TURN_INTERVAL)
+      if (this.restartRequested) continue
+      await abortableSleep(TURN_INTERVAL, this.abortController.signal)
+      if (!this.running) break
+      if (this.restartRequested) continue
 
       // Poll for events between turns
       let pendingEvents = ''
@@ -194,6 +217,13 @@ export class Agent {
     }
 
     return result
+  }
+
+  /** Abort current turn and restart the loop with the updated directive. */
+  restartTurn(): void {
+    if (!this.running) return
+    this.restartRequested = true
+    this.abortController?.abort()
   }
 
   async stop(): Promise<void> {
@@ -292,4 +322,12 @@ function formatNotificationSummary(n: unknown): string {
 
 function sleep(ms: number): Promise<void> {
   return new Promise(resolve => setTimeout(resolve, ms))
+}
+
+function abortableSleep(ms: number, signal?: AbortSignal): Promise<void> {
+  return new Promise(resolve => {
+    if (signal?.aborted) { resolve(); return }
+    const timer = setTimeout(resolve, ms)
+    signal?.addEventListener('abort', () => { clearTimeout(timer); resolve() }, { once: true })
+  })
 }
