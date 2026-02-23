@@ -102,7 +102,9 @@ interface Props {
 }
 
 export function ProfileView({ profile, providers, status, playerData, onPlayerData, onDelete, onRefresh, autoEditName, onAutoEditNameDone, showProfileList, onToggleProfileList }: Props) {
-  const [showSidePane, setShowSidePane] = useState(true)
+  const [showSidePane, setShowSidePane] = useState(() => {
+    try { return localStorage.getItem('admiral-sidepane-open') !== 'false' } catch { return true }
+  })
   const [sidePaneWidth, setSidePaneWidth] = useState(288)
   const [connecting, setConnecting] = useState(false)
   const [showDirectiveModal, setShowDirectiveModal] = useState(false)
@@ -700,7 +702,7 @@ export function ProfileView({ profile, providers, status, playerData, onPlayerDa
         onSend={handleSendCommand}
         disabled={!status.connected}
         showSidePane={showSidePane}
-        onToggleSidePane={() => setShowSidePane(v => !v)}
+        onToggleSidePane={() => setShowSidePane(v => { const next = !v; try { localStorage.setItem('admiral-sidepane-open', String(next)) } catch {}; return next })}
       />
 
       {/* Log pane + side pane */}

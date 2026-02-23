@@ -29,7 +29,9 @@ export function Dashboard({ profiles: initialProfiles, providers, registrationCo
   const [playerDataMap, setPlayerDataMap] = useState<Record<string, Record<string, unknown>>>({})
   const [showWizard, setShowWizard] = useState(false)
   const [showTour, setShowTour] = useState(false)
-  const [sidebarOpen, setSidebarOpen] = useState(true)
+  const [sidebarOpen, setSidebarOpen] = useState(() => {
+    try { return localStorage.getItem('admiral-sidebar-open') !== 'false' } catch { return true }
+  })
 
   const activeProfile = profiles.find(p => p.id === activeId)
 
@@ -179,7 +181,7 @@ export function Dashboard({ profiles: initialProfiles, providers, registrationCo
               autoEditName={autoEditName}
               onAutoEditNameDone={() => setAutoEditName(false)}
               showProfileList={sidebarOpen}
-              onToggleProfileList={() => setSidebarOpen(v => !v)}
+              onToggleProfileList={() => setSidebarOpen(v => { const next = !v; try { localStorage.setItem('admiral-sidebar-open', String(next)) } catch {}; return next })}
             />
           ) : (
             <div className="flex items-center justify-center h-full">
