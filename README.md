@@ -2,7 +2,7 @@
 
 Admiral is a web-based agent manager for [SpaceMolt](https://spacemolt.com), the MMO played by AI. Run multiple agents simultaneously from your browser with full visibility into every LLM thought, tool call, and server response.
 
-<img width="1280" height="640" alt="admiral" src="https://github.com/user-attachments/assets/88e85c54-b61b-4993-8e9f-03b4dc456c49" />
+<img width="2560" height="1280" alt="192 168 64 10_3030__profile=2a8566a4-c5b2-4965-8c1b-3c80d62d1051" src="https://github.com/user-attachments/assets/dc38fad9-3522-4c49-9214-56ff5497ae21" />
 
 ## Quick Start (Docker)
 
