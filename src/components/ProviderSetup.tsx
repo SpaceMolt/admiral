@@ -22,6 +22,7 @@ const PROVIDER_INFO: Record<string, { label: string; description: string; isLoca
   openrouter: { label: 'OpenRouter', description: 'Multi-provider gateway', isLocal: false, keyPlaceholder: 'sk-or-...' },
   ollama: { label: 'Ollama', description: 'Local models', isLocal: true, keyPlaceholder: '' },
   lmstudio: { label: 'LM Studio', description: 'Local models', isLocal: true, keyPlaceholder: '' },
+  custom: { label: 'Custom', description: 'Any OpenAI-compatible endpoint', isLocal: true, keyPlaceholder: '' },
 }
 
 interface Props {
@@ -48,6 +49,8 @@ export function ProviderSetup({ providers: initialProviders, registrationCode, o
       if (DEFAULT_LOCAL_URLS[p.id]) {
         const stored = p.base_url?.replace(/\/v1\/?$/, '') || ''
         m[p.id] = stored || DEFAULT_LOCAL_URLS[p.id]
+      } else if (p.id === 'custom') {
+        m[p.id] = p.base_url?.replace(/\/v1\/?$/, '') || ''
       }
     }
     return m
@@ -96,6 +99,23 @@ export function ProviderSetup({ providers: initialProviders, registrationCode, o
       setProviders(prev => prev.map(p => p.id === id ? { ...p, status: result.status, base_url: baseUrl } : p))
     } finally {
       setSaving(s => ({ ...s, [id]: false }))
+    }
+  }
+
+  async function saveCustomProvider() {
+    setSaving(s => ({ ...s, custom: true }))
+    try {
+      const raw = (urls['custom'] || '').replace(/\/+$/, '')
+      const baseUrl = raw ? (raw.endsWith('/v1') ? raw : raw + '/v1') : ''
+      const resp = await fetch('/api/providers', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: 'custom', api_key: keys['custom'] || '', base_url: baseUrl }),
+      })
+      const result = await resp.json()
+      setProviders(prev => prev.map(p => p.id === 'custom' ? { ...p, status: result.status, api_key: keys['custom'] || '', base_url: baseUrl } : p))
+    } finally {
+      setSaving(s => ({ ...s, custom: false }))
     }
   }
 
@@ -225,7 +245,47 @@ export function ProviderSetup({ providers: initialProviders, registrationCode, o
                       <span className="text-[10px] text-muted-foreground">{info.description}</span>
                     </div>
 
-                    {!info.isLocal && (
+                    {p.id === 'custom' ? (
+                      <>
+                        <div className="flex items-center gap-2 mt-2 ml-4">
+                          <Server size={10} className="text-muted-foreground shrink-0" />
+                          <Input
+                            value={urls['custom'] || ''}
+                            onChange={e => setUrls(u => ({ ...u, custom: e.target.value }))}
+                            placeholder="http://host:port/v1"
+                            className="flex-1 h-6 text-[11px]"
+                          />
+                        </div>
+                        <div className="flex items-center gap-2 mt-1.5 ml-4">
+                          <KeyRound size={10} className="text-muted-foreground shrink-0" />
+                          <Input
+                            type="password"
+                            value={keys['custom'] || ''}
+                            onChange={e => setKeys(k => ({ ...k, custom: e.target.value }))}
+                            placeholder="API key (optional)"
+                            className="flex-1 h-6 text-[11px]"
+                          />
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={saveCustomProvider}
+                            disabled={saving['custom']}
+                            className="h-6 text-[10px] hover:text-primary hover:border-primary/40"
+                          >
+                            {saving['custom'] ? '...' : 'Save'}
+                          </Button>
+                        </div>
+                        <div className="flex items-center gap-1.5 mt-1.5 ml-4">
+                          {p.status === 'valid' ? (
+                            <><Wifi size={10} className="text-[hsl(var(--smui-green))]" /><span className="text-[10px] text-[hsl(var(--smui-green))]">Reachable</span></>
+                          ) : p.status === 'unreachable' ? (
+                            <><WifiOff size={10} className="text-[hsl(var(--smui-orange))]" /><span className="text-[10px] text-[hsl(var(--smui-orange))]">Unreachable</span></>
+                          ) : urls['custom'] ? (
+                            <><WifiOff size={10} className="text-muted-foreground" /><span className="text-[10px] text-muted-foreground">Not tested</span></>
+                          ) : null}
+                        </div>
+                      </>
+                    ) : !info.isLocal ? (
                       <div className="flex items-center gap-2 mt-2 ml-4">
                         <KeyRound size={10} className="text-muted-foreground shrink-0" />
                         <Input
@@ -245,8 +305,7 @@ export function ProviderSetup({ providers: initialProviders, registrationCode, o
                           {saving[p.id] ? '...' : 'Save'}
                         </Button>
                       </div>
-                    )}
-                    {info.isLocal && (
+                    ) : (
                       <>
                         <div className="flex items-center gap-2 mt-2 ml-4">
                           <Server size={10} className="text-muted-foreground shrink-0" />

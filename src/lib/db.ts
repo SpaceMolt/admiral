@@ -82,7 +82,7 @@ function migrate(db: Database.Database): void {
   // Seed default providers
   const defaultProviders = [
     'anthropic', 'openai', 'groq', 'google', 'xai',
-    'mistral', 'minimax', 'openrouter', 'ollama', 'lmstudio',
+    'mistral', 'minimax', 'openrouter', 'ollama', 'lmstudio', 'custom',
   ]
   const upsert = db.prepare(
     'INSERT OR IGNORE INTO providers (id) VALUES (?)'

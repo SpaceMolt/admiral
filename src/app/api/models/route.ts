@@ -47,6 +47,12 @@ async function fetchModelsForProvider(providerId: string): Promise<string[]> {
     )
   }
 
+  // Custom provider - try to fetch from configured base_url
+  if (providerId === 'custom' && dbProvider?.base_url) {
+    const modelsUrl = dbProvider.base_url.replace(/\/+$/, '') + (dbProvider.base_url.includes('/models') ? '' : '/models')
+    return fetchOpenAICompatModels(modelsUrl, dbProvider.api_key || undefined)
+  }
+
   // Cloud providers with OpenAI-compatible /v1/models
   const apiUrl = PROVIDER_API_URLS[providerId]
   if (apiUrl && dbProvider?.api_key) {
