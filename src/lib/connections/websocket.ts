@@ -3,6 +3,19 @@ import WebSocket from 'ws'
 
 const RECONNECT_BASE_DELAY = 1000
 const RECONNECT_MAX_DELAY = 30000
+const COMMAND_TIMEOUT = 30_000
+
+/**
+ * Message types that are direct responses to client commands.
+ * Everything else is a server-push notification.
+ */
+const RESPONSE_TYPES = new Set([
+  'ok',           // Generic success (queries + mutation acks)
+  'error',        // Generic error
+  'logged_in',    // Response to 'login'
+  'registered',   // Response to 'register' (followed by 'logged_in' as notification)
+  'version_info', // Response to 'get_version'
+])
 
 export class WebSocketConnection implements GameConnection {
   readonly mode = 'websocket' as const
@@ -12,12 +25,14 @@ export class WebSocketConnection implements GameConnection {
   private connected = false
   private reconnectAttempt = 0
   private reconnectTimer: ReturnType<typeof setTimeout> | null = null
-  private pendingRequests = new Map<string, {
+  private credentials: { username: string; password: string } | null = null
+
+  // Sequential FIFO queue: server processes commands in order with no request IDs
+  private pendingQueue: Array<{
     resolve: (value: CommandResult) => void
     timer: ReturnType<typeof setTimeout>
-  }>()
-  private requestId = 0
-  private credentials: { username: string; password: string } | null = null
+    command: string
+  }> = []
 
   constructor(serverUrl: string) {
     const base = serverUrl.replace(/\/$/, '')
@@ -72,9 +87,11 @@ export class WebSocketConnection implements GameConnection {
       return { success: false, error: resp.error.message }
     }
     const result = resp.result as Record<string, unknown> | undefined
+    // logged_in payload has player.id, not a top-level player_id
+    const player = result?.player as Record<string, unknown> | undefined
     return {
       success: true,
-      player_id: result?.player_id as string | undefined,
+      player_id: (player?.id as string) || (result?.player_id as string | undefined),
     }
   }
 
@@ -86,12 +103,18 @@ export class WebSocketConnection implements GameConnection {
       return { success: false, error: resp.error.message }
     }
     const result = resp.result as Record<string, unknown> | undefined
+    if (result?.password) {
+      this.credentials = {
+        username: (result.username as string) || username,
+        password: result.password as string,
+      }
+    }
     return {
       success: true,
-      username: result?.username as string,
+      username: (result?.username as string) || username,
       password: result?.password as string,
       player_id: result?.player_id as string,
-      empire: result?.empire as string,
+      empire: (result?.empire as string) || empire,
     }
   }
 
@@ -129,63 +152,55 @@ export class WebSocketConnection implements GameConnection {
       return { error: { code: 'not_connected', message: 'WebSocket not connected' } }
     }
 
-    const id = String(++this.requestId)
-    const msg = { type: command, id, payload: args || {} }
+    // Server protocol: { type: "command_name", payload: { ... } } — no request ID
+    const msg = { type: command, payload: args || {} }
 
     return new Promise<CommandResult>((resolve) => {
       const timer = setTimeout(() => {
-        this.pendingRequests.delete(id)
+        const idx = this.pendingQueue.findIndex(p => p.timer === timer)
+        if (idx !== -1) this.pendingQueue.splice(idx, 1)
         resolve({ error: { code: 'timeout', message: `Command ${command} timed out` } })
-      }, 30_000)
+      }, COMMAND_TIMEOUT)
 
-      this.pendingRequests.set(id, { resolve, timer })
+      this.pendingQueue.push({ resolve, timer, command })
       this.ws!.send(JSON.stringify(msg))
     })
   }
 
   private handleMessage(msg: Record<string, unknown>): void {
-    // Response to a pending request
-    const id = msg.id as string | undefined
-    if (id && this.pendingRequests.has(id)) {
-      const pending = this.pendingRequests.get(id)!
-      this.pendingRequests.delete(id)
+    const type = msg.type as string
+    const payload = (msg.payload || {}) as Record<string, unknown>
+
+    // If this is a response type and we have a pending command, resolve it
+    if (RESPONSE_TYPES.has(type) && this.pendingQueue.length > 0) {
+      const pending = this.pendingQueue.shift()!
       clearTimeout(pending.timer)
 
-      const result: CommandResult = {}
-      if (msg.error) {
-        result.error = msg.error as CommandResult['error']
+      if (type === 'error') {
+        pending.resolve({
+          error: {
+            code: (payload.code as string) || 'server_error',
+            message: (payload.message as string) || 'Unknown error',
+          },
+        })
       } else {
-        result.result = msg.result ?? msg.payload
+        pending.resolve({ result: payload })
       }
-      if (msg.notifications) {
-        result.notifications = msg.notifications as unknown[]
-      }
-
-      // Emit notifications from response
-      if (result.notifications) {
-        for (const n of result.notifications) {
-          for (const handler of this.notificationHandlers) {
-            handler(n)
-          }
-        }
-      }
-
-      pending.resolve(result)
       return
     }
 
-    // Push notification (no matching request id)
+    // Server-push notification (welcome, tick, state_update, action_result, etc.)
     for (const handler of this.notificationHandlers) {
       handler(msg)
     }
   }
 
   private rejectAllPending(reason: string): void {
-    for (const [id, pending] of this.pendingRequests) {
+    for (const pending of this.pendingQueue) {
       clearTimeout(pending.timer)
       pending.resolve({ error: { code: 'disconnected', message: reason } })
     }
-    this.pendingRequests.clear()
+    this.pendingQueue = []
   }
 
   private scheduleReconnect(): void {
