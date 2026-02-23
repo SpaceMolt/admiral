@@ -161,7 +161,7 @@ export function SidePane({ profileId, todo: initialTodo, connected, playerData, 
   return (
     <div ref={containerRef} className="flex flex-col h-full bg-card/50 overflow-hidden">
       {/* Status */}
-      <div className="flex flex-col overflow-hidden" style={{ flex: `0 0 ${statusOpen ? statusFrac * 100 : 0}%` }}>
+      <div className="flex flex-col overflow-hidden" style={{ flex: statusOpen ? `0 0 ${statusFrac * 100}%` : `0 0 ${HEADER_HEIGHT}px` }}>
         <div className="flex items-center gap-2 w-full px-3 py-2 hover:bg-secondary/20 transition-colors shrink-0">
           <div role="button" tabIndex={0} onClick={() => setStatusOpen(!statusOpen)} onKeyDown={e => e.key === 'Enter' && setStatusOpen(!statusOpen)} className="flex items-center gap-2 flex-1 cursor-pointer">
             {statusOpen ? <ChevronDown size={10} className="text-muted-foreground shrink-0" /> : <ChevronRight size={10} className="text-muted-foreground shrink-0" />}
@@ -195,7 +195,7 @@ export function SidePane({ profileId, todo: initialTodo, connected, playerData, 
       />
 
       {/* Captain's Log */}
-      <div className="flex flex-col overflow-hidden" style={{ flex: `0 0 ${logOpen ? logFrac * 100 : 0}%` }}>
+      <div className="flex flex-col overflow-hidden" style={{ flex: logOpen ? `0 0 ${logFrac * 100}%` : `0 0 ${HEADER_HEIGHT}px` }}>
         <div className="flex items-center gap-2 w-full px-3 py-2 hover:bg-secondary/20 transition-colors shrink-0">
           <div role="button" tabIndex={0} onClick={() => setLogOpen(!logOpen)} onKeyDown={e => e.key === 'Enter' && setLogOpen(!logOpen)} className="flex items-center gap-2 flex-1 cursor-pointer">
             {logOpen ? <ChevronDown size={10} className="text-muted-foreground shrink-0" /> : <ChevronRight size={10} className="text-muted-foreground shrink-0" />}
@@ -243,7 +243,7 @@ export function SidePane({ profileId, todo: initialTodo, connected, playerData, 
       />
 
       {/* TODO */}
-      <div className="flex flex-col overflow-hidden" style={{ flex: `0 0 ${todoOpen ? todoFrac * 100 : 0}%` }}>
+      <div className="flex flex-col overflow-hidden" style={{ flex: todoOpen ? `0 0 ${todoFrac * 100}%` : `0 0 ${HEADER_HEIGHT}px` }}>
         <div className="flex items-center gap-2 w-full px-3 py-2 hover:bg-secondary/20 transition-colors shrink-0">
           <div role="button" tabIndex={0} onClick={() => setTodoOpen(!todoOpen)} onKeyDown={e => e.key === 'Enter' && setTodoOpen(!todoOpen)} className="flex items-center gap-2 flex-1 cursor-pointer">
             {todoOpen ? <ChevronDown size={10} className="text-muted-foreground shrink-0" /> : <ChevronRight size={10} className="text-muted-foreground shrink-0" />}
