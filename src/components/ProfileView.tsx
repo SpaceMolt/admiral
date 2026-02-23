@@ -48,9 +48,8 @@ export function ProfileView({ profile, providers, status, playerData, onPlayerDa
   const [showSidePane, setShowSidePane] = useState(true)
   const [sidePaneWidth, setSidePaneWidth] = useState(288)
   const [connecting, setConnecting] = useState(false)
-  const [editingDirective, setEditingDirective] = useState(false)
+  const [showDirectiveModal, setShowDirectiveModal] = useState(false)
   const [directiveValue, setDirectiveValue] = useState(profile.directive || '')
-  const directiveInputRef = useRef<HTMLInputElement>(null)
   const commandInputRef = useRef<HTMLInputElement>(null)
   const resizingRef = useRef(false)
   const containerRef = useRef<HTMLDivElement>(null)
@@ -112,16 +111,8 @@ export function ProfileView({ profile, providers, status, playerData, onPlayerDa
     setDirectiveValue(profile.directive || '')
   }, [profile.directive])
 
-  // Focus input when entering directive edit mode
-  useEffect(() => {
-    if (editingDirective && directiveInputRef.current) {
-      directiveInputRef.current.focus()
-      directiveInputRef.current.select()
-    }
-  }, [editingDirective])
-
   async function saveDirective() {
-    setEditingDirective(false)
+    setShowDirectiveModal(false)
     const trimmed = directiveValue.trim()
     if (trimmed === (profile.directive || '')) return
     try {
@@ -586,32 +577,16 @@ export function ProfileView({ profile, providers, status, playerData, onPlayerDa
       </div>
 
       {/* Directive */}
-      <div data-tour="directive" className="flex items-center gap-2 px-3.5 py-1.5 bg-card/50 border-b border-border/30">
+      <div
+        data-tour="directive"
+        className="flex items-center gap-2 px-3.5 py-1.5 bg-card/50 border-b border-border/30 cursor-pointer group"
+        onClick={() => { setDirectiveValue(profile.directive || ''); setShowDirectiveModal(true) }}
+      >
         <span className="text-[10px] text-muted-foreground uppercase tracking-[1.5px] shrink-0">Directive</span>
-        {editingDirective ? (
-          <input
-            ref={directiveInputRef}
-            value={directiveValue}
-            onChange={e => setDirectiveValue(e.target.value)}
-            onBlur={saveDirective}
-            onKeyDown={e => {
-              if (e.key === 'Enter') saveDirective()
-              if (e.key === 'Escape') { setDirectiveValue(profile.directive || ''); setEditingDirective(false) }
-            }}
-            className="flex-1 min-w-0 bg-transparent border-b border-primary/40 text-xs text-foreground/80 outline-none px-0 py-0"
-            placeholder="e.g. Mine ore and sell it until you can buy a better ship"
-          />
-        ) : (
-          <div
-            className="flex-1 min-w-0 flex items-center gap-1.5 cursor-pointer group"
-            onClick={() => setEditingDirective(true)}
-          >
-            <span className={`text-xs truncate ${directiveValue ? 'text-foreground/80' : 'text-muted-foreground/50 italic'}`}>
-              {directiveValue || 'No directive set -- click to add'}
-            </span>
-            <Pencil size={10} className="shrink-0 text-muted-foreground/0 group-hover:text-muted-foreground transition-colors" />
-          </div>
-        )}
+        <span className={`text-xs truncate flex-1 min-w-0 ${profile.directive ? 'text-foreground/80' : 'text-muted-foreground/50 italic'}`}>
+          {profile.directive || 'No directive set -- click to edit'}
+        </span>
+        <Pencil size={10} className="shrink-0 text-muted-foreground/0 group-hover:text-muted-foreground transition-colors" />
       </div>
 
       {/* Player status */}
@@ -646,6 +621,44 @@ export function ProfileView({ profile, providers, status, playerData, onPlayerDa
 
       {/* Manual command input */}
       <CommandPanel profileId={profile.id} onSend={handleSendCommand} disabled={!status.connected} commandInputRef={commandInputRef} serverUrl={profile.server_url} />
+
+      {/* Directive modal */}
+      {showDirectiveModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80" onClick={() => { setDirectiveValue(profile.directive || ''); setShowDirectiveModal(false) }}>
+          <div className="bg-card border border-border shadow-lg w-full max-w-lg mx-4" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between px-4 py-3 border-b border-border">
+              <span className="font-orbitron text-xs font-semibold tracking-[1.5px] text-primary uppercase">Agent Directive</span>
+              <button onClick={() => { setDirectiveValue(profile.directive || ''); setShowDirectiveModal(false) }} className="text-muted-foreground hover:text-foreground transition-colors">
+                <X size={14} />
+              </button>
+            </div>
+            <div className="p-4 space-y-3">
+              <p className="text-[11px] text-muted-foreground">
+                Tell your AI agent what to do. This directive is sent every turn to guide autonomous behavior.
+              </p>
+              <textarea
+                autoFocus
+                value={directiveValue}
+                onChange={e => setDirectiveValue(e.target.value)}
+                onKeyDown={e => {
+                  if (e.key === 'Escape') { setDirectiveValue(profile.directive || ''); setShowDirectiveModal(false) }
+                }}
+                placeholder={"e.g. Mine ore and sell it until you can buy a better ship.\nExplore unknown systems and record what you find.\nBecome a pirate -- attack traders and loot their cargo."}
+                rows={5}
+                className="w-full bg-background border border-border px-3 py-2 text-xs text-foreground outline-none focus:border-primary/40 resize-y min-h-[80px] max-h-[300px] placeholder:text-muted-foreground/40"
+              />
+              <div className="flex justify-end gap-2">
+                <Button variant="ghost" size="sm" onClick={() => { setDirectiveValue(profile.directive || ''); setShowDirectiveModal(false) }} className="h-7 text-[11px] px-3">
+                  Cancel
+                </Button>
+                <Button size="sm" onClick={saveDirective} className="h-7 text-[11px] px-3 bg-primary text-primary-foreground hover:bg-primary/90">
+                  Save
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
