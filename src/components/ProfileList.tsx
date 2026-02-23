@@ -20,11 +20,10 @@ const MODE_LABELS: Record<string, string> = {
 
 export function ProfileList({ profiles, activeId, statuses, playerDataMap, onSelect, onNew }: Props) {
   return (
-    <div className="w-56 bg-card border-r border-border flex flex-col h-full">
+    <div className="w-56 flex flex-col flex-1 min-h-0">
       <div className="px-3.5 py-2.5 border-b border-border">
         <h2 className="text-[11px] text-muted-foreground uppercase tracking-[1.5px] font-normal">Profiles</h2>
       </div>
-
       <div className="flex-1 overflow-y-auto">
         {profiles.map(p => {
           const status = statuses[p.id] || { connected: false, running: false }

@@ -1,6 +1,6 @@
 'use client'
 
-import { PanelRight } from 'lucide-react'
+import { PanelRight, PanelRightClose } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 
 interface Props {
@@ -41,13 +41,10 @@ export function QuickCommands({ onSend, disabled, showSidePane, onToggleSidePane
       <div className="flex-1" />
       <button
         onClick={onToggleSidePane}
-        className={`flex items-center gap-1.5 px-2 py-1 text-[11px] uppercase tracking-[1.5px] transition-colors shrink-0 ${
-          showSidePane ? 'text-primary' : 'text-muted-foreground hover:text-foreground'
-        }`}
+        className="flex items-center px-2 py-1 text-muted-foreground transition-colors shrink-0"
         title={showSidePane ? 'Hide side panel' : 'Show side panel'}
       >
-        <PanelRight size={14} />
-        <span>Log/TODO</span>
+        {showSidePane ? <PanelRightClose size={14} /> : <PanelRight size={14} />}
       </button>
     </div>
   )

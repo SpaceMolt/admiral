@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useCallback, useEffect, useRef } from 'react'
-import { Square, Plug, PlugZap, Trash2, Pencil, Check, X } from 'lucide-react'
+import { Square, Plug, PlugZap, Trash2, Pencil, Check, X, PanelLeft, PanelLeftClose, PanelRightClose } from 'lucide-react'
 import type { Profile, Provider } from '@/types'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -97,9 +97,11 @@ interface Props {
   onRefresh: () => void
   autoEditName?: boolean
   onAutoEditNameDone?: () => void
+  showProfileList?: boolean
+  onToggleProfileList?: () => void
 }
 
-export function ProfileView({ profile, providers, status, playerData, onPlayerData, onDelete, onRefresh, autoEditName, onAutoEditNameDone }: Props) {
+export function ProfileView({ profile, providers, status, playerData, onPlayerData, onDelete, onRefresh, autoEditName, onAutoEditNameDone, showProfileList, onToggleProfileList }: Props) {
   const [showSidePane, setShowSidePane] = useState(true)
   const [sidePaneWidth, setSidePaneWidth] = useState(288)
   const [connecting, setConnecting] = useState(false)
@@ -411,6 +413,15 @@ export function ProfileView({ profile, providers, status, playerData, onPlayerDa
     <div className="flex flex-col h-full">
       {/* Header bar */}
       <div data-tour="navbar" className="flex items-center gap-3 h-12 px-3.5 bg-card border-b border-border">
+        {onToggleProfileList && (
+          <button
+            onClick={onToggleProfileList}
+            className="flex items-center px-2 py-1 text-muted-foreground transition-colors shrink-0"
+            title={showProfileList ? 'Hide profiles' : 'Show profiles'}
+          >
+            {showProfileList ? <PanelLeftClose size={14} /> : <PanelLeft size={14} />}
+          </button>
+        )}
         <div className={`status-dot ${
           status.running ? 'status-dot-green' :
           status.connected ? 'status-dot-orange' :

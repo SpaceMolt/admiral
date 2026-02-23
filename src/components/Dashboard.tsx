@@ -29,6 +29,7 @@ export function Dashboard({ profiles: initialProfiles, providers, registrationCo
   const [playerDataMap, setPlayerDataMap] = useState<Record<string, Record<string, unknown>>>({})
   const [showWizard, setShowWizard] = useState(false)
   const [showTour, setShowTour] = useState(false)
+  const [sidebarOpen, setSidebarOpen] = useState(true)
 
   const activeProfile = profiles.find(p => p.id === activeId)
 
@@ -148,16 +149,18 @@ export function Dashboard({ profiles: initialProfiles, providers, registrationCo
       {/* Main content */}
       <div className="flex flex-1 min-h-0">
         {/* Sidebar */}
-        <div data-tour="sidebar">
-          <ProfileList
-            profiles={profiles}
-            activeId={activeId}
-            statuses={statuses}
-            playerDataMap={playerDataMap}
-            onSelect={setActiveId}
-            onNew={handleNewProfile}
-          />
-        </div>
+        {sidebarOpen && (
+          <div data-tour="sidebar" className="border-r border-border bg-card flex flex-col h-full">
+            <ProfileList
+              profiles={profiles}
+              activeId={activeId}
+              statuses={statuses}
+              playerDataMap={playerDataMap}
+              onSelect={setActiveId}
+              onNew={handleNewProfile}
+            />
+          </div>
+        )}
 
         {/* Content area */}
         <div className="flex-1 min-w-0">
@@ -175,6 +178,8 @@ export function Dashboard({ profiles: initialProfiles, providers, registrationCo
               }}
               autoEditName={autoEditName}
               onAutoEditNameDone={() => setAutoEditName(false)}
+              showProfileList={sidebarOpen}
+              onToggleProfileList={() => setSidebarOpen(v => !v)}
             />
           ) : (
             <div className="flex items-center justify-center h-full">
