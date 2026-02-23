@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { Settings, Sun, Moon, Github, AlertTriangle, CircleHelp } from 'lucide-react'
 import { useQueryState } from 'nuqs'
 import type { Profile, Provider } from '@/types'
@@ -45,23 +45,50 @@ export function Dashboard({ profiles: initialProfiles, providers, registrationCo
     }
   }, [profiles.length, !!activeProfile]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Poll statuses
+  // Fetch player data for a connected profile
+  const fetchPlayerData = useCallback(async (profileId: string) => {
+    try {
+      const resp = await fetch(`/api/profiles/${profileId}/command`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ command: 'get_status' }),
+      })
+      const result = await resp.json()
+      const data = result.structuredContent ?? result.result
+      if (data && typeof data === 'object') {
+        if ('player' in data || 'ship' in data || 'location' in data) {
+          setPlayerDataMap(prev => ({ ...prev, [profileId]: data }))
+        }
+      }
+    } catch { /* ignore */ }
+  }, [])
+
+  // Poll statuses + fetch player data for connected profiles on mount
+  const initialFetchDone = useRef(false)
   useEffect(() => {
     async function poll() {
+      const connected: string[] = []
       for (const p of profiles) {
         try {
           const resp = await fetch(`/api/profiles/${p.id}`)
           const data = await resp.json()
-          setStatuses(prev => ({ ...prev, [p.id]: { connected: !!data.connected, running: !!data.running } }))
+          const isConnected = !!data.connected
+          setStatuses(prev => ({ ...prev, [p.id]: { connected: isConnected, running: !!data.running } }))
+          if (isConnected) connected.push(p.id)
         } catch {
           // ignore
         }
+      }
+      // On first poll, fetch player data for all connected profiles
+      if (!initialFetchDone.current && connected.length > 0) {
+        initialFetchDone.current = true
+        for (const id of connected) fetchPlayerData(id)
       }
     }
     poll()
     const interval = setInterval(poll, 5000)
     return () => clearInterval(interval)
-  }, [profiles])
+  }, [profiles, fetchPlayerData])
 
   const refreshProfiles = useCallback(async () => {
     try {
