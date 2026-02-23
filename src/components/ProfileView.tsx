@@ -729,15 +729,27 @@ export function ProfileView({ profile, providers, status, playerData, onPlayerDa
                 Tell your AI agent what to do. This directive is sent every turn to guide autonomous behavior.
               </p>
               <textarea
-                autoFocus
+                ref={el => {
+                  if (el) {
+                    el.focus()
+                    el.style.height = 'auto'
+                    el.style.height = Math.min(el.scrollHeight, window.innerHeight * 0.7) + 'px'
+                  }
+                }}
                 value={directiveValue}
-                onChange={e => { setDirectiveValue(e.target.value); saveDirectiveDraft(e.target.value) }}
+                onChange={e => {
+                  setDirectiveValue(e.target.value)
+                  saveDirectiveDraft(e.target.value)
+                  const ta = e.target
+                  ta.style.height = 'auto'
+                  ta.style.height = Math.min(ta.scrollHeight, window.innerHeight * 0.7) + 'px'
+                }}
                 onKeyDown={e => {
                   if (e.key === 'Escape') { clearDirectiveDraft(); setDirectiveValue(profile.directive || ''); setShowDirectiveModal(false) }
+                  if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) { e.preventDefault(); saveDirective() }
                 }}
                 placeholder={"e.g. Mine ore and sell it until you can buy a better ship.\nExplore unknown systems and record what you find.\nBecome a pirate -- attack traders and loot their cargo."}
-                rows={5}
-                className="w-full bg-background border border-border px-3 py-2 text-xs text-foreground outline-none focus:border-primary/40 resize-y min-h-[80px] max-h-[300px] placeholder:text-muted-foreground/40"
+                className="w-full bg-background border border-border px-3 py-2 text-xs text-foreground outline-none focus:border-primary/40 resize-y min-h-[80px] max-h-[70vh] placeholder:text-muted-foreground/40 overflow-auto"
               />
               <div className="flex justify-end gap-2">
                 <Button variant="ghost" size="sm" onClick={() => { clearDirectiveDraft(); setDirectiveValue(profile.directive || ''); setShowDirectiveModal(false) }} className="h-7 text-[11px] px-3">
