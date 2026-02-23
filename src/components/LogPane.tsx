@@ -270,11 +270,10 @@ function LogRow({ entry, virtualRow, measureElement, onSelect }: {
     >
       <div className="border-b border-border/30 hover:bg-secondary/20">
         <div
-          className="flex items-start gap-2.5 px-3.5 py-2 cursor-pointer"
+          className="flex items-center gap-2.5 px-2.5 py-1.5 cursor-pointer"
           onClick={() => onSelect(entry)}
         >
-          <span className="w-[10px] shrink-0" />
-          <span className="text-muted-foreground shrink-0 w-[7.5rem]">
+          <span className="text-muted-foreground shrink-0 tabular-nums">
             {formatDateTime(entry.timestamp)}
           </span>
           <span className={`log-badge ${BADGE_CLASS[entry.type] || 'log-badge-system'} shrink-0`}>
@@ -441,9 +440,13 @@ function formatTime(timestamp: string): string {
 function formatDateTime(timestamp: string): string {
   try {
     const d = new Date(timestamp + (timestamp.includes('Z') || timestamp.includes('+') ? '' : 'Z'))
-    const date = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
-    const time = d.toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' })
-    return `${date} ${time}`
+    const y = d.getFullYear()
+    const mo = String(d.getMonth() + 1).padStart(2, '0')
+    const da = String(d.getDate()).padStart(2, '0')
+    const h = String(d.getHours()).padStart(2, '0')
+    const mi = String(d.getMinutes()).padStart(2, '0')
+    const s = String(d.getSeconds()).padStart(2, '0')
+    return `${y}-${mo}-${da} ${h}:${mi}:${s}`
   } catch {
     return timestamp.slice(0, 19)
   }
