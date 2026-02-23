@@ -10,7 +10,22 @@ const DB_PATH = path.join(DB_DIR, 'admiral.db')
 const globalForDb = globalThis as unknown as { __admiralDb?: Database.Database }
 
 export function getDb(): Database.Database {
-  if (globalForDb.__admiralDb) return globalForDb.__admiralDb
+  if (globalForDb.__admiralDb) {
+    // Verify the DB file still exists and connection is healthy
+    if (!fs.existsSync(DB_PATH)) {
+      try { globalForDb.__admiralDb.close() } catch { /* ignore */ }
+      globalForDb.__admiralDb = undefined
+    } else {
+      try {
+        // Quick health check - try a real query
+        globalForDb.__admiralDb.prepare('SELECT 1 FROM profiles LIMIT 1').get()
+        return globalForDb.__admiralDb
+      } catch {
+        try { globalForDb.__admiralDb.close() } catch { /* ignore */ }
+        globalForDb.__admiralDb = undefined
+      }
+    }
+  }
 
   fs.mkdirSync(DB_DIR, { recursive: true })
   const db = new Database(DB_PATH)

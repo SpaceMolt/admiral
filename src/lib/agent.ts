@@ -100,12 +100,18 @@ export class Agent {
 
     const { model, apiKey } = resolveModel(`${profile.provider}/${profile.model}`)
 
-    // Fetch game commands
-    const serverUrl = profile.server_url.replace(/\/$/, '')
-    const apiVersion = profile.connection_mode === 'http_v2' ? 'v2' : 'v1'
-    const commands = await fetchGameCommands(`${serverUrl}/api/${apiVersion}`)
-    const commandList = formatCommandList(commands)
-    this.log('system', `Loaded ${commands.length} game commands`)
+    // Fetch game commands - MCP v2 uses tool discovery, others use OpenAPI
+    let commandList: string
+    if (profile.connection_mode === 'mcp_v2' && this.connection instanceof McpV2Connection) {
+      commandList = this.connection.getCommandList()
+      this.log('system', `Discovered ${this.connection.toolCount} v2 commands`)
+    } else {
+      const serverUrl = profile.server_url.replace(/\/$/, '')
+      const apiVersion = profile.connection_mode === 'http_v2' ? 'v2' : 'v1'
+      const commands = await fetchGameCommands(`${serverUrl}/api/${apiVersion}`)
+      commandList = formatCommandList(commands)
+      this.log('system', `Loaded ${commands.length} game commands`)
+    }
 
     // Build initial context
     const systemPrompt = buildSystemPrompt(profile, commandList)
