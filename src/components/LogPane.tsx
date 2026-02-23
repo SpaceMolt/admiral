@@ -428,9 +428,18 @@ function looksLikeJson(text: string): boolean {
          (trimmed.startsWith('[') && trimmed.endsWith(']'))
 }
 
+/** Normalize a timestamp into a proper ISO 8601 string so Date parsing is
+ *  consistent across browsers. SQLite's datetime('now') returns UTC as
+ *  "YYYY-MM-DD HH:MM:SS" (space, no T, no Z) which some engines misparse. */
+function toISO(timestamp: string): string {
+  let s = timestamp.replace(' ', 'T')
+  if (!s.includes('Z') && !s.includes('+') && !s.includes('-', 10)) s += 'Z'
+  return s
+}
+
 function formatTime(timestamp: string): string {
   try {
-    const d = new Date(timestamp + (timestamp.includes('Z') || timestamp.includes('+') ? '' : 'Z'))
+    const d = new Date(toISO(timestamp))
     return d.toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' })
   } catch {
     return timestamp.slice(11, 19)
@@ -439,7 +448,7 @@ function formatTime(timestamp: string): string {
 
 function formatDateTime(timestamp: string): string {
   try {
-    const d = new Date(timestamp + (timestamp.includes('Z') || timestamp.includes('+') ? '' : 'Z'))
+    const d = new Date(toISO(timestamp))
     const y = d.getFullYear()
     const mo = String(d.getMonth() + 1).padStart(2, '0')
     const da = String(d.getDate()).padStart(2, '0')
