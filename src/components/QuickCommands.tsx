@@ -16,9 +16,9 @@ const QUICK_COMMANDS = [
   { label: 'System', command: 'get_system' },
   { label: 'Ship', command: 'get_ship' },
   { label: 'POI', command: 'get_poi' },
-  { label: 'Market', command: 'get_market' },
+  { label: 'Market', command: 'view_market' },
   { label: 'Skills', command: 'get_skills' },
-  { label: 'Nearby', command: 'get_nearby_ships' },
+  { label: 'Nearby', command: 'get_nearby' },
   { label: 'Log', command: 'captains_log_list' },
 ]
 

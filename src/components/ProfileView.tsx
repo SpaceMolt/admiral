@@ -224,8 +224,13 @@ export function ProfileView({ profile, providers, status, playerData, onPlayerDa
       .catch(() => {})
   }, [profile.id, onPlayerData])
 
-  // Auto-fetch status when connection becomes active + poll every 60s
+  // Reset connection tracking when connection mode changes (forces re-fetch)
   const prevConnected = useRef(false)
+  useEffect(() => {
+    prevConnected.current = false
+  }, [profile.connection_mode])
+
+  // Auto-fetch status when connection becomes active + poll every 60s
   useEffect(() => {
     if (status.connected && !prevConnected.current) {
       const timer = setTimeout(fetchStatus, 1500)

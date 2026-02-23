@@ -274,8 +274,8 @@ function LogRow({ entry, virtualRow, measureElement, onSelect }: {
           onClick={() => onSelect(entry)}
         >
           <span className="w-[10px] shrink-0" />
-          <span className="text-muted-foreground shrink-0 w-14">
-            {formatTime(entry.timestamp)}
+          <span className="text-muted-foreground shrink-0 w-[7.5rem]">
+            {formatDateTime(entry.timestamp)}
           </span>
           <span className={`log-badge ${BADGE_CLASS[entry.type] || 'log-badge-system'} shrink-0`}>
             {TYPE_LABELS[entry.type] || entry.type}
@@ -351,7 +351,7 @@ function LogDetailModal({ entry, onClose }: { entry: LogEntry; onClose: () => vo
               {TYPE_LABELS[entry.type] || entry.type}
             </span>
             <span className="text-[11px] text-muted-foreground">
-              {formatTime(entry.timestamp)}
+              {formatDateTime(entry.timestamp)}
             </span>
           </div>
           <div className="flex items-center gap-2">
@@ -374,11 +374,6 @@ function LogDetailModal({ entry, onClose }: { entry: LogEntry; onClose: () => vo
               <X className="w-3.5 h-3.5" />
             </button>
           </div>
-        </div>
-
-        {/* Summary line */}
-        <div className="px-3.5 py-2 border-b border-border/50 text-xs text-foreground/70">
-          {entry.summary}
         </div>
 
         {/* Content */}
@@ -440,5 +435,16 @@ function formatTime(timestamp: string): string {
     return d.toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' })
   } catch {
     return timestamp.slice(11, 19)
+  }
+}
+
+function formatDateTime(timestamp: string): string {
+  try {
+    const d = new Date(timestamp + (timestamp.includes('Z') || timestamp.includes('+') ? '' : 'Z'))
+    const date = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+    const time = d.toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' })
+    return `${date} ${time}`
+  } catch {
+    return timestamp.slice(0, 19)
   }
 }
