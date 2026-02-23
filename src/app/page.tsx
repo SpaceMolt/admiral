@@ -13,6 +13,7 @@ export default function Home() {
   const [registrationCode, setRegistrationCode] = useState('')
   const [gameserverUrl, setGameserverUrl] = useState('https://game.spacemolt.com')
   const [maxTurns, setMaxTurns] = useState(30)
+  const [llmTimeout, setLlmTimeout] = useState(300)
 
   useEffect(() => {
     loadData()
@@ -39,6 +40,10 @@ export default function Home() {
       if (prefs.max_turns) {
         const v = parseInt(prefs.max_turns, 10)
         if (!isNaN(v) && v > 0) setMaxTurns(v)
+      }
+      if (prefs.llm_timeout) {
+        const v = parseInt(prefs.llm_timeout, 10)
+        if (!isNaN(v) && v > 0) setLlmTimeout(v)
       }
 
       // Show settings if no profiles and no configured providers
@@ -91,6 +96,19 @@ export default function Home() {
     }
   }, [])
 
+  const handleSetLlmTimeout = useCallback(async (seconds: number) => {
+    setLlmTimeout(seconds)
+    try {
+      await fetch('/api/preferences', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ key: 'llm_timeout', value: String(seconds) }),
+      })
+    } catch {
+      // ignore
+    }
+  }, [])
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-screen">
@@ -118,6 +136,8 @@ export default function Home() {
           onGameserverUrlChange={handleSetGameserverUrl}
           maxTurns={maxTurns}
           onMaxTurnsChange={handleSetMaxTurns}
+          llmTimeout={llmTimeout}
+          onLlmTimeoutChange={handleSetLlmTimeout}
           onClose={() => {
             setShowSettings(false)
             loadData()

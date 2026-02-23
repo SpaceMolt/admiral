@@ -7,7 +7,7 @@ import { executeTool } from './tools'
 const DEFAULT_MAX_TOOL_ROUNDS = 30
 const MAX_RETRIES = 3
 const RETRY_BASE_DELAY = 5000
-const LLM_TIMEOUT_MS = 120_000
+const DEFAULT_LLM_TIMEOUT_MS = 300_000
 
 const CHARS_PER_TOKEN = 4
 const CONTEXT_BUDGET_RATIO = 0.55
@@ -18,6 +18,8 @@ export interface LoopOptions {
   signal?: AbortSignal
   apiKey?: string
   maxToolRounds?: number
+  llmTimeoutMs?: number
+  onActivity?: (activity: string) => void
 }
 
 export interface CompactionState {
@@ -42,6 +44,7 @@ export async function runAgentTurn(
 
     await compactContext(model, context, compaction, options)
 
+    options?.onActivity?.('Waiting for LLM response...')
     let response: AssistantMessage
     try {
       response = await completeWithRetry(model, context, log, options)
@@ -153,6 +156,7 @@ export async function runAgentTurn(
     for (const toolCall of toolCalls) {
       if (options?.signal?.aborted) return
 
+      options?.onActivity?.(`Executing tool: ${toolCall.name}`)
       const callReason = !showedReason ? reason : undefined
       showedReason = true
       const result = await executeTool(toolCall.name, toolCall.arguments, toolCtx, callReason)
@@ -354,10 +358,12 @@ async function completeWithRetry(
 ): Promise<AssistantMessage> {
   let lastError: Error | null = null
 
+  const timeoutMs = options?.llmTimeoutMs || DEFAULT_LLM_TIMEOUT_MS
+
   for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
     try {
       const timeoutController = new AbortController()
-      const timeout = setTimeout(() => timeoutController.abort(), LLM_TIMEOUT_MS)
+      const timeout = setTimeout(() => timeoutController.abort(), timeoutMs)
 
       const signal = options?.signal
         ? combineAbortSignals(options.signal, timeoutController.signal)
@@ -382,7 +388,7 @@ async function completeWithRetry(
       } catch (err) {
         clearTimeout(timeout)
         if (timeoutController.signal.aborted && !options?.signal?.aborted) {
-          throw new Error(`LLM call timed out after ${LLM_TIMEOUT_MS / 1000}s`)
+          throw new Error(`LLM call timed out after ${timeoutMs / 1000}s`)
         }
         throw err
       }

@@ -34,10 +34,12 @@ interface Props {
   onGameserverUrlChange: (url: string) => void
   maxTurns: number
   onMaxTurnsChange: (turns: number) => void
+  llmTimeout: number
+  onLlmTimeoutChange: (seconds: number) => void
   onClose: () => void
 }
 
-export function ProviderSetup({ providers: initialProviders, registrationCode, onRegistrationCodeChange, gameserverUrl, onGameserverUrlChange, maxTurns, onMaxTurnsChange, onClose }: Props) {
+export function ProviderSetup({ providers: initialProviders, registrationCode, onRegistrationCodeChange, gameserverUrl, onGameserverUrlChange, maxTurns, onMaxTurnsChange, llmTimeout, onLlmTimeoutChange, onClose }: Props) {
   const [providers, setProviders] = useState(initialProviders)
   const [keys, setKeys] = useState<Record<string, string>>(() => {
     const m: Record<string, string> = {}
@@ -211,6 +213,21 @@ export function ProviderSetup({ providers: initialProviders, registrationCode, o
                   className="w-20 h-7 text-xs"
                 />
                 <span className="text-[11px] text-muted-foreground">tool rounds per LLM turn</span>
+              </div>
+              <div className="flex items-center gap-3">
+                <span className="text-xs text-muted-foreground w-28 shrink-0">LLM timeout</span>
+                <Input
+                  type="number"
+                  value={llmTimeout}
+                  onChange={e => {
+                    const v = parseInt(e.target.value, 10)
+                    if (!isNaN(v) && v > 0) onLlmTimeoutChange(v)
+                  }}
+                  min={30}
+                  max={600}
+                  className="w-20 h-7 text-xs"
+                />
+                <span className="text-[11px] text-muted-foreground">seconds per LLM call</span>
               </div>
             </div>
           </div>

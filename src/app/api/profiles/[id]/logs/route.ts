@@ -38,9 +38,18 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
           closed = true
         }
       }
+      const activityHandler = (activity: string) => {
+        if (closed) return
+        try {
+          controller.enqueue(encoder.encode(`event: activity\ndata: ${JSON.stringify({ activity })}\n\n`))
+        } catch {
+          closed = true
+        }
+      }
 
       if (currentAgent) {
         currentAgent.events.on('log', handler)
+        currentAgent.events.on('activity', activityHandler)
       }
 
       // Poll for agent reconnections (new Agent instance for same profile)
@@ -51,12 +60,14 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
         }
         const latestAgent = agentManager.getAgent(id)
         if (latestAgent && latestAgent !== currentAgent) {
-          // Remove handler from old agent
+          // Remove handlers from old agent
           if (currentAgent) {
             currentAgent.events.removeListener('log', handler)
+            currentAgent.events.removeListener('activity', activityHandler)
           }
           currentAgent = latestAgent
           currentAgent.events.on('log', handler)
+          currentAgent.events.on('activity', activityHandler)
         }
       }, 2000)
 
@@ -79,7 +90,10 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
         closed = true
         clearInterval(interval)
         clearInterval(heartbeat)
-        if (currentAgent) currentAgent.events.removeListener('log', handler)
+        if (currentAgent) {
+          currentAgent.events.removeListener('log', handler)
+          currentAgent.events.removeListener('activity', activityHandler)
+        }
       })
     },
   })

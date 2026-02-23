@@ -114,22 +114,26 @@ export class McpV2Connection implements GameConnection {
   }
 
   async execute(command: string, args?: Record<string, unknown>): Promise<CommandResult> {
-    const toolName = this.actionToTool.get(command)
-    if (!toolName) {
-      return {
-        error: {
-          code: '-32602',
-          message: `Unknown v2 command: ${command}`,
-        },
-      }
-    }
+    let toolName = this.actionToTool.get(command)
+    let toolArgs: Record<string, unknown>
 
-    // For tools with actions, wrap the command as the action parameter
-    // For tools without actions (catalog), pass args directly
-    const hasAction = this.v2Tools.find(t => t.name === toolName)?.actions.length ?? 0
-    const toolArgs = hasAction > 0
-      ? { action: command, ...(args || {}) }
-      : { ...(args || {}) }
+    if (toolName) {
+      // Known command — route to correct tool
+      const hasAction = this.v2Tools.find(t => t.name === toolName)?.actions.length ?? 0
+      toolArgs = hasAction > 0
+        ? { action: command, ...(args || {}) }
+        : { ...(args || {}) }
+    } else if (this.v2Tools.some(t => t.name === command)) {
+      // Command matches a tool name directly (e.g. "spacemolt_catalog")
+      toolName = command
+      toolArgs = { ...(args || {}) }
+    } else {
+      // Unknown command — pass through to the main tool and let the server
+      // handle it, matching how other protocols (HTTP, WS, MCP v1) behave.
+      // The server will return a proper error with suggestions if invalid.
+      toolName = this.actionToTool.get('get_state') ? (this.actionToTool.get('get_state')!) : 'spacemolt'
+      toolArgs = { action: command, ...(args || {}) }
+    }
 
     const resp = await this.callTool(toolName, toolArgs)
 

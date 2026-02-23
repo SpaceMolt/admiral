@@ -15,10 +15,12 @@ export async function PUT(request: Request) {
   }
 
   let status = 'unknown'
-  if (id === 'custom' && base_url) {
-    // For custom provider, check if the endpoint is reachable
+  if ((id === 'custom' || id === 'ollama' || id === 'lmstudio') && base_url) {
+    // For local/custom providers, check if the endpoint is reachable
     try {
-      const modelsUrl = base_url.replace(/\/+$/, '') + '/models'
+      const modelsUrl = id === 'ollama'
+        ? base_url.replace(/\/v1\/?$/, '') + '/api/tags'
+        : base_url.replace(/\/+$/, '') + '/models'
       const headers: Record<string, string> = {}
       if (api_key) headers['Authorization'] = `Bearer ${api_key}`
       const resp = await fetch(modelsUrl, { headers, signal: AbortSignal.timeout(5000) })

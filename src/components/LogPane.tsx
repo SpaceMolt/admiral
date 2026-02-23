@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useRef, useEffect, useCallback, useMemo } from 'react'
-import { ArrowDown, ArrowUp, Check, Copy, Minus, X } from 'lucide-react'
+import { ArrowDown, ArrowUp, Check, Copy, Loader2, Minus, X } from 'lucide-react'
 import { useVirtualizer } from '@tanstack/react-virtual'
 import { useQueryState, parseAsInteger } from 'nuqs'
 import type { LogEntry, LogType } from '@/types'
@@ -52,6 +52,7 @@ export function LogPane({ profileId, connected }: Props) {
   const [enabledFilters, setEnabledFilters] = useState<Set<string>>(() => new Set(ALL_FILTER_KEYS))
   const [selectedLogId, setSelectedLogId] = useQueryState('log', parseAsInteger)
   const [autoScroll, setAutoScroll] = useState(true)
+  const [activity, setActivity] = useState('idle')
   const scrollRef = useRef<HTMLDivElement>(null)
   const eventSourceRef = useRef<EventSource | null>(null)
   const [sseKey, setSseKey] = useState(0)
@@ -82,11 +83,25 @@ export function LogPane({ profileId, connected }: Props) {
       }
     }
 
+    es.addEventListener('activity', (event) => {
+      try {
+        const data = JSON.parse(event.data)
+        setActivity(data.activity || 'idle')
+      } catch {
+        // ignore
+      }
+    })
+
     return () => {
       es.close()
       eventSourceRef.current = null
     }
   }, [profileId, sseKey])
+
+  // Reset activity when disconnected
+  useEffect(() => {
+    if (!connected) setActivity('idle')
+  }, [connected])
 
   // Build set of allowed types from enabled filter groups
   const allowedTypes = useMemo(() => {
@@ -223,6 +238,17 @@ export function LogPane({ profileId, connected }: Props) {
             ))}
           </div>
         )}
+        {/* Activity status — last line inside the scroll area */}
+        <div className="flex items-center gap-2 px-2.5 py-1.5">
+          {connected && activity !== 'idle' ? (
+            <>
+              <Loader2 size={10} className="animate-spin text-muted-foreground shrink-0" />
+              <span className="text-[10px] text-muted-foreground truncate">{activity}</span>
+            </>
+          ) : (
+            <span className="text-[10px] text-muted-foreground/50">idle</span>
+          )}
+        </div>
       </div>
 
       {/* Floating scroll-to-bottom button */}

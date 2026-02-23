@@ -42,10 +42,9 @@ async function fetchModelsForProvider(providerId: string): Promise<string[]> {
   }
 
   if (providerId === 'lmstudio') {
-    return fetchOpenAICompatModels(
-      dbProvider?.base_url || `${LOCAL_DEFAULTS.lmstudio}/v1/models`,
-      undefined
-    )
+    const base = dbProvider?.base_url?.replace(/\/+$/, '') || `${LOCAL_DEFAULTS.lmstudio}/v1`
+    const modelsUrl = base.endsWith('/models') ? base : base + '/models'
+    return fetchOpenAICompatModels(modelsUrl, undefined)
   }
 
   // Custom provider - try to fetch from configured base_url

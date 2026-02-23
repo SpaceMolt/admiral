@@ -53,11 +53,12 @@ class AgentManager {
     }
   }
 
-  getStatus(profileId: string): { connected: boolean; running: boolean } {
+  getStatus(profileId: string): { connected: boolean; running: boolean; activity: string } {
     const agent = this.agents.get(profileId)
     return {
       connected: agent?.isConnected ?? false,
       running: agent?.isRunning ?? false,
+      activity: agent?.activity ?? 'idle',
     }
   }
 

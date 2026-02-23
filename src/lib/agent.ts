@@ -38,6 +38,7 @@ export class Agent {
   private abortController: AbortController | null = null
   private restartRequested = false
   private pendingNudges: string[] = []
+  private _activity: string = 'idle'
   constructor(profileId: string) {
     this.profileId = profileId
   }
@@ -50,6 +51,15 @@ export class Agent {
     return this.running
   }
 
+  get activity(): string {
+    return this._activity
+  }
+
+  private setActivity(activity: string) {
+    this._activity = activity
+    this.events.emit('activity', activity)
+  }
+
   private log: LogFn = (type, summary, detail?) => {
     const id = addLogEntry(this.profileId, type, summary, detail)
     this.events.emit('log', { id, profile_id: this.profileId, type, summary, detail, timestamp: new Date().toISOString() })
@@ -59,14 +69,17 @@ export class Agent {
     const profile = getProfile(this.profileId)
     if (!profile) throw new Error('Profile not found')
 
+    this.setActivity('Connecting...')
     this.log('connection', `Connecting via ${profile.connection_mode}...`)
 
     this.connection = createConnection(profile)
 
     try {
       await this.connection.connect()
+      this.setActivity('idle')
       this.log('connection', `Connected via ${profile.connection_mode}`)
     } catch (err) {
+      this.setActivity('idle')
       this.log('error', `Connection failed: ${err instanceof Error ? err.message : String(err)}`)
       throw err
     }
@@ -156,11 +169,17 @@ export class Agent {
       try {
         const maxTurnsStr = getPreference('max_turns')
         const maxToolRounds = maxTurnsStr ? parseInt(maxTurnsStr, 10) || undefined : undefined
+        const llmTimeoutStr = getPreference('llm_timeout')
+        const llmTimeoutMs = llmTimeoutStr ? parseInt(llmTimeoutStr, 10) * 1000 || undefined : undefined
 
+        this.setActivity('Waiting for LLM response...')
         await runAgentTurn(
           model, context, this.connection, this.profileId,
           this.log, todo,
-          { signal: this.abortController.signal, apiKey, maxToolRounds },
+          {
+            signal: this.abortController.signal, apiKey, maxToolRounds, llmTimeoutMs,
+            onActivity: (a) => this.setActivity(a),
+          },
           compaction,
         )
       } catch (err) {
@@ -171,10 +190,12 @@ export class Agent {
 
       if (!this.running) break
       if (this.restartRequested) continue
+      this.setActivity('Sleeping between turns...')
       await abortableSleep(TURN_INTERVAL, this.abortController.signal)
       if (!this.running) break
       if (this.restartRequested) continue
 
+      this.setActivity('Polling for events...')
       // Poll for events between turns
       let pendingEvents = ''
       try {
@@ -219,6 +240,7 @@ export class Agent {
     }
 
     this.running = false
+    this.setActivity('idle')
     this.log('system', 'Agent loop stopped')
   }
 
