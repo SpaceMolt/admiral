@@ -171,6 +171,8 @@ export class Agent {
         const maxToolRounds = maxTurnsStr ? parseInt(maxTurnsStr, 10) || undefined : undefined
         const llmTimeoutStr = getPreference('llm_timeout')
         const llmTimeoutMs = llmTimeoutStr ? parseInt(llmTimeoutStr, 10) * 1000 || undefined : undefined
+        const freshForBudget = getProfile(this.profileId)
+        const contextBudgetRatio = freshForBudget?.context_budget ?? undefined
 
         this.setActivity('Waiting for LLM response...')
         await runAgentTurn(
@@ -178,6 +180,7 @@ export class Agent {
           this.log, todo,
           {
             signal: this.abortController.signal, apiKey, maxToolRounds, llmTimeoutMs,
+            contextBudgetRatio,
             onActivity: (a) => this.setActivity(a),
           },
           compaction,

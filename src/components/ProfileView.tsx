@@ -123,6 +123,7 @@ export function ProfileView({ profile, providers, status, playerData, onPlayerDa
   const [editName, setEditName] = useState('')
   const [editProvider, setEditProvider] = useState('')
   const [editModel, setEditModel] = useState('')
+  const [editContextBudget, setEditContextBudget] = useState<number | null>(null)
   const [editUsername, setEditUsername] = useState('')
   const [editPassword, setEditPassword] = useState('')
   const editNameRef = useRef<HTMLInputElement>(null)
@@ -347,12 +348,9 @@ export function ProfileView({ profile, providers, status, playerData, onPlayerDa
   async function handleSaveProvider() {
     const newProvider = editProvider || null
     const newModel = editProvider === 'manual' ? null : (editModel || null)
-    if (newProvider === (profile.provider || null) && newModel === (profile.model || null)) {
-      setEditing(null)
-      return
-    }
+    const providerChanged = newProvider !== (profile.provider || null) || newModel !== (profile.model || null)
     setEditing(null)
-    await saveProfileField({ provider: newProvider, model: newModel }, true)
+    await saveProfileField({ provider: newProvider, model: newModel, context_budget: editContextBudget }, providerChanged)
   }
 
   async function handleSaveCredentials() {
@@ -517,7 +515,7 @@ export function ProfileView({ profile, providers, status, playerData, onPlayerDa
   return (
     <div className="flex flex-col h-full">
       {/* Header bar */}
-      <div data-tour="navbar" className="flex items-center gap-3 h-12 px-3.5 bg-card border-b border-border">
+      <div data-tour="navbar" className="flex items-center gap-3 h-12 px-3.5 bg-card border-b border-border select-none">
         {onToggleProfileList && (
           <button
             onClick={onToggleProfileList}
@@ -670,13 +668,15 @@ export function ProfileView({ profile, providers, status, playerData, onPlayerDa
           <div className="relative" data-tour="provider-model">
             <span
               className="text-[10px] text-[hsl(var(--smui-purple))] cursor-pointer hover:text-foreground transition-colors"
-              onClick={() => { setEditing('provider'); setEditProvider(profile.provider || ''); setEditModel(profile.model || '') }}
+              onClick={() => { setEditing('provider'); setEditProvider(profile.provider || ''); setEditModel(profile.model || ''); setEditContextBudget(profile.context_budget ?? null) }}
             >
               {profile.provider}/{profile.model}
+              <span className="text-muted-foreground/60 ml-1.5">
+                budget:{profile.context_budget != null && !isNaN(profile.context_budget) ? `${Math.round(profile.context_budget * 100)}%` : '55%'}
+              </span>
             </span>
             {editing === 'provider' && (
               <div ref={popoverRef} className="absolute z-50 top-full left-0 mt-1.5 bg-card border border-border shadow-lg p-2.5 min-w-[300px]">
-                <span className="text-[10px] text-muted-foreground uppercase tracking-[1.5px] block mb-1.5">Provider / Model</span>
                 <div className="space-y-2">
                   <div>
                     <span className="text-[10px] text-muted-foreground uppercase tracking-[1.5px] block mb-1">Provider</span>
@@ -689,6 +689,32 @@ export function ProfileView({ profile, providers, status, playerData, onPlayerDa
                     <div>
                       <span className="text-[10px] text-muted-foreground uppercase tracking-[1.5px] block mb-1">Model</span>
                       <ModelPicker provider={editProvider} value={editModel} onChange={setEditModel} />
+                    </div>
+                  )}
+                  {editProvider && editProvider !== 'manual' && (
+                    <div>
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="text-[10px] text-muted-foreground uppercase tracking-[1.5px]">Context Budget</span>
+                        <span className="text-[10px] text-muted-foreground tabular-nums">
+                          {editContextBudget !== null ? `${Math.round(editContextBudget * 100)}%` : '55% (default)'}
+                        </span>
+                      </div>
+                      <input
+                        type="range"
+                        min={5}
+                        max={90}
+                        step={5}
+                        value={editContextBudget !== null ? Math.round(editContextBudget * 100) : 55}
+                        onChange={e => {
+                          const v = parseInt(e.target.value, 10)
+                          setEditContextBudget(v === 55 ? null : v / 100)
+                        }}
+                        className="w-full h-1.5 accent-[hsl(var(--smui-purple))] cursor-pointer"
+                      />
+                      <div className="flex justify-between text-[9px] text-muted-foreground/50 mt-0.5">
+                        <span>5% (small/local)</span>
+                        <span>90% (large context)</span>
+                      </div>
                     </div>
                   )}
                   <div className="flex justify-end gap-1.5 pt-1 border-t border-border/50">
@@ -710,13 +736,12 @@ export function ProfileView({ profile, providers, status, playerData, onPlayerDa
           <div className="relative" data-tour="provider-model">
             <span
               className="text-[10px] text-muted-foreground/50 italic cursor-pointer hover:text-foreground transition-colors"
-              onClick={() => { setEditing('provider'); setEditProvider(profile.provider || ''); setEditModel(profile.model || '') }}
+              onClick={() => { setEditing('provider'); setEditProvider(profile.provider || ''); setEditModel(profile.model || ''); setEditContextBudget(profile.context_budget ?? null) }}
             >
               {isManual && profile.provider ? 'manual' : 'no provider'}
             </span>
             {editing === 'provider' && (
               <div ref={popoverRef} className="absolute z-50 top-full left-0 mt-1.5 bg-card border border-border shadow-lg p-2.5 min-w-[300px]">
-                <span className="text-[10px] text-muted-foreground uppercase tracking-[1.5px] block mb-1.5">Provider / Model</span>
                 <div className="space-y-2">
                   <div>
                     <span className="text-[10px] text-muted-foreground uppercase tracking-[1.5px] block mb-1">Provider</span>
@@ -729,6 +754,32 @@ export function ProfileView({ profile, providers, status, playerData, onPlayerDa
                     <div>
                       <span className="text-[10px] text-muted-foreground uppercase tracking-[1.5px] block mb-1">Model</span>
                       <ModelPicker provider={editProvider} value={editModel} onChange={setEditModel} />
+                    </div>
+                  )}
+                  {editProvider && editProvider !== 'manual' && (
+                    <div>
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="text-[10px] text-muted-foreground uppercase tracking-[1.5px]">Context Budget</span>
+                        <span className="text-[10px] text-muted-foreground tabular-nums">
+                          {editContextBudget !== null ? `${Math.round(editContextBudget * 100)}%` : '55% (default)'}
+                        </span>
+                      </div>
+                      <input
+                        type="range"
+                        min={5}
+                        max={90}
+                        step={5}
+                        value={editContextBudget !== null ? Math.round(editContextBudget * 100) : 55}
+                        onChange={e => {
+                          const v = parseInt(e.target.value, 10)
+                          setEditContextBudget(v === 55 ? null : v / 100)
+                        }}
+                        className="w-full h-1.5 accent-[hsl(var(--smui-purple))] cursor-pointer"
+                      />
+                      <div className="flex justify-between text-[9px] text-muted-foreground/50 mt-0.5">
+                        <span>5% (small/local)</span>
+                        <span>90% (large context)</span>
+                      </div>
                     </div>
                   )}
                   <div className="flex justify-end gap-1.5 pt-1 border-t border-border/50">

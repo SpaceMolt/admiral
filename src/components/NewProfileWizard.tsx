@@ -33,6 +33,7 @@ export function NewProfileWizard({ providers, registrationCode, gameserverUrl, o
   // Provider fields
   const [provider, setProvider] = useState('')
   const [model, setModel] = useState('')
+  const [contextBudget, setContextBudget] = useState<number | null>(null)
 
   const validProviders = providers.filter(p => p.status === 'valid' || p.api_key)
   const hasValidProvider = validProviders.length > 0
@@ -70,6 +71,7 @@ export function NewProfileWizard({ providers, registrationCode, gameserverUrl, o
       connection_mode: 'http',
       provider: provider === 'manual' ? null : (provider || null),
       model: provider && provider !== 'manual' ? (model || null) : null,
+      context_budget: provider && provider !== 'manual' ? (contextBudget ?? null) : null,
       server_url: gameserverUrl,
       username: accountMode === 'existing' ? (username || null) : null,
       password: accountMode === 'existing' ? (password || null) : null,
@@ -267,6 +269,36 @@ export function NewProfileWizard({ providers, registrationCode, gameserverUrl, o
                   <div>
                     <span className="text-[10px] text-muted-foreground uppercase tracking-[1.5px] block mb-1">Model</span>
                     <ModelPicker provider={provider} value={model} onChange={setModel} />
+                  </div>
+                )}
+
+                {provider && provider !== 'manual' && (
+                  <div>
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="text-[10px] text-muted-foreground uppercase tracking-[1.5px]">Context Budget</span>
+                      <span className="text-[10px] text-muted-foreground tabular-nums">
+                        {contextBudget !== null ? `${Math.round(contextBudget * 100)}%` : '55% (default)'}
+                      </span>
+                    </div>
+                    <input
+                      type="range"
+                      min={5}
+                      max={90}
+                      step={5}
+                      value={contextBudget !== null ? Math.round(contextBudget * 100) : 55}
+                      onChange={e => {
+                        const v = parseInt(e.target.value, 10)
+                        setContextBudget(v === 55 ? null : v / 100)
+                      }}
+                      className="w-full h-1.5 accent-[hsl(var(--smui-purple))] cursor-pointer"
+                    />
+                    <div className="flex justify-between text-[9px] text-muted-foreground/50 mt-0.5">
+                      <span>5% (small/local)</span>
+                      <span>90% (large context)</span>
+                    </div>
+                    <p className="text-[10px] text-muted-foreground/60 mt-1">
+                      Controls when context is compacted. Lower values keep less history but run faster on small models.
+                    </p>
                   </div>
                 )}
               </div>

@@ -8,7 +8,7 @@ export async function GET() {
 
 export async function POST(request: Request) {
   const body = await request.json()
-  const { name, username, password, empire, provider, model, directive, connection_mode, server_url } = body
+  const { name, username, password, empire, provider, model, directive, connection_mode, server_url, context_budget } = body
 
   if (!name) {
     return NextResponse.json({ error: 'Name is required' }, { status: 400 })
@@ -26,6 +26,7 @@ export async function POST(request: Request) {
       model: model || null,
       directive: directive || '',
       todo: '',
+      context_budget: context_budget ?? null,
       connection_mode: connection_mode || 'http',
       server_url: server_url || 'https://game.spacemolt.com',
       autoconnect: true,

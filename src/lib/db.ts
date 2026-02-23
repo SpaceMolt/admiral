@@ -82,6 +82,9 @@ function migrate(db: Database.Database): void {
   if (!profileCols.some(c => c.name === 'todo')) {
     db.exec("ALTER TABLE profiles ADD COLUMN todo TEXT DEFAULT ''")
   }
+  if (!profileCols.some(c => c.name === 'context_budget')) {
+    db.exec('ALTER TABLE profiles ADD COLUMN context_budget REAL DEFAULT NULL')
+  }
 
   // Preferences table
   db.exec(`
@@ -147,13 +150,13 @@ export function getProfile(id: string): Profile | undefined {
 
 export function createProfile(profile: Omit<Profile, 'created_at' | 'updated_at'>): Profile {
   getDb().prepare(
-    `INSERT INTO profiles (id, name, username, password, empire, player_id, provider, model, directive, todo, connection_mode, server_url, autoconnect, enabled)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+    `INSERT INTO profiles (id, name, username, password, empire, player_id, provider, model, directive, todo, connection_mode, server_url, autoconnect, enabled, context_budget)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
   ).run(
     profile.id, profile.name, profile.username, profile.password,
     profile.empire, profile.player_id, profile.provider, profile.model,
     profile.directive, profile.todo || '', profile.connection_mode, profile.server_url,
-    profile.autoconnect ? 1 : 0, profile.enabled ? 1 : 0,
+    profile.autoconnect ? 1 : 0, profile.enabled ? 1 : 0, profile.context_budget ?? null,
   )
   return getProfile(profile.id)!
 }
@@ -162,7 +165,7 @@ export function updateProfile(id: string, updates: Partial<Profile>): Profile | 
   const allowed = [
     'name', 'username', 'password', 'empire', 'player_id',
     'provider', 'model', 'directive', 'connection_mode', 'server_url',
-    'autoconnect', 'enabled', 'todo',
+    'autoconnect', 'enabled', 'todo', 'context_budget',
   ]
   const sets: string[] = []
   const vals: unknown[] = []

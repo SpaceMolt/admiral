@@ -19,6 +19,7 @@ export interface LoopOptions {
   apiKey?: string
   maxToolRounds?: number
   llmTimeoutMs?: number
+  contextBudgetRatio?: number
   onActivity?: (activity: string) => void
 }
 
@@ -254,7 +255,8 @@ async function compactContext(
   compaction?: CompactionState,
   options?: LoopOptions,
 ): Promise<void> {
-  const budget = Math.floor(model.contextWindow * CONTEXT_BUDGET_RATIO)
+  const ratio = options?.contextBudgetRatio ?? CONTEXT_BUDGET_RATIO
+  const budget = Math.floor(model.contextWindow * ratio)
   const currentTokens = totalMessageTokens(context.messages)
 
   if (currentTokens < budget) return

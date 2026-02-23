@@ -13,7 +13,7 @@ const TOUR_STEPS: DriveStep[] = [
     element: '[data-tour="navbar"]',
     popover: {
       title: 'INLINE EDITING',
-      description: 'Everything in this bar is clickable. Edit the profile name, player credentials (@username), connection mode (HTTP/WS/MCP), and the LLM provider/model -- all inline. The panel icon on the left toggles the profile list.',
+      description: 'Everything in this bar is clickable. Edit the profile name, player credentials (@username), connection mode (HTTP/WS/MCP), and the LLM provider/model/context budget -- all inline. The panel icon on the left toggles the profile list.',
       side: 'bottom',
       align: 'start',
     },
