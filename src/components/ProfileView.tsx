@@ -161,13 +161,31 @@ export function ProfileView({ profile, providers, status, playerData, onPlayerDa
     }
   }, [editing])
 
-  // Sync directive when profile changes
+  // Sync directive when profile changes (but not if user has an unsaved draft)
   useEffect(() => {
+    const draftKey = `admiral-directive-draft-${profile.id}`
+    try {
+      const draft = localStorage.getItem(draftKey)
+      if (draft !== null) {
+        setDirectiveValue(draft)
+        setShowDirectiveModal(true)
+        return
+      }
+    } catch { /* ignore */ }
     setDirectiveValue(profile.directive || '')
-  }, [profile.directive])
+  }, [profile.id, profile.directive])
+
+  function clearDirectiveDraft() {
+    try { localStorage.removeItem(`admiral-directive-draft-${profile.id}`) } catch { /* ignore */ }
+  }
+
+  function saveDirectiveDraft(value: string) {
+    try { localStorage.setItem(`admiral-directive-draft-${profile.id}`, value) } catch { /* ignore */ }
+  }
 
   async function saveDirective() {
     setShowDirectiveModal(false)
+    clearDirectiveDraft()
     const trimmed = directiveValue.trim()
     if (trimmed === (profile.directive || '')) return
     try {
@@ -646,7 +664,15 @@ export function ProfileView({ profile, providers, status, playerData, onPlayerDa
       <div
         data-tour="directive"
         className="flex items-center gap-2 px-3.5 py-1.5 bg-card/50 border-b border-border/30 cursor-pointer group"
-        onClick={() => { setDirectiveValue(profile.directive || ''); setShowDirectiveModal(true) }}
+        onClick={() => {
+          let initial = profile.directive || ''
+          try {
+            const draft = localStorage.getItem(`admiral-directive-draft-${profile.id}`)
+            if (draft !== null) initial = draft
+          } catch { /* ignore */ }
+          setDirectiveValue(initial)
+          setShowDirectiveModal(true)
+        }}
       >
         <span className="text-[10px] text-muted-foreground uppercase tracking-[1.5px] shrink-0">Directive</span>
         <span className={`text-xs truncate flex-1 min-w-0 ${profile.directive ? 'text-foreground/80' : 'text-muted-foreground/50 italic'}`}>
@@ -690,11 +716,11 @@ export function ProfileView({ profile, providers, status, playerData, onPlayerDa
 
       {/* Directive modal */}
       {showDirectiveModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80" onClick={() => { setDirectiveValue(profile.directive || ''); setShowDirectiveModal(false) }}>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80" onClick={() => { clearDirectiveDraft(); setDirectiveValue(profile.directive || ''); setShowDirectiveModal(false) }}>
           <div className="bg-card border border-border shadow-lg w-full max-w-lg mx-4" onClick={e => e.stopPropagation()}>
             <div className="flex items-center justify-between px-4 py-3 border-b border-border">
               <span className="font-orbitron text-xs font-semibold tracking-[1.5px] text-primary uppercase">Agent Directive</span>
-              <button onClick={() => { setDirectiveValue(profile.directive || ''); setShowDirectiveModal(false) }} className="text-muted-foreground hover:text-foreground transition-colors">
+              <button onClick={() => { clearDirectiveDraft(); setDirectiveValue(profile.directive || ''); setShowDirectiveModal(false) }} className="text-muted-foreground hover:text-foreground transition-colors">
                 <X size={14} />
               </button>
             </div>
@@ -705,16 +731,16 @@ export function ProfileView({ profile, providers, status, playerData, onPlayerDa
               <textarea
                 autoFocus
                 value={directiveValue}
-                onChange={e => setDirectiveValue(e.target.value)}
+                onChange={e => { setDirectiveValue(e.target.value); saveDirectiveDraft(e.target.value) }}
                 onKeyDown={e => {
-                  if (e.key === 'Escape') { setDirectiveValue(profile.directive || ''); setShowDirectiveModal(false) }
+                  if (e.key === 'Escape') { clearDirectiveDraft(); setDirectiveValue(profile.directive || ''); setShowDirectiveModal(false) }
                 }}
                 placeholder={"e.g. Mine ore and sell it until you can buy a better ship.\nExplore unknown systems and record what you find.\nBecome a pirate -- attack traders and loot their cargo."}
                 rows={5}
                 className="w-full bg-background border border-border px-3 py-2 text-xs text-foreground outline-none focus:border-primary/40 resize-y min-h-[80px] max-h-[300px] placeholder:text-muted-foreground/40"
               />
               <div className="flex justify-end gap-2">
-                <Button variant="ghost" size="sm" onClick={() => { setDirectiveValue(profile.directive || ''); setShowDirectiveModal(false) }} className="h-7 text-[11px] px-3">
+                <Button variant="ghost" size="sm" onClick={() => { clearDirectiveDraft(); setDirectiveValue(profile.directive || ''); setShowDirectiveModal(false) }} className="h-7 text-[11px] px-3">
                   Cancel
                 </Button>
                 <Button size="sm" onClick={saveDirective} className="h-7 text-[11px] px-3 bg-primary text-primary-foreground hover:bg-primary/90">

@@ -5,6 +5,7 @@
 @layer base {
   /* ─── Light Mode (Nord Snow Storm) ─── */
   :root {
+    color-scheme: light;
     --background: 218 27% 94%;
     --foreground: 220 16% 22%;
     --card: 218 27% 89%;
@@ -61,6 +62,7 @@
 
   /* ─── Dark Mode (Nord Polar Night) ─── */
   .dark {
+    color-scheme: dark;
     --background: 213 16% 12%;
     --foreground: 213 27% 88%;
     --card: 217 16% 15.5%;
