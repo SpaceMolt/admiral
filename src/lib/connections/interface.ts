@@ -16,6 +16,7 @@ export interface RegisterResult {
 
 export interface CommandResult {
   result?: unknown
+  structuredContent?: unknown
   notifications?: unknown[]
   error?: { code: string; message: string; wait_seconds?: number }
 }

@@ -13,6 +13,61 @@ import { QuickCommands } from './QuickCommands'
 import { LogPane } from './LogPane'
 import { SidePane } from './SidePane'
 
+/**
+ * Parse the rendered text from MCP v2 get_status into structured player data.
+ * Format: "username [empire] | Ncr | System\nShip: Name (id) | Hull: cur/max | Shield: cur/max ..."
+ */
+function parseStatusText(text: string): Record<string, unknown> | null {
+  if (!text || typeof text !== 'string') return null
+  const lines = text.split('\n')
+  if (lines.length < 3) return null
+
+  // Line 1: "username [empire] | 3,078cr | SystemName"
+  const line1 = lines[0].match(/^(.+?)\s+\[(.+?)\]\s+\|\s+([\d,]+)cr\s+\|\s+(.+)$/)
+  if (!line1) return null
+
+  const credits = parseInt(line1[3].replace(/,/g, ''), 10)
+  const systemName = line1[4].trim()
+
+  // Line 2: "Ship: Name (id) | Hull: cur/max | Shield: cur/max (+N/tick) | Armor: N | Speed: N"
+  const hull = lines[1].match(/Hull:\s*(\d+)\/(\d+)/)
+  const shield = lines[1].match(/Shield:\s*(\d+)\/(\d+)/)
+
+  // Line 3: "Fuel: cur/max | Cargo: cur/max | CPU: cur/max | Power: cur/max"
+  const fuel = lines[2].match(/Fuel:\s*(\d+)\/(\d+)/)
+  const cargo = lines[2].match(/Cargo:\s*(\d+)\/(\d+)/)
+  const cpu = lines[2].match(/CPU:\s*(\d+)\/(\d+)/)
+  const power = lines[2].match(/Power:\s*(\d+)\/(\d+)/)
+
+  // Line 4: "Docked at: poi_name" or "At: poi_name"
+  let poiName = ''
+  for (const line of lines.slice(3)) {
+    const docked = line.match(/^Docked at:\s*(.+)/)
+    const at = line.match(/^At:\s*(.+)/)
+    if (docked) { poiName = docked[1].trim(); break }
+    if (at) { poiName = at[1].trim(); break }
+  }
+
+  return {
+    player: { credits, current_system: systemName, current_poi: poiName },
+    ship: {
+      hull: hull ? parseInt(hull[1]) : 0,
+      max_hull: hull ? parseInt(hull[2]) : 0,
+      shield: shield ? parseInt(shield[1]) : 0,
+      max_shield: shield ? parseInt(shield[2]) : 0,
+      fuel: fuel ? parseInt(fuel[1]) : 0,
+      max_fuel: fuel ? parseInt(fuel[2]) : 0,
+      cargo_used: cargo ? parseInt(cargo[1]) : 0,
+      cargo_capacity: cargo ? parseInt(cargo[2]) : 0,
+      cpu_used: cpu ? parseInt(cpu[1]) : 0,
+      cpu_capacity: cpu ? parseInt(cpu[2]) : 0,
+      power_used: power ? parseInt(power[1]) : 0,
+      power_capacity: power ? parseInt(power[2]) : 0,
+    },
+    location: { system_name: systemName, poi_name: poiName },
+  }
+}
+
 const CONNECTION_MODE_LABELS: Record<string, string> = {
   http: 'HTTP v1',
   http_v2: 'HTTP v2',
@@ -208,9 +263,15 @@ export function ProfileView({ profile, providers, status, playerData, onPlayerDa
     })
       .then(r => r.json())
       .then(result => {
-        // v2 returns structuredContent (JSON) alongside result (text) — prefer structured
+        // Prefer structuredContent (JSON) over result (may be text-only for MCP v2)
         const data = result.structuredContent ?? result.result
-        if (data && typeof data === 'object') onPlayerData(data as Record<string, unknown>)
+        if (data && typeof data === 'object' && ('player' in data || 'ship' in data || 'location' in data)) {
+          onPlayerData(data as Record<string, unknown>)
+        } else if (data && typeof data === 'object' && 'text' in data) {
+          // MCP v2 returns rendered text for queries — parse it
+          const parsed = parseStatusText(data.text as string)
+          if (parsed) onPlayerData(parsed)
+        }
       })
       .catch(() => {})
   }, [profile.id, onPlayerData])
@@ -316,7 +377,12 @@ export function ProfileView({ profile, providers, status, playerData, onPlayerDa
 
       if (command === 'get_status') {
         const data = result.structuredContent ?? result.result
-        if (data && typeof data === 'object') onPlayerData(data as Record<string, unknown>)
+        if (data && typeof data === 'object' && ('player' in data || 'ship' in data || 'location' in data)) {
+          onPlayerData(data as Record<string, unknown>)
+        } else if (data && typeof data === 'object' && 'text' in data) {
+          const parsed = parseStatusText(data.text as string)
+          if (parsed) onPlayerData(parsed)
+        }
       }
     } catch {
       // Error logged by agent

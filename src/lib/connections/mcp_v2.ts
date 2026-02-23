@@ -88,7 +88,7 @@ export class McpV2Connection implements GameConnection {
     if (resp.error) {
       return { success: false, error: resp.error.message }
     }
-    const result = this.parseToolResult(resp.result)
+    const { parsed: result } = this.parseToolResult(resp.result)
     return {
       success: true,
       player_id: result?.player_id as string | undefined,
@@ -103,7 +103,7 @@ export class McpV2Connection implements GameConnection {
     if (resp.error) {
       return { success: false, error: resp.error.message }
     }
-    const result = this.parseToolResult(resp.result)
+    const { parsed: result } = this.parseToolResult(resp.result)
     return {
       success: true,
       username: result?.username as string,
@@ -137,28 +137,28 @@ export class McpV2Connection implements GameConnection {
       return { error: { code: resp.error.code?.toString() || 'mcp_error', message: resp.error.message || 'Unknown error' } }
     }
 
-    const result = this.parseToolResult(resp.result)
+    const { parsed: result, structured: structuredContent } = this.parseToolResult(resp.result)
 
     // Poll notifications
     const notifTool = this.actionToTool.get('get_notifications')
     if (notifTool) {
       try {
         const notifResp = await this.callTool(notifTool, { action: 'get_notifications' })
-        const notifResult = this.parseToolResult(notifResp.result)
+        const { parsed: notifResult } = this.parseToolResult(notifResp.result)
         if (notifResult?.notifications && Array.isArray(notifResult.notifications)) {
           for (const n of notifResult.notifications) {
             for (const handler of this.notificationHandlers) {
               handler(n)
             }
           }
-          return { result, notifications: notifResult.notifications }
+          return { result, structuredContent, notifications: notifResult.notifications }
         }
       } catch {
         // Notification polling is best-effort
       }
     }
 
-    return { result }
+    return { result, structuredContent }
   }
 
   /**
@@ -264,26 +264,27 @@ export class McpV2Connection implements GameConnection {
     await fetch(this.baseUrl, { method: 'POST', headers, body })
   }
 
-  private parseToolResult(result: unknown): Record<string, unknown> | null {
-    if (!result) return null
+  private parseToolResult(result: unknown): { parsed: Record<string, unknown> | null; structured: unknown } {
+    if (!result) return { parsed: null, structured: null }
     const r = result as Record<string, unknown>
-    // MCP v2 returns structuredContent with the actual JSON data
+    // MCP v2 returns structuredContent with the actual JSON data (mutations only)
     if (r.structuredContent && typeof r.structuredContent === 'object') {
-      return r.structuredContent as Record<string, unknown>
+      return { parsed: r.structuredContent as Record<string, unknown>, structured: r.structuredContent }
     }
     if (r.content && Array.isArray(r.content)) {
       for (const block of r.content) {
         const b = block as Record<string, unknown>
         if (b.type === 'text' && typeof b.text === 'string') {
           try {
-            return JSON.parse(b.text)
+            const json = JSON.parse(b.text)
+            return { parsed: json, structured: json }
           } catch {
-            return { text: b.text }
+            return { parsed: { text: b.text }, structured: null }
           }
         }
       }
     }
-    return r
+    return { parsed: r, structured: r }
   }
 }
 
