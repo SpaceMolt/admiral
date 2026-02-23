@@ -138,9 +138,8 @@ export function ProfileView({ profile, providers, status, playerData, onPlayerDa
 
   // Save profile field and optionally reconnect
   async function saveProfileField(data: Partial<Profile>, reconnect?: boolean) {
-    const wasConnected = status.connected
     try {
-      if (reconnect && wasConnected) {
+      if (reconnect && status.connected) {
         await fetch(`/api/profiles/${profile.id}/connect`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -154,8 +153,7 @@ export function ProfileView({ profile, providers, status, playerData, onPlayerDa
         body: JSON.stringify(data),
       })
 
-      if (reconnect && wasConnected) {
-        // Determine connect action based on the new provider value
+      if (reconnect) {
         const newProvider = data.provider !== undefined ? data.provider : profile.provider
         const newIsManual = !newProvider || newProvider === 'manual'
         const action = newIsManual ? 'connect' : 'connect_llm'

@@ -82,29 +82,27 @@ export async function runAgentTurn(
         context: {
           messageCount: context.messages.length,
           estimatedTokens: totalMessageTokens(context.messages),
-          systemPrompt: context.systemPrompt
-            ? context.systemPrompt.length > 200
-              ? context.systemPrompt.slice(0, 200) + '...'
-              : context.systemPrompt
-            : null,
-          recentMessages: context.messages.slice(-6).map(msg => {
+          systemPromptTokens: context.systemPrompt ? estimateTokens(context.systemPrompt) : 0,
+          messages: context.messages.map(msg => {
             if (msg.role === 'user') {
               const text = typeof msg.content === 'string' ? msg.content : '(complex)'
-              return { role: 'user', text: text.length > 150 ? text.slice(0, 150) + '...' : text }
+              return { role: 'user', text }
             }
             if (msg.role === 'assistant') {
               const parts: string[] = []
               for (const b of msg.content) {
-                if ('text' in b && (b as any).text?.trim()) parts.push(`text: ${(b as any).text.trim().slice(0, 80)}`)
-                else if ('name' in b) parts.push(`tool: ${(b as any).name}(...)`)
-                else if ('thinking' in b) parts.push(`thinking: ${(b as any).thinking?.trim().slice(0, 80)}...`)
+                if ('text' in b && (b as any).text?.trim()) parts.push((b as any).text.trim())
+                else if ('name' in b) {
+                  const args = JSON.stringify((b as any).arguments || {})
+                  parts.push(`tool: ${(b as any).name}(${args})`)
+                }
+                else if ('thinking' in b) parts.push(`thinking: ${(b as any).thinking?.trim()}`)
               }
               return { role: 'assistant', text: parts.join(' | ') || '(empty)' }
             }
             if (msg.role === 'toolResult') {
               const text = Array.isArray(msg.content) ? msg.content.map((b: any) => b.text || '').join('') : ''
-              const trimmed = text.length > 150 ? text.slice(0, 150) + '...' : text
-              return { role: 'toolResult', tool: msg.toolName, error: msg.isError || undefined, text: trimmed }
+              return { role: 'toolResult', tool: msg.toolName, error: msg.isError || undefined, text }
             }
             return { role: (msg as any).role }
           }),
