@@ -102,7 +102,8 @@ export class Agent {
 
     // Fetch game commands
     const serverUrl = profile.server_url.replace(/\/$/, '')
-    const commands = await fetchGameCommands(`${serverUrl}/api/v1`)
+    const apiVersion = profile.connection_mode === 'http_v2' ? 'v2' : 'v1'
+    const commands = await fetchGameCommands(`${serverUrl}/api/${apiVersion}`)
     const commandList = formatCommandList(commands)
     this.log('system', `Loaded ${commands.length} game commands`)
 

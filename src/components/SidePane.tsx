@@ -15,9 +15,10 @@ interface Props {
   todo: string
   connected: boolean
   playerData: Record<string, unknown> | null
+  onRefreshStatus?: () => void
 }
 
-export function SidePane({ profileId, todo: initialTodo, connected, playerData }: Props) {
+export function SidePane({ profileId, todo: initialTodo, connected, playerData, onRefreshStatus }: Props) {
   const [logEntries, setLogEntries] = useState<CaptainsLogEntry[]>([])
   const [logLoading, setLogLoading] = useState(false)
   const [todo, setTodo] = useState(initialTodo)
@@ -25,10 +26,14 @@ export function SidePane({ profileId, todo: initialTodo, connected, playerData }
   const [logOpen, setLogOpen] = useState(true)
   const [todoOpen, setTodoOpen] = useState(true)
 
-  // Resizable section heights (pixels, null = auto)
-  const [statusHeight, setStatusHeight] = useState<number | null>(null)
-  const [logHeight, setLogHeight] = useState<number | null>(null)
+  // Resizable section heights as fractions of container (0-1)
+  const [statusFrac, setStatusFrac] = useState(0.15)
+  const [logFrac, setLogFrac] = useState(0.35)
+  // todoFrac is implicitly 1 - statusFrac - logFrac
+  const containerRef = useRef<HTMLDivElement>(null)
   const resizingRef = useRef<string | null>(null)
+  const HANDLE_HEIGHT = 4
+  const HEADER_HEIGHT = 32
 
   useEffect(() => { setTodo(initialTodo) }, [initialTodo])
 
@@ -103,27 +108,37 @@ export function SidePane({ profileId, todo: initialTodo, connected, playerData }
     ? (playerData.player as Record<string, unknown> | undefined)?.status_message as string | undefined
     : undefined
 
-  // Vertical resize handler
+  // Vertical resize handler -- adjusts both adjacent sections simultaneously
   const handleResizeStart = useCallback((section: string, e: React.MouseEvent) => {
     e.preventDefault()
     resizingRef.current = section
     const startY = e.clientY
+    const container = containerRef.current
+    if (!container) return
+    const containerH = container.getBoundingClientRect().height
+    if (containerH <= 0) return
 
-    // Get current heights from the DOM
-    const statusSection = document.getElementById('sidepane-status')
-    const logSection = document.getElementById('sidepane-log')
-
-    const startStatusH = statusSection?.getBoundingClientRect().height ?? 80
-    const startLogH = logSection?.getBoundingClientRect().height ?? 200
+    const startStatusFrac = statusFrac
+    const startLogFrac = logFrac
 
     function onMouseMove(e: MouseEvent) {
-      const delta = e.clientY - startY
+      const deltaFrac = (e.clientY - startY) / containerH
+      const MIN_FRAC = HEADER_HEIGHT / containerH // minimum = just the header
+
       if (section === 'status-log') {
-        const newH = Math.max(40, startStatusH + delta)
-        setStatusHeight(newH)
+        // Redistribute between status and log
+        const total = startStatusFrac + startLogFrac
+        let newStatus = Math.max(MIN_FRAC, Math.min(total - MIN_FRAC, startStatusFrac + deltaFrac))
+        let newLog = total - newStatus
+        if (newLog < MIN_FRAC) { newLog = MIN_FRAC; newStatus = total - MIN_FRAC }
+        setStatusFrac(newStatus)
+        setLogFrac(newLog)
       } else if (section === 'log-todo') {
-        const newH = Math.max(40, startLogH + delta)
-        setLogHeight(newH)
+        // Redistribute between log and todo
+        const todoFrac = 1 - startStatusFrac - startLogFrac
+        const total = startLogFrac + todoFrac
+        let newLog = Math.max(MIN_FRAC, Math.min(total - MIN_FRAC, startLogFrac + deltaFrac))
+        setLogFrac(newLog)
       }
     }
 
@@ -139,21 +154,31 @@ export function SidePane({ profileId, todo: initialTodo, connected, playerData }
     document.body.style.userSelect = 'none'
     document.addEventListener('mousemove', onMouseMove)
     document.addEventListener('mouseup', onMouseUp)
-  }, [])
+  }, [statusFrac, logFrac])
+
+  const todoFrac = Math.max(0.05, 1 - statusFrac - logFrac)
 
   return (
-    <div className="flex flex-col h-full bg-card/50 overflow-hidden">
+    <div ref={containerRef} className="flex flex-col h-full bg-card/50 overflow-hidden">
       {/* Status */}
-      <div id="sidepane-status" className="border-b border-border" style={statusHeight != null && statusOpen ? { height: statusHeight, minHeight: 40 } : undefined}>
-        <div className="flex items-center gap-2 w-full px-3 py-2 hover:bg-secondary/20 transition-colors">
+      <div className="flex flex-col overflow-hidden" style={{ flex: `0 0 ${statusOpen ? statusFrac * 100 : 0}%` }}>
+        <div className="flex items-center gap-2 w-full px-3 py-2 hover:bg-secondary/20 transition-colors shrink-0">
           <div role="button" tabIndex={0} onClick={() => setStatusOpen(!statusOpen)} onKeyDown={e => e.key === 'Enter' && setStatusOpen(!statusOpen)} className="flex items-center gap-2 flex-1 cursor-pointer">
             {statusOpen ? <ChevronDown size={10} className="text-muted-foreground shrink-0" /> : <ChevronRight size={10} className="text-muted-foreground shrink-0" />}
             <Activity size={11} className="text-muted-foreground shrink-0" />
             <span className="text-[11px] uppercase tracking-[1.5px] font-medium text-foreground/80">Status</span>
           </div>
+          <span className="text-[9px] leading-none text-[hsl(var(--smui-green))] uppercase tracking-wider">Server</span>
+          <button
+            onClick={onRefreshStatus}
+            disabled={!connected}
+            className="text-muted-foreground hover:text-foreground disabled:opacity-30 transition-colors ml-1 shrink-0"
+          >
+            <RefreshCw size={10} />
+          </button>
         </div>
         {statusOpen && (
-          <div className="px-3 py-2 overflow-y-auto" style={statusHeight != null ? { height: statusHeight - 32 } : undefined}>
+          <div className="flex-1 min-h-0 overflow-y-auto px-3 py-2">
             {statusMessage ? (
               <span className="text-xs text-foreground/70">{statusMessage}</span>
             ) : (
@@ -170,8 +195,8 @@ export function SidePane({ profileId, todo: initialTodo, connected, playerData }
       />
 
       {/* Captain's Log */}
-      <div id="sidepane-log" className="border-b border-border" style={logHeight != null && logOpen ? { height: logHeight, minHeight: 40 } : undefined}>
-        <div className="flex items-center gap-2 w-full px-3 py-2 hover:bg-secondary/20 transition-colors">
+      <div className="flex flex-col overflow-hidden" style={{ flex: `0 0 ${logOpen ? logFrac * 100 : 0}%` }}>
+        <div className="flex items-center gap-2 w-full px-3 py-2 hover:bg-secondary/20 transition-colors shrink-0">
           <div role="button" tabIndex={0} onClick={() => setLogOpen(!logOpen)} onKeyDown={e => e.key === 'Enter' && setLogOpen(!logOpen)} className="flex items-center gap-2 flex-1 cursor-pointer">
             {logOpen ? <ChevronDown size={10} className="text-muted-foreground shrink-0" /> : <ChevronRight size={10} className="text-muted-foreground shrink-0" />}
             <BookOpen size={11} className="text-muted-foreground shrink-0" />
@@ -187,7 +212,7 @@ export function SidePane({ profileId, todo: initialTodo, connected, playerData }
           </button>
         </div>
         {logOpen && (
-          <div className="overflow-y-auto" style={logHeight != null ? { height: logHeight - 32 } : undefined}>
+          <div className="flex-1 min-h-0 overflow-y-auto">
             {!connected ? (
               <div className="px-3 py-3 text-[11px] text-muted-foreground/50 italic">
                 Connect to load captain&apos;s log
@@ -218,8 +243,8 @@ export function SidePane({ profileId, todo: initialTodo, connected, playerData }
       />
 
       {/* TODO */}
-      <div className="flex-1 min-h-0 flex flex-col">
-        <div className="flex items-center gap-2 w-full px-3 py-2 hover:bg-secondary/20 transition-colors border-b border-border">
+      <div className="flex flex-col overflow-hidden" style={{ flex: `0 0 ${todoOpen ? todoFrac * 100 : 0}%` }}>
+        <div className="flex items-center gap-2 w-full px-3 py-2 hover:bg-secondary/20 transition-colors shrink-0">
           <div role="button" tabIndex={0} onClick={() => setTodoOpen(!todoOpen)} onKeyDown={e => e.key === 'Enter' && setTodoOpen(!todoOpen)} className="flex items-center gap-2 flex-1 cursor-pointer">
             {todoOpen ? <ChevronDown size={10} className="text-muted-foreground shrink-0" /> : <ChevronRight size={10} className="text-muted-foreground shrink-0" />}
             <ListTodo size={11} className="text-muted-foreground shrink-0" />
@@ -234,7 +259,7 @@ export function SidePane({ profileId, todo: initialTodo, connected, playerData }
           </button>
         </div>
         {todoOpen && (
-          <div className="flex-1 overflow-y-auto">
+          <div className="flex-1 min-h-0 overflow-y-auto">
             {!todo ? (
               <div className="px-3 py-3 text-[11px] text-muted-foreground/50 italic">
                 No TODO items

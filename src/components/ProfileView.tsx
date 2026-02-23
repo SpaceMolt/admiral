@@ -631,7 +631,7 @@ export function ProfileView({ profile, providers, status, playerData, onPlayerDa
               className="w-1 shrink-0 cursor-col-resize bg-border hover:bg-primary/40 transition-colors"
             />
             <div style={{ width: sidePaneWidth }} className="shrink-0">
-              <SidePane profileId={profile.id} todo={profile.todo} connected={status.connected} playerData={playerData} />
+              <SidePane profileId={profile.id} todo={profile.todo} connected={status.connected} playerData={playerData} onRefreshStatus={fetchStatus} />
             </div>
           </>
         )}

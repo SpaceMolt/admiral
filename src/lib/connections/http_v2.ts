@@ -21,14 +21,33 @@ export class HttpV2Connection implements GameConnection {
   private credentials: { username: string; password: string } | null = null
   private notificationHandlers: NotificationHandler[] = []
   private connected = false
+  private commandToolMap: Map<string, string> = new Map()
 
   constructor(serverUrl: string) {
     this.baseUrl = serverUrl.replace(/\/$/, '') + '/api/v2'
   }
 
   async connect(): Promise<void> {
+    await this.fetchToolMapping()
     await this.ensureSession()
     this.connected = true
+  }
+
+  private async fetchToolMapping(): Promise<void> {
+    try {
+      const resp = await fetch(`${this.baseUrl}/openapi.json`, { signal: AbortSignal.timeout(10000) })
+      if (!resp.ok) return
+      const spec = await resp.json()
+      const paths = Object.keys(spec.paths || {})
+      for (const path of paths) {
+        const parts = path.replace('/api/v2/', '').split('/')
+        if (parts.length === 2) {
+          this.commandToolMap.set(parts[1], parts[0])
+        }
+      }
+    } catch {
+      // Fall back to no mapping — commands will be sent flat (may fail)
+    }
   }
 
   async login(username: string, password: string): Promise<LoginResult> {
@@ -168,8 +187,9 @@ export class HttpV2Connection implements GameConnection {
   }
 
   private async doRequest(command: string, payload?: Record<string, unknown>): Promise<CommandResult> {
-    // v2 uses POST /api/v2/{tool}/{action} but also accepts flat command names
-    const url = `${this.baseUrl}/${command}`
+    // v2 uses POST /api/v2/{tool}/{action}
+    const tool = this.commandToolMap.get(command)
+    const url = tool ? `${this.baseUrl}/${tool}/${command}` : `${this.baseUrl}/${command}`
     const headers: Record<string, string> = { 'Content-Type': 'application/json' }
     if (this.session) headers['X-Session-Id'] = this.session.id
 
