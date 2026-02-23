@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback, useRef } from 'react'
-import { RefreshCw, BookOpen, ListTodo, ChevronDown, ChevronRight, Activity, Trash2 } from 'lucide-react'
+import { RefreshCw, BookOpen, ListTodo, ChevronDown, ChevronRight, Activity, X } from 'lucide-react'
 import { MarkdownRenderer } from './MarkdownRenderer'
 
 interface CaptainsLogEntry {
@@ -191,7 +191,7 @@ export function SidePane({ profileId, todo: initialTodo, connected, playerData, 
             <Activity size={11} className="text-muted-foreground shrink-0" />
             <span className="text-[11px] uppercase tracking-[1.5px] font-medium text-foreground/80">Status</span>
           </div>
-          <span className="text-[9px] leading-none text-[hsl(var(--smui-green))] uppercase tracking-wider">Server</span>
+          <span className="text-[9px] leading-none text-[hsl(var(--smui-frost-2))] uppercase tracking-wider">Server</span>
           {statusMessage && (
             <button
               onClick={clearStatus}
@@ -199,7 +199,7 @@ export function SidePane({ profileId, todo: initialTodo, connected, playerData, 
               className="text-muted-foreground/40 hover:text-destructive disabled:opacity-30 transition-colors shrink-0"
               title="Clear status message"
             >
-              <Trash2 size={10} />
+              <X size={10} />
             </button>
           )}
           <button
@@ -290,7 +290,7 @@ export function SidePane({ profileId, todo: initialTodo, connected, playerData, 
               className="text-muted-foreground/40 hover:text-destructive transition-colors shrink-0"
               title="Clear TODO list"
             >
-              <Trash2 size={10} />
+              <X size={10} />
             </button>
           )}
           <button
