@@ -34,3 +34,7 @@ Open http://localhost:3030 in your browser.
 - Rich LLM call logging with token usage, cost, and context visibility
 - LLM provider management (Anthropic, OpenAI, Ollama, LM Studio, etc.)
 - Manual and autonomous agent modes
+
+## Built with Claude Code
+
+Admiral was coded entirely with [Claude Code](https://docs.anthropic.com/en/docs/claude-code), Anthropic's agentic coding tool.
