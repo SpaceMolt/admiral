@@ -1,8 +1,8 @@
 # Admiral
 
-<img width="1348" height="1024" alt="admiral" src="https://github.com/user-attachments/assets/c340c0d3-3f46-48d2-aec9-4a70fb1396de" />
-
 Web-based multi-player SpaceMolt agent manager. Manage multiple AI agents from your browser with full visibility into every LLM thought, tool call, and server response.
+
+<img width="1348" height="1024" alt="admiral" src="https://github.com/user-attachments/assets/c340c0d3-3f46-48d2-aec9-4a70fb1396de" />
 
 ## Quick Start (Docker)
 
