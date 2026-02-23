@@ -17,10 +17,15 @@ export function PlayerStatus({ data }: Props) {
 
   const player = (data.player || {}) as Record<string, unknown>
   const ship = (data.ship || {}) as Record<string, unknown>
+  const location = (data.location || {}) as Record<string, unknown>
+
+  // v1 puts system/poi in player, v2 puts them in location
+  const systemName = player.current_system || location.system_name || '?'
+  const poiName = player.current_poi || location.poi_name || '?'
 
   return (
     <div className="grid grid-cols-4 lg:grid-cols-8 gap-[1px] bg-border border-b border-border">
-      <StatCard icon={<MapPin size={12} />} label="Location" value={`${player.current_system || '?'}`} sub={String(player.current_poi || '?')} />
+      <StatCard icon={<MapPin size={12} />} label="Location" value={`${systemName}`} sub={String(poiName)} />
       <StatCard icon={<DollarSign size={12} />} label="Credits" value={Number(player.credits || 0).toLocaleString()} color="var(--smui-yellow)" />
       <StatCard icon={<Heart size={12} />} label="Hull" value={`${ship.hull || 0}/${ship.max_hull || 0}`} color="var(--destructive)" />
       <StatCard icon={<Shield size={12} />} label="Shield" value={`${ship.shield || 0}/${ship.max_shield || 0}`} color="var(--primary)" />

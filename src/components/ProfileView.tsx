@@ -219,7 +219,9 @@ export function ProfileView({ profile, providers, status, playerData, onPlayerDa
     })
       .then(r => r.json())
       .then(result => {
-        if (result.result) onPlayerData(result.result as Record<string, unknown>)
+        // v2 returns structuredContent (JSON) alongside result (text) — prefer structured
+        const data = result.structuredContent ?? result.result
+        if (data && typeof data === 'object') onPlayerData(data as Record<string, unknown>)
       })
       .catch(() => {})
   }, [profile.id, onPlayerData])
@@ -323,8 +325,9 @@ export function ProfileView({ profile, providers, status, playerData, onPlayerDa
       })
       const result = await resp.json()
 
-      if (command === 'get_status' && result.result) {
-        onPlayerData(result.result as Record<string, unknown>)
+      if (command === 'get_status') {
+        const data = result.structuredContent ?? result.result
+        if (data && typeof data === 'object') onPlayerData(data as Record<string, unknown>)
       }
     } catch {
       // Error logged by agent
