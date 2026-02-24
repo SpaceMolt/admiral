@@ -170,8 +170,8 @@ export function LogPane({ profileId, connected }: Props) {
     )
   }
 
-  async function handleClear() {
-    if (!window.confirm('Clear all log history for this profile?')) return
+  async function handleClear(e: React.MouseEvent) {
+    if (!e.shiftKey && !window.confirm('Clear all log history for this profile?')) return
     setEntries([])
     try {
       await fetch(`/api/profiles/${profileId}/logs`, { method: 'DELETE' })
