@@ -1,4 +1,5 @@
 import type { GameConnection, LoginResult, RegisterResult, CommandResult, NotificationHandler } from './interface'
+import { fetchOpenApiSpec, type SpecLogFn } from '../schema'
 
 const MAX_RECONNECT_ATTEMPTS = 6
 const RECONNECT_BASE_DELAY = 5_000
@@ -23,70 +24,76 @@ export class HttpV2Connection implements GameConnection {
   private connected = false
   // Maps command name (v1 or v2) → URL path segment after /api/v2/
   private commandRouteMap: Map<string, string> = new Map()
+  private specLog: SpecLogFn | undefined
+  private v1FallbackLogged = false
 
   constructor(serverUrl: string) {
     this.baseUrl = serverUrl.replace(/\/$/, '') + '/api/v2'
   }
 
+  /** Set a log function to surface spec fetch errors/warnings. */
+  setSpecLog(log: SpecLogFn): void {
+    this.specLog = log
+  }
+
   async connect(): Promise<void> {
     await this.fetchToolMapping()
+    if (this.commandRouteMap.size > 0) {
+      this.v1FallbackLogged = false
+    }
     await this.ensureSession()
     this.connected = true
   }
 
   private async fetchToolMapping(): Promise<void> {
-    try {
-      const resp = await fetch(`${this.baseUrl}/openapi.json`, { signal: AbortSignal.timeout(10000) })
-      if (!resp.ok) return
-      const spec = await resp.json()
-      const allPaths = Object.keys(spec.paths || {})
-      const toolPrefixes = new Set<string>()
+    const spec = await fetchOpenApiSpec(`${this.baseUrl}/openapi.json`, this.specLog)
+    if (!spec) return
 
-      for (const p of allPaths) {
-        const seg = p.replace('/api/v2/', '')
-        const parts = seg.split('/')
-        const op = (spec.paths[p]?.post ?? {}) as Record<string, unknown>
-        const operationId = op.operationId as string | undefined
+    const allPaths = Object.keys(spec.paths || {})
+    const toolPrefixes = new Set<string>()
 
-        if (parts.length === 2) {
-          const [tool, action] = parts
-          toolPrefixes.add(tool)
-          const route = `${tool}/${action}`
-          // v1-style short name (action) → route
-          if (!this.commandRouteMap.has(action)) {
-            this.commandRouteMap.set(action, route)
-          }
-          // v2 operationId → route
-          if (operationId) {
-            this.commandRouteMap.set(operationId, route)
-          }
-        } else if (parts.length === 1 && seg !== 'session' && seg !== 'notifications') {
-          // 1-part path: tool IS the command (e.g. spacemolt_catalog)
-          this.commandRouteMap.set(seg, seg)
-          if (operationId && operationId !== seg) {
-            this.commandRouteMap.set(operationId, seg)
-          }
+    for (const p of allPaths) {
+      const seg = p.replace('/api/v2/', '')
+      const parts = seg.split('/')
+      const op = ((spec.paths as Record<string, Record<string, unknown>>)[p]?.post ?? {}) as Record<string, unknown>
+      const operationId = op.operationId as string | undefined
+
+      if (parts.length === 2) {
+        const [tool, action] = parts
+        toolPrefixes.add(tool)
+        const route = `${tool}/${action}`
+        // v1-style short name (action) → route
+        if (!this.commandRouteMap.has(action)) {
+          this.commandRouteMap.set(action, route)
+        }
+        // v2 operationId → route
+        if (operationId) {
+          this.commandRouteMap.set(operationId, route)
+        }
+      } else if (parts.length === 1 && seg !== 'session' && seg !== 'notifications') {
+        // 1-part path: tool IS the command (e.g. spacemolt_catalog)
+        this.commandRouteMap.set(seg, seg)
+        if (operationId && operationId !== seg) {
+          this.commandRouteMap.set(operationId, seg)
         }
       }
+    }
 
-      // For 1-part command paths, derive v1 short names by stripping known tool prefixes
-      for (const p of allPaths) {
-        const seg = p.replace('/api/v2/', '')
-        if (seg.split('/').length !== 1 || seg === 'session' || seg === 'notifications') continue
-        // Try stripping each known tool prefix + underscore (longest first)
-        const sortedPrefixes = [...toolPrefixes].sort((a, b) => b.length - a.length)
-        for (const prefix of sortedPrefixes) {
-          if (seg.startsWith(prefix + '_') && seg.length > prefix.length + 1) {
-            const shortName = seg.slice(prefix.length + 1)
-            if (!this.commandRouteMap.has(shortName)) {
-              this.commandRouteMap.set(shortName, seg)
-            }
-            break
+    // For 1-part command paths, derive v1 short names by stripping known tool prefixes
+    for (const p of allPaths) {
+      const seg = p.replace('/api/v2/', '')
+      if (seg.split('/').length !== 1 || seg === 'session' || seg === 'notifications') continue
+      // Try stripping each known tool prefix + underscore (longest first)
+      const sortedPrefixes = [...toolPrefixes].sort((a, b) => b.length - a.length)
+      for (const prefix of sortedPrefixes) {
+        if (seg.startsWith(prefix + '_') && seg.length > prefix.length + 1) {
+          const shortName = seg.slice(prefix.length + 1)
+          if (!this.commandRouteMap.has(shortName)) {
+            this.commandRouteMap.set(shortName, seg)
           }
+          break
         }
       }
-    } catch {
-      // Fall back to no mapping — commands will be sent flat (may fail)
     }
   }
 
@@ -185,13 +192,21 @@ export class HttpV2Connection implements GameConnection {
     return this.connected
   }
 
+  /** Returns the v1 base URL when the v2 route map is unavailable. */
+  private get effectiveBaseUrl(): string {
+    if (this.commandRouteMap.size === 0) {
+      return this.baseUrl.replace(/\/api\/v2$/, '/api/v1')
+    }
+    return this.baseUrl
+  }
+
   private async ensureSession(): Promise<void> {
     if (this.session && !this.isSessionExpiring()) return
 
     let lastError: Error | null = null
     for (let attempt = 0; attempt < MAX_RECONNECT_ATTEMPTS; attempt++) {
       try {
-        const resp = await fetch(`${this.baseUrl}/session`, {
+        const resp = await fetch(`${this.effectiveBaseUrl}/session`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
         })
@@ -227,9 +242,14 @@ export class HttpV2Connection implements GameConnection {
   }
 
   private async doRequest(command: string, payload?: Record<string, unknown>): Promise<CommandResult> {
-    // v2 uses POST /api/v2/{route} where route is tool/action or a standalone tool
+    const base = this.effectiveBaseUrl
     const route = this.commandRouteMap.get(command)
-    const url = route ? `${this.baseUrl}/${route}` : `${this.baseUrl}/${command}`
+    // v2: POST /api/v2/{tool}/{action}, v1 fallback: POST /api/v1/{command}
+    const url = route ? `${base}/${route}` : `${base}/${command}`
+    if (base !== this.baseUrl && !this.v1FallbackLogged) {
+      this.specLog?.('warn', 'v2 route map unavailable, falling back to v1 API endpoints')
+      this.v1FallbackLogged = true
+    }
     const headers: Record<string, string> = { 'Content-Type': 'application/json' }
     if (this.session) headers['X-Session-Id'] = this.session.id
 

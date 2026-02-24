@@ -74,6 +74,13 @@ export class Agent {
 
     this.connection = createConnection(profile)
 
+    // Wire up spec log for connections that fetch OpenAPI specs
+    if (this.connection instanceof HttpV2Connection) {
+      this.connection.setSpecLog((type, msg) => {
+        this.log(type === 'error' ? 'error' : 'system', msg)
+      })
+    }
+
     try {
       await this.connection.connect()
       this.setActivity('idle')
@@ -115,6 +122,9 @@ export class Agent {
     const { model, apiKey } = resolveModel(`${profile.provider}/${profile.model}`)
 
     // Fetch game commands - MCP v2 uses tool discovery, others use OpenAPI
+    const specLog = (type: 'info' | 'warn' | 'error', msg: string) => {
+      this.log(type === 'error' ? 'error' : 'system', msg)
+    }
     let commandList: string
     if (profile.connection_mode === 'mcp_v2' && this.connection instanceof McpV2Connection) {
       commandList = this.connection.getCommandList()
@@ -122,7 +132,7 @@ export class Agent {
     } else {
       const serverUrl = profile.server_url.replace(/\/$/, '')
       const apiVersion = profile.connection_mode === 'http_v2' ? 'v2' : 'v1'
-      const commands = await fetchGameCommands(`${serverUrl}/api/${apiVersion}`)
+      const commands = await fetchGameCommands(`${serverUrl}/api/${apiVersion}`, specLog)
       commandList = formatCommandList(commands)
       this.log('system', `Loaded ${commands.length} game commands`)
     }
