@@ -56,7 +56,7 @@ export function QuickCommands({ onSend, disabled, showSidePane, onToggleSidePane
       <div className="flex-1" />
       <button
         onClick={onToggleSidePane}
-        className="flex items-center px-2 py-1 text-muted-foreground transition-colors shrink-0"
+        className="flex items-center px-2 py-1 rounded text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors shrink-0"
         title={showSidePane ? 'Hide side panel' : 'Show side panel'}
       >
         {showSidePane ? <PanelRightClose size={14} /> : <PanelRight size={14} />}

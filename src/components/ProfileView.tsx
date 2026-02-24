@@ -465,7 +465,10 @@ export function ProfileView({ profile, providers, status, playerData, onPlayerDa
     document.addEventListener('mouseup', onMouseUp)
   }, [sidePaneWidth])
 
-  async function handleConnect() {
+  async function handleConnect(e: React.MouseEvent) {
+    if (e.shiftKey) {
+      await fetch(`/api/profiles/${profile.id}/logs`, { method: 'DELETE' })
+    }
     setConnecting(true)
     try {
       const action = isManual ? 'connect' : 'connect_llm'
@@ -519,7 +522,7 @@ export function ProfileView({ profile, providers, status, playerData, onPlayerDa
         {onToggleProfileList && (
           <button
             onClick={onToggleProfileList}
-            className="flex items-center px-2 py-1 text-muted-foreground transition-colors shrink-0"
+            className="flex items-center px-2 py-1 rounded text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors shrink-0"
             title={showProfileList ? 'Hide profiles' : 'Show profiles'}
           >
             {showProfileList ? <PanelLeftClose size={14} /> : <PanelLeft size={14} />}
@@ -830,7 +833,7 @@ export function ProfileView({ profile, providers, status, playerData, onPlayerDa
       {/* Directive */}
       <div
         data-tour="directive"
-        className="flex items-center gap-2 px-3.5 py-1.5 bg-card/50 border-b border-border/30 cursor-pointer group"
+        className="flex items-center gap-2 px-3.5 py-1.5 bg-card border-b border-border cursor-pointer group"
         onClick={() => {
           let initial = profile.directive || ''
           try {
