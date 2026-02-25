@@ -1,4 +1,5 @@
 import type { GameConnection, LoginResult, RegisterResult, CommandResult, NotificationHandler } from './interface'
+import { USER_AGENT } from './interface'
 
 export class McpConnection implements GameConnection {
   readonly mode = 'mcp' as const
@@ -120,6 +121,7 @@ export class McpConnection implements GameConnection {
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
       'Accept': 'application/json, text/event-stream',
+      'User-Agent': USER_AGENT,
     }
     if (this.sessionId) {
       headers['Mcp-Session-Id'] = this.sessionId
@@ -154,7 +156,7 @@ export class McpConnection implements GameConnection {
 
   private async sendNotification(method: string, params: unknown): Promise<void> {
     const body = JSON.stringify({ jsonrpc: '2.0', method, params })
-    const headers: Record<string, string> = { 'Content-Type': 'application/json' }
+    const headers: Record<string, string> = { 'Content-Type': 'application/json', 'User-Agent': USER_AGENT }
     if (this.sessionId) headers['Mcp-Session-Id'] = this.sessionId
 
     await fetch(this.baseUrl, { method: 'POST', headers, body })

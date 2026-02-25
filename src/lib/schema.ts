@@ -32,7 +32,7 @@ export async function fetchOpenApiSpec(
 
   // Try fetching from the server
   try {
-    const resp = await fetch(specUrl, { signal: AbortSignal.timeout(10_000) })
+    const resp = await fetch(specUrl, { signal: AbortSignal.timeout(10_000), headers: { 'User-Agent': 'SpaceMolt-Admiral' } })
     if (!resp.ok) {
       const body = await resp.text().catch(() => '')
       if (resp.status === 429) {

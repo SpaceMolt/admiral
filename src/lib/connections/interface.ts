@@ -1,3 +1,5 @@
+export const USER_AGENT = 'SpaceMolt-Admiral/0.1.0'
+
 export interface LoginResult {
   success: boolean
   error?: string

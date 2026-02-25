@@ -1,4 +1,5 @@
 import type { GameConnection, LoginResult, RegisterResult, CommandResult, NotificationHandler } from './interface'
+import { USER_AGENT } from './interface'
 
 const MAX_RECONNECT_ATTEMPTS = 6
 const RECONNECT_BASE_DELAY = 5_000
@@ -131,7 +132,7 @@ export class HttpConnection implements GameConnection {
       try {
         const resp = await fetch(`${this.baseUrl}/session`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: { 'Content-Type': 'application/json', 'User-Agent': USER_AGENT },
         })
         if (!resp.ok) throw new Error(`Failed to create session: ${resp.status}`)
 
@@ -166,7 +167,7 @@ export class HttpConnection implements GameConnection {
 
   private async doRequest(command: string, payload?: Record<string, unknown>): Promise<CommandResult> {
     const url = `${this.baseUrl}/${command}`
-    const headers: Record<string, string> = { 'Content-Type': 'application/json' }
+    const headers: Record<string, string> = { 'Content-Type': 'application/json', 'User-Agent': USER_AGENT }
     if (this.session) headers['X-Session-Id'] = this.session.id
 
     const resp = await fetch(url, {

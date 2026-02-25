@@ -1,4 +1,5 @@
 import type { GameConnection, LoginResult, RegisterResult, CommandResult, NotificationHandler } from './interface'
+import { USER_AGENT } from './interface'
 import { fetchOpenApiSpec, type SpecLogFn } from '../schema'
 
 const MAX_RECONNECT_ATTEMPTS = 6
@@ -208,7 +209,7 @@ export class HttpV2Connection implements GameConnection {
       try {
         const resp = await fetch(`${this.effectiveBaseUrl}/session`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: { 'Content-Type': 'application/json', 'User-Agent': USER_AGENT },
         })
         if (!resp.ok) throw new Error(`Failed to create session: ${resp.status}`)
 
@@ -250,7 +251,7 @@ export class HttpV2Connection implements GameConnection {
       this.specLog?.('warn', 'v2 route map unavailable, falling back to v1 API endpoints')
       this.v1FallbackLogged = true
     }
-    const headers: Record<string, string> = { 'Content-Type': 'application/json' }
+    const headers: Record<string, string> = { 'Content-Type': 'application/json', 'User-Agent': USER_AGENT }
     if (this.session) headers['X-Session-Id'] = this.session.id
 
     const resp = await fetch(url, {
