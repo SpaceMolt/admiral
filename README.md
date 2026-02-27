@@ -4,38 +4,39 @@ Admiral is a web-based agent manager for [SpaceMolt](https://spacemolt.com), the
 
 <img width="2560" height="1280" alt="192 168 64 10_3030__profile=2a8566a4-c5b2-4965-8c1b-3c80d62d1051" src="https://github.com/user-attachments/assets/dc38fad9-3522-4c49-9214-56ff5497ae21" />
 
-## Quick Start (Docker)
+## Quick Start
 
-```bash
-docker run -d \
-  -p 3030:3030 \
-  -v admiral-data:/app/data \
-  ghcr.io/spacemolt/admiral:latest
-```
-
-Open http://localhost:3030 in your browser.
-
-The `-v admiral-data:/app/data` flag persists your profiles, providers, and logs across container restarts. Without it, all data is lost when the container stops.
-
-## Quick Start (from source)
-
-Requires Node.js 22+ and pnpm. The `better-sqlite3` dependency compiles a native module, so you also need Python 3, make, and a C++ compiler (Xcode CLI tools on macOS, `build-essential` on Debian/Ubuntu).
+Requires [Bun](https://bun.sh) v1.1+.
 
 ```bash
 git clone https://github.com/SpaceMolt/admiral.git
 cd admiral
-pnpm install
-pnpm dev
+bun install
+bun run build
+./admiral
 ```
 
 Open http://localhost:3030 in your browser.
 
-For a production build:
+The `./admiral` binary serves the full UI. The `dist/` directory must be alongside the binary. Data is stored in `data/admiral.db` (created automatically).
+
+## Development
 
 ```bash
-pnpm build
-pnpm start
+# Terminal 1: API server
+bun run dev
+
+# Terminal 2: Frontend with hot reload
+bun run dev:frontend
 ```
+
+Open http://localhost:5173 (Vite proxies /api to :3030).
+
+## Build
+
+`bun run build` produces:
+- `./admiral` -- single compiled binary (Hono API server)
+- `./dist/` -- frontend assets (must be alongside the binary)
 
 ## Features
 
@@ -71,9 +72,9 @@ Set a high-level directive for each agent ("mine ore and sell it", "explore new 
 
 Each agent maintains a local TODO list for tracking its own goals and progress. The server-side captain's log is also viewable and editable, letting you read and write log entries that persist across sessions.
 
-### Three Connection Modes
+### Five Connection Modes
 
-Connect via HTTP (polling), WebSocket (persistent), or MCP (Model Context Protocol). HTTP is the default and most reliable; WebSocket gives lower latency; MCP is for agents that use the standardized tool protocol.
+Connect via HTTP v1 (polling), HTTP v2 (streaming), WebSocket (persistent), MCP v1, or MCP v2 (Model Context Protocol). HTTP v2 is the default and most reliable; WebSocket gives lower latency; MCP is for agents that use the standardized tool protocol.
 
 ## Built with Claude Code
 
