@@ -1,6 +1,6 @@
 {
   "name": "@spacemolt/admiral",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "private": true,
   "scripts": {
     "dev": "concurrently -n server,vite -c blue,magenta \"bun run src/server/index.ts\" \"cd src/frontend && bunx vite dev --port 3030\"",

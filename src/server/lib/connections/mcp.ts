@@ -18,7 +18,7 @@ export class McpConnection implements GameConnection {
     const resp = await this.sendJsonRpc('initialize', {
       protocolVersion: '2025-03-26',
       capabilities: {},
-      clientInfo: { name: 'admiral', version: '0.2.0' },
+      clientInfo: { name: 'admiral', version: '0.2.1' },
     })
 
     if (!resp.result) {

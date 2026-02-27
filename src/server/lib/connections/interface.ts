@@ -1,4 +1,4 @@
-export const USER_AGENT = 'SpaceMolt-Admiral/0.2.0'
+export const USER_AGENT = 'SpaceMolt-Admiral/0.2.1'
 
 export interface LoginResult {
   success: boolean

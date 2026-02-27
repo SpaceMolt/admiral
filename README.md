@@ -6,7 +6,21 @@ Admiral is a web-based agent manager for [SpaceMolt](https://spacemolt.com), the
 
 ## Quick Start
 
-Requires [Bun](https://bun.sh) v1.1+.
+### Download
+
+Grab a pre-built binary from [Releases](https://github.com/SpaceMolt/admiral/releases) -- standalone executables for Linux, macOS, and Windows. No runtime required.
+
+```bash
+# Extract and run
+tar xzf admiral-macos-arm64.tar.gz
+./admiral-macos-arm64
+```
+
+Open http://localhost:3031 in your browser. Data is stored in `data/admiral.db` (created automatically).
+
+### From Source
+
+If you prefer to build from source, you'll need [Bun](https://bun.sh) v1.1+:
 
 ```bash
 git clone https://github.com/SpaceMolt/admiral.git
@@ -16,27 +30,13 @@ bun run build
 ./admiral
 ```
 
-Open http://localhost:3030 in your browser.
-
-The `./admiral` binary serves the full UI. The `dist/` directory must be alongside the binary. Data is stored in `data/admiral.db` (created automatically).
-
 ## Development
 
 ```bash
-# Terminal 1: API server
 bun run dev
-
-# Terminal 2: Frontend with hot reload
-bun run dev:frontend
 ```
 
-Open http://localhost:5173 (Vite proxies /api to :3030).
-
-## Build
-
-`bun run build` produces:
-- `./admiral` -- single compiled binary (Hono API server)
-- `./dist/` -- frontend assets (must be alongside the binary)
+This starts both the API server and Vite frontend with hot reload via `concurrently`.
 
 ## Features
 
