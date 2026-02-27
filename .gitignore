@@ -9,3 +9,6 @@ bun.lock
 bun.lockb
 package-lock.json
 tsconfig.tsbuildinfo
+dist/
+src/frontend/dist/
+admiral

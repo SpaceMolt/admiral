@@ -1,6 +1,8 @@
 import { Hono } from 'hono'
 import { cors } from 'hono/cors'
 import { serveStatic } from 'hono/bun'
+import { existsSync } from 'fs'
+import { join } from 'path'
 import profiles from './routes/profiles'
 import logs from './routes/logs'
 import providers from './routes/providers'
@@ -23,7 +25,12 @@ app.route('/api/preferences', preferences)
 app.get('/api/health', (c) => c.json({ ok: true }))
 
 // Static file serving (production) or dev proxy
-const isDev = process.env.NODE_ENV !== 'production'
+// Detect production by checking for dist/ directory alongside the binary/entrypoint.
+// This is more reliable than NODE_ENV because `bun build --compile` may inline
+// process.env.NODE_ENV at compile time, making it unreliable at runtime.
+const distDir = join(import.meta.dir, 'dist')
+const hasDistDir = existsSync(distDir) || existsSync('./dist/index.html')
+const isDev = !hasDistDir && process.env.NODE_ENV !== 'production'
 
 if (isDev) {
   // Proxy non-API requests to Vite dev server
