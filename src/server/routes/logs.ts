@@ -55,11 +55,11 @@ logs.get('/:id/logs', async (c) => {
       }
     }, 2000)
 
-    // Heartbeat
+    // Heartbeat - must be well under the Bun.serve idleTimeout (120s)
     const heartbeat = setInterval(() => {
       if (closed) { clearInterval(heartbeat); return }
       stream.writeSSE({ data: '', comment: 'heartbeat' }).catch(() => { closed = true })
-    }, 15000)
+    }, 30000)
 
     // Keep the stream open until client disconnects
     const abortPromise = new Promise<void>((resolve) => {

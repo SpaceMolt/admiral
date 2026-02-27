@@ -65,4 +65,5 @@ export default {
   port,
   hostname: '0.0.0.0',
   fetch: app.fetch,
+  idleTimeout: 120, // seconds; must exceed SSE heartbeat interval for log streaming
 }
