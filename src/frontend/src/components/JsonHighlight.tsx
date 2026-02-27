@@ -1,0 +1,157 @@
+/**
+ * Syntax highlighter for JSON data.
+ * Tokenizes and wraps each token in a colored span matching the SMUI theme.
+ */
+
+interface Props {
+  json: string
+  className?: string
+}
+
+type TokenType = 'key' | 'string' | 'number' | 'boolean' | 'null' | 'brace' | 'bracket' | 'colon' | 'comma' | 'whitespace' | 'text'
+
+interface Token {
+  type: TokenType
+  value: string
+}
+
+const TOKEN_COLORS: Record<TokenType, string> = {
+  key: 'hsl(var(--primary))',
+  string: 'hsl(var(--smui-green))',
+  number: 'hsl(var(--smui-orange))',
+  boolean: 'hsl(var(--smui-purple))',
+  null: 'hsl(var(--border))',
+  brace: 'hsl(var(--muted-foreground))',
+  bracket: 'hsl(var(--muted-foreground))',
+  colon: 'hsl(var(--border))',
+  comma: 'hsl(var(--border))',
+  whitespace: 'transparent',
+  text: 'hsl(var(--muted-foreground))',
+}
+
+function tokenize(input: string): Token[] {
+  const tokens: Token[] = []
+  let i = 0
+
+  while (i < input.length) {
+    const ch = input[i]
+
+    if (ch === ' ' || ch === '\t' || ch === '\n' || ch === '\r') {
+      let ws = ''
+      while (i < input.length && (input[i] === ' ' || input[i] === '\t' || input[i] === '\n' || input[i] === '\r')) {
+        ws += input[i]
+        i++
+      }
+      tokens.push({ type: 'whitespace', value: ws })
+      continue
+    }
+
+    if (ch === '{' || ch === '}') {
+      tokens.push({ type: 'brace', value: ch })
+      i++
+      continue
+    }
+
+    if (ch === '[' || ch === ']') {
+      tokens.push({ type: 'bracket', value: ch })
+      i++
+      continue
+    }
+
+    if (ch === ':') {
+      tokens.push({ type: 'colon', value: ':' })
+      i++
+      continue
+    }
+
+    if (ch === ',') {
+      tokens.push({ type: 'comma', value: ',' })
+      i++
+      continue
+    }
+
+    if (ch === '"') {
+      let str = '"'
+      i++
+      while (i < input.length && input[i] !== '"') {
+        if (input[i] === '\\' && i + 1 < input.length) {
+          str += input[i] + input[i + 1]
+          i += 2
+        } else {
+          str += input[i]
+          i++
+        }
+      }
+      if (i < input.length) {
+        str += '"'
+        i++
+      }
+
+      let lookAhead = i
+      while (lookAhead < input.length && (input[lookAhead] === ' ' || input[lookAhead] === '\t' || input[lookAhead] === '\n' || input[lookAhead] === '\r')) {
+        lookAhead++
+      }
+      const isKey = lookAhead < input.length && input[lookAhead] === ':'
+
+      tokens.push({ type: isKey ? 'key' : 'string', value: str })
+      continue
+    }
+
+    if (ch === '-' || (ch >= '0' && ch <= '9')) {
+      let num = ''
+      while (i < input.length && /[0-9eE.+\-]/.test(input[i])) {
+        num += input[i]
+        i++
+      }
+      tokens.push({ type: 'number', value: num })
+      continue
+    }
+
+    if (input.slice(i, i + 4) === 'true') {
+      tokens.push({ type: 'boolean', value: 'true' })
+      i += 4
+      continue
+    }
+    if (input.slice(i, i + 5) === 'false') {
+      tokens.push({ type: 'boolean', value: 'false' })
+      i += 5
+      continue
+    }
+    if (input.slice(i, i + 4) === 'null') {
+      tokens.push({ type: 'null', value: 'null' })
+      i += 4
+      continue
+    }
+
+    tokens.push({ type: 'text', value: ch })
+    i++
+  }
+
+  return tokens
+}
+
+function tryFormatJson(raw: string): string {
+  try {
+    const parsed = JSON.parse(raw)
+    return JSON.stringify(parsed, null, 2)
+  } catch {
+    return raw
+  }
+}
+
+export function JsonHighlight({ json, className }: Props) {
+  const formatted = tryFormatJson(json)
+  const tokens = tokenize(formatted)
+
+  return (
+    <pre className={className} style={{ margin: 0, whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
+      <code>
+        {tokens.map((token, i) => (
+          <span key={i} style={{ color: TOKEN_COLORS[token.type] }}>
+            {token.value}
+          </span>
+        ))}
+      </code>
+    </pre>
+  )
+}
