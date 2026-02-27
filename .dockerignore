@@ -1,7 +1,0 @@
-node_modules
-.next
-.git
-screenshots
-data
-*.md
-!README.md
