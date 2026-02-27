@@ -56,7 +56,10 @@ async function fetchModelsForProvider(providerId: string): Promise<string[]> {
   const apiUrl = PROVIDER_API_URLS[providerId]
   if (apiUrl && dbProvider?.api_key) {
     const live = await fetchOpenAICompatModels(apiUrl, dbProvider.api_key)
-    if (live.length > 0) return live
+    if (live.length > 0) {
+      if (providerId === 'openrouter') return pinOpenRouterModels(live)
+      return live
+    }
   }
 
   // Anthropic doesn't have a models list endpoint - use pi-ai registry
@@ -68,6 +71,17 @@ async function fetchModelsForProvider(providerId: string): Promise<string[]> {
   }
 
   return []
+}
+
+const OPENROUTER_PINNED = [
+  'openrouter/auto',
+  'openrouter/free',
+]
+
+function pinOpenRouterModels(models: string[]): string[] {
+  const pinned = OPENROUTER_PINNED.filter(m => models.includes(m))
+  const rest = models.filter(m => !OPENROUTER_PINNED.includes(m))
+  return [...pinned, ...rest]
 }
 
 async function fetchOllamaModels(baseUrl?: string): Promise<string[]> {
