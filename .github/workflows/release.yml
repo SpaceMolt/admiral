@@ -1,0 +1,134 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  build-frontend:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install dependencies
+        run: bun install
+
+      - name: Build frontend
+        run: cd src/frontend && bunx vite build
+
+      - name: Upload frontend dist
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-dist
+          path: src/frontend/dist/
+
+  build:
+    needs: build-frontend
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-latest
+            target: linux-x64
+            artifact: admiral-linux-x64
+          - os: ubuntu-latest
+            target: linux-arm64
+            artifact: admiral-linux-arm64
+          - os: macos-latest
+            target: darwin-x64
+            artifact: admiral-macos-x64
+          - os: macos-latest
+            target: darwin-arm64
+            artifact: admiral-macos-arm64
+          - os: windows-latest
+            target: windows-x64
+            artifact: admiral-windows-x64
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install dependencies
+        run: bun install
+
+      - name: Download frontend dist
+        uses: actions/download-artifact@v4
+        with:
+          name: frontend-dist
+          path: dist/
+
+      - name: Build server binary
+        run: bun build src/server/index.ts --compile --target=bun-${{ matrix.target }} --outfile=${{ matrix.artifact }}
+
+      - name: Package (unix)
+        if: runner.os != 'Windows'
+        run: tar czf ${{ matrix.artifact }}.tar.gz ${{ matrix.artifact }} dist/
+
+      - name: Package (windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: Compress-Archive -Path "${{ matrix.artifact }}.exe", "dist/" -DestinationPath "${{ matrix.artifact }}.zip"
+
+      - name: Upload package
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact }}
+          path: ${{ matrix.artifact }}.tar.gz
+          if-no-files-found: ignore
+
+      - name: Upload package (windows)
+        if: runner.os == 'Windows'
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact }}
+          path: ${{ matrix.artifact }}.zip
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: Get version from tag
+        id: version
+        env:
+          GIT_REF: ${{ github.ref }}
+        run: echo "VERSION=${GIT_REF#refs/tags/v}" >> "$GITHUB_OUTPUT"
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: Admiral v${{ steps.version.outputs.VERSION }}
+          generate_release_notes: true
+          files: |
+            artifacts/admiral-linux-x64/admiral-linux-x64.tar.gz
+            artifacts/admiral-linux-arm64/admiral-linux-arm64.tar.gz
+            artifacts/admiral-macos-x64/admiral-macos-x64.tar.gz
+            artifacts/admiral-macos-arm64/admiral-macos-arm64.tar.gz
+            artifacts/admiral-windows-x64/admiral-windows-x64.zip
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
