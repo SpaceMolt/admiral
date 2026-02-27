@@ -37,7 +37,7 @@ if (isDev) {
   app.all('*', async (c) => {
     try {
       const url = new URL(c.req.url)
-      url.port = '5173'
+      url.port = '3030'
       const resp = await fetch(url.toString(), {
         method: c.req.method,
         headers: c.req.raw.headers,
@@ -58,10 +58,11 @@ if (isDev) {
   app.get('*', serveStatic({ path: './dist/index.html' }))
 }
 
-const port = parseInt(process.env.PORT || '3030')
-console.log(`Admiral listening on http://localhost:${port}`)
+const port = parseInt(process.env.PORT || '3031')
+console.log(`Admiral listening on http://0.0.0.0:${port}`)
 
 export default {
   port,
+  hostname: '0.0.0.0',
   fetch: app.fetch,
 }

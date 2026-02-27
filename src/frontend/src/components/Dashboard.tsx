@@ -140,7 +140,7 @@ export function Dashboard({ profiles: initialProfiles, providers, registrationCo
       {/* Top bar */}
       <div className="sticky top-0 z-50 flex items-center justify-between h-12 px-3.5 bg-card border-b border-border">
         <div className="flex items-baseline gap-3">
-          <h1 className="font-orbitron text-sm font-bold tracking-[1.5px] text-primary uppercase">
+          <h1 className="font-jetbrains text-sm font-bold tracking-[1.5px] text-primary uppercase">
             ADMIRAL
           </h1>
           <span className="text-[11px] text-muted-foreground tracking-[1.5px] uppercase">SpaceMolt Agent Manager</span>
@@ -214,7 +214,7 @@ export function Dashboard({ profiles: initialProfiles, providers, registrationCo
           ) : (
             <div className="flex items-center justify-center h-full">
               <div className="text-center max-w-md px-6">
-                <h2 className="font-orbitron text-xl font-bold tracking-[1.5px] text-primary uppercase mb-3">
+                <h2 className="font-jetbrains text-xl font-bold tracking-[1.5px] text-primary uppercase mb-3">
                   ADMIRAL
                 </h2>
                 <p className="text-[11px] text-muted-foreground uppercase tracking-[1.5px] mb-6">

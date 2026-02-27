@@ -3,8 +3,7 @@
   "version": "0.2.0",
   "private": true,
   "scripts": {
-    "dev": "bun run src/server/index.ts",
-    "dev:frontend": "cd src/frontend && bunx vite dev --port 5173",
+    "dev": "concurrently -n server,vite -c blue,magenta \"bun run src/server/index.ts\" \"cd src/frontend && bunx vite dev --port 3030\"",
     "build": "bun run scripts/build.ts",
     "start": "./admiral"
   },
@@ -30,6 +29,7 @@
     "@types/react-dom": "^19.2.3",
     "@types/ws": "^8.18.1",
     "@vitejs/plugin-react": "^4",
+    "concurrently": "^9.2.1",
     "postcss": "^8.5.6",
     "tailwindcss": "^4.2.0",
     "typescript": "^5.9.3",

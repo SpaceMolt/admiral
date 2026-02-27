@@ -890,7 +890,7 @@ export function ProfileView({ profile, providers, status, playerData, onPlayerDa
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80" onClick={() => { clearDirectiveDraft(); setDirectiveValue(profile.directive || ''); setShowDirectiveModal(false) }}>
           <div className="bg-card border border-border shadow-lg w-full max-w-lg mx-4" onClick={e => e.stopPropagation()}>
             <div className="flex items-center justify-between px-4 py-3 border-b border-border">
-              <span className="font-orbitron text-xs font-semibold tracking-[1.5px] text-primary uppercase">Agent Directive</span>
+              <span className="font-jetbrains text-xs font-semibold tracking-[1.5px] text-primary uppercase">Agent Directive</span>
               <button onClick={() => { clearDirectiveDraft(); setDirectiveValue(profile.directive || ''); setShowDirectiveModal(false) }} className="text-muted-foreground hover:text-foreground transition-colors">
                 <X size={14} />
               </button>
@@ -942,7 +942,7 @@ export function ProfileView({ profile, providers, status, playerData, onPlayerDa
             <div className="flex items-center justify-between px-4 py-3 border-b border-border">
               <div className="flex items-center gap-2">
                 <MessageSquare size={13} className="text-primary" />
-                <span className="font-orbitron text-xs font-semibold tracking-[1.5px] text-primary uppercase">Nudge Agent</span>
+                <span className="font-jetbrains text-xs font-semibold tracking-[1.5px] text-primary uppercase">Nudge Agent</span>
               </div>
               <button onClick={() => setShowNudgeModal(false)} className="text-muted-foreground hover:text-foreground transition-colors">
                 <X size={14} />

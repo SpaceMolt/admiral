@@ -164,7 +164,7 @@ export function ProviderSetup({ providers: initialProviders, registrationCode, o
       >
         {/* Header */}
         <div className="flex items-center justify-between py-2.5 px-4 border-b border-border shrink-0">
-          <h2 className="font-orbitron text-sm font-medium text-primary tracking-[1.5px] uppercase">Settings</h2>
+          <h2 className="font-jetbrains text-sm font-medium text-primary tracking-[1.5px] uppercase">Settings</h2>
           <button
             onClick={onClose}
             className="text-muted-foreground hover:text-foreground transition-colors cursor-pointer"

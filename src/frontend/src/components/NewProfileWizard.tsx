@@ -93,7 +93,7 @@ export function NewProfileWizard({ providers, registrationCode, gameserverUrl, o
       >
         {/* Header */}
         <div className="flex items-center justify-between py-2.5 px-4 border-b border-border shrink-0">
-          <h2 className="font-orbitron text-sm font-medium text-primary tracking-[1.5px] uppercase">
+          <h2 className="font-jetbrains text-sm font-medium text-primary tracking-[1.5px] uppercase">
             New Profile
           </h2>
           <div className="flex items-center gap-3">

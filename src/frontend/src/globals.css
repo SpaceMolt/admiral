@@ -177,9 +177,8 @@
   --radius-xl: calc(var(--radius) + 8px);
 
   /* Fonts */
-  --font-orbitron: var(--font-family-orbitron), 'Orbitron', sans-serif;
-  --font-jetbrains: var(--font-family-jetbrains), 'JetBrains Mono', monospace;
-  --font-sans: var(--font-family-jetbrains), 'JetBrains Mono', monospace;
+  --font-jetbrains: 'JetBrains Mono', monospace;
+  --font-sans: 'JetBrains Mono', monospace;
 
   /* SMUI Text Sizes */
   --font-size-label: 11px;
@@ -318,7 +317,7 @@
 }
 
 .admiral-tour-popover .driver-popover-title {
-  font-family: var(--font-orbitron) !important;
+  font-family: var(--font-jetbrains) !important;
   font-size: 12px !important;
   font-weight: 600 !important;
   letter-spacing: 1.5px !important;
