@@ -116,6 +116,13 @@ export async function validateApiKey(provider: string, apiKey: string): Promise<
         })
         return resp.status !== 401 && resp.status !== 403
       }
+      case 'nvidia': {
+        const resp = await fetch('https://integrate.api.nvidia.com/v1/models', {
+          headers: { Authorization: `Bearer ${apiKey}` },
+          signal: AbortSignal.timeout(10000),
+        })
+        return resp.ok
+      }
       default:
         // For unknown providers, assume valid if non-empty
         return apiKey.length > 0

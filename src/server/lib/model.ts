@@ -25,6 +25,7 @@ const CUSTOM_BASE_URLS: Record<string, string> = {
   lmstudio: `http://${LOCALHOST}:1234/v1`,
   vllm: `http://${LOCALHOST}:8000/v1`,
   minimax: 'https://api.minimax.io/v1',
+  nvidia: 'https://integrate.api.nvidia.com/v1',
 }
 
 /**
