@@ -245,8 +245,10 @@ export class HttpV2Connection implements GameConnection {
   private async doRequest(command: string, payload?: Record<string, unknown>): Promise<CommandResult> {
     const base = this.effectiveBaseUrl
     const route = this.commandRouteMap.get(command)
-    // v2: POST /api/v2/{tool}/{action}, v1 fallback: POST /api/v1/{command}
-    const url = route ? `${base}/${route}` : `${base}/${command}`
+    // v2: POST /api/v2/{tool}/{action}
+    // v1 fallback for unknown commands: POST /api/v1/{command}
+    const v1Base = this.baseUrl.replace(/\/api\/v2$/, '/api/v1')
+    const url = route ? `${base}/${route}` : `${v1Base}/${command}`
     if (base !== this.baseUrl && !this.v1FallbackLogged) {
       this.specLog?.('warn', 'v2 route map unavailable, falling back to v1 API endpoints')
       this.v1FallbackLogged = true
