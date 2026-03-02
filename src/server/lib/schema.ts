@@ -134,18 +134,36 @@ export async function fetchGameCommands(baseUrl: string, log?: SpecLogFn): Promi
 }
 
 /**
- * Format commands as a compact pipe-separated list for the system prompt.
+ * Format a single command as a compact signature line for the system prompt.
+ * Examples:
+ *   mine -- Mine resources at current location
+ *   deposit_items(item_id, quantity) -- Move items from cargo to station storage
+ *   view_storage(station_id?) -- View your storage at a station
+ */
+function formatCommandSignature(cmd: GameCommandInfo): string {
+  let sig = cmd.name
+  if (cmd.params.length > 0) {
+    const paramList = cmd.params.map(p => p.required ? p.name : `${p.name}?`).join(', ')
+    sig += `(${paramList})`
+  }
+  return `  ${sig} -- ${cmd.description}`
+}
+
+/**
+ * Format commands with parameter signatures and descriptions for the system prompt.
  */
 export function formatCommandList(commands: GameCommandInfo[]): string {
-  const queries = commands.filter(c => !c.isMutation).map(c => c.name)
-  const mutations = commands.filter(c => c.isMutation).map(c => c.name)
+  const queries = commands.filter(c => !c.isMutation)
+  const mutations = commands.filter(c => c.isMutation)
 
   const lines: string[] = []
   if (queries.length > 0) {
-    lines.push(`Query commands (free, no tick cost): ${queries.join('|')}`)
+    lines.push('Query commands (free, no tick cost):')
+    for (const cmd of queries) lines.push(formatCommandSignature(cmd))
   }
   if (mutations.length > 0) {
-    lines.push(`Action commands (costs 1 tick): ${mutations.join('|')}`)
+    lines.push('Action commands (costs 1 tick):')
+    for (const cmd of mutations) lines.push(formatCommandSignature(cmd))
   }
   return lines.join('\n')
 }
