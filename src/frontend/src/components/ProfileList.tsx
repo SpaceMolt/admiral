@@ -60,9 +60,11 @@ export function ProfileList({ profiles, activeId, statuses, playerDataMap, onSel
   const [dragId, setDragId] = useState<string | null>(null)
   const [dropTarget, setDropTarget] = useState<{ id: string; position: 'before' | 'after' } | null>(null)
   const dragCounter = useRef(0)
+  const dragMoved = useRef(false)
 
   const handleDragStart = useCallback((e: React.DragEvent, id: string) => {
     setDragId(id)
+    dragMoved.current = false
     e.dataTransfer.effectAllowed = 'move'
     e.dataTransfer.setData('text/plain', id)
     // Make drag image semi-transparent
@@ -76,7 +78,7 @@ export function ProfileList({ profiles, activeId, statuses, playerDataMap, onSel
       e.currentTarget.style.opacity = '1'
     }
     // Execute reorder if we have a valid drop target
-    if (dragId && dropTarget) {
+    if (dragId && dropTarget && dragMoved.current) {
       const currentOrder = profiles.map(p => p.id)
       const fromIdx = currentOrder.indexOf(dragId)
       if (fromIdx !== -1) {
@@ -89,15 +91,21 @@ export function ProfileList({ profiles, activeId, statuses, playerDataMap, onSel
         onReorder(currentOrder)
       }
     }
+    // If drag ended without moving to a different target, treat as a click
+    if (dragId && !dragMoved.current) {
+      onSelect(dragId)
+    }
     setDragId(null)
     setDropTarget(null)
     dragCounter.current = 0
-  }, [dragId, dropTarget, profiles, onReorder])
+    dragMoved.current = false
+  }, [dragId, dropTarget, profiles, onReorder, onSelect])
 
   const handleDragOver = useCallback((e: React.DragEvent, id: string) => {
     e.preventDefault()
     e.dataTransfer.dropEffect = 'move'
     if (id === dragId) return
+    dragMoved.current = true
     const rect = (e.currentTarget as HTMLElement).getBoundingClientRect()
     const midY = rect.top + rect.height / 2
     const position = e.clientY < midY ? 'before' : 'after'

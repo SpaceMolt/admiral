@@ -268,20 +268,30 @@ function parseNotification(entry: LogEntry): CommsMessage {
   if (entry.detail) {
     try {
       const d = JSON.parse(entry.detail)
-      // Chat notifications: { type: 'chat', channel, sender/from, content/msg }
-      if (d.type === 'chat' || d.msg_type === 'chat' || d.channel) {
-        msg.channel = d.channel || 'system'
-        msg.sender = d.sender || d.from || d.username || ''
-        msg.content = d.content || d.msg || d.message || d.data || ''
+      // Notifications nest chat data inside d.data: { type: 'chat', data: { channel, sender, content } }
+      const chat = (d.data && typeof d.data === 'object') ? d.data : d
+      if (d.type === 'chat' || d.msg_type === 'chat_message' || d.channel || chat.channel) {
+        msg.channel = chat.channel || d.channel || 'system'
+        msg.sender = chat.sender || chat.from || chat.username || d.sender || ''
+        msg.content = typeof chat.content === 'string' ? chat.content
+          : typeof chat.msg === 'string' ? chat.msg
+          : typeof chat.message === 'string' ? chat.message
+          : entry.summary
       } else {
         // Other notifications — use summary as content
-        msg.channel = d.type || 'event'
-        msg.content = entry.summary
+        msg.channel = d.msg_type || d.type || 'event'
+        msg.content = (d.data && typeof d.data === 'object')
+          ? (d.data.message || d.data.content || entry.summary)
+          : entry.summary
       }
     } catch {
       msg.channel = 'event'
       msg.content = entry.summary
     }
+  }
+  // Safety: ensure content is always a string
+  if (msg.content && typeof msg.content !== 'string') {
+    msg.content = entry.summary
   }
   return msg
 }
