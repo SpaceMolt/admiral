@@ -1,8 +1,9 @@
 import { Type, StringEnum } from '@mariozechner/pi-ai'
 import type { Tool } from '@mariozechner/pi-ai'
 import type { GameConnection } from './connections/interface'
-import { updateProfile } from './db'
+import { updateProfile, createFleetOrder, getFleetOrders, updateFleetOrder, listProfiles } from './db'
 import { FleetIntelCollector } from './fleet-intel'
+import { agentManager } from './agent-manager'
 
 // --- Tool Definitions ---
 
@@ -59,9 +60,32 @@ export const allTools: Tool[] = [
       message: Type.String({ description: 'Status message' }),
     }),
   },
+  {
+    name: 'fleet_order',
+    description: 'Send an order to another fleet agent. Use this to delegate tasks like delivery, crafting, or buying. The target agent will see the order in their next turn.',
+    parameters: Type.Object({
+      target_agent: Type.String({ description: 'Name of the target agent (e.g. "Bob Comet", "CyberSapper")' }),
+      type: StringEnum(['deliver', 'buy', 'sell', 'craft', 'travel', 'mine', 'custom'], {
+        description: 'Order type',
+      }),
+      description: Type.String({ description: 'What the target should do. Be specific: item, quantity, destination.' }),
+      params: Type.Optional(Type.String({ description: 'JSON params (item_id, quantity, destination, etc.)' })),
+    }),
+  },
+  {
+    name: 'read_fleet_orders',
+    description: 'Read orders assigned to you by other fleet agents, and orders you have issued. Update order status when completing tasks.',
+    parameters: Type.Object({
+      action: StringEnum(['inbox', 'sent', 'accept', 'complete', 'reject'], {
+        description: 'inbox = orders for you, sent = orders you issued, accept/complete/reject = update order status',
+      }),
+      order_id: Type.Optional(Type.String({ description: 'Order ID (required for accept/complete/reject)' })),
+      progress: Type.Optional(Type.String({ description: 'Progress note when accepting or completing' })),
+    }),
+  },
 ]
 
-const LOCAL_TOOLS = new Set(['save_credentials', 'update_todo', 'read_todo', 'update_memory', 'read_memory', 'status_log'])
+const LOCAL_TOOLS = new Set(['save_credentials', 'update_todo', 'read_todo', 'update_memory', 'read_memory', 'status_log', 'fleet_order', 'read_fleet_orders'])
 
 const MAX_RESULT_CHARS = 4000
 
@@ -167,6 +191,68 @@ function executeLocalTool(name: string, args: Record<string, unknown>, ctx: Tool
     case 'status_log': {
       ctx.log('system', `[${args.category}] ${args.message}`)
       return 'Logged.'
+    }
+    case 'fleet_order': {
+      const targetName = String(args.target_agent)
+      const profiles = listProfiles()
+      const target = profiles.find(p => p.name.toLowerCase() === targetName.toLowerCase())
+      if (!target) return `Error: No agent named "${targetName}". Available: ${profiles.map(p => p.name).join(', ')}`
+
+      const orderId = crypto.randomUUID()
+      createFleetOrder({
+        id: orderId,
+        from_profile_id: ctx.profileId,
+        to_profile_id: target.id,
+        type: String(args.type),
+        description: String(args.description),
+        params: args.params ? String(args.params) : null,
+      })
+
+      // Nudge the target agent if they're running
+      const orderMsg = `Fleet order from ${ctx.profileName}: [${args.type}] ${args.description}`
+      agentManager.nudge(target.id, `## Fleet Order Received\n${orderMsg}\nUse read_fleet_orders(action="inbox") to see details and accept/complete orders.`)
+
+      ctx.log('system', `Fleet order sent to ${target.name}: [${args.type}] ${args.description}`)
+      return `Order sent to ${target.name} (id: ${orderId.slice(0, 8)}). They will be notified.`
+    }
+    case 'read_fleet_orders': {
+      const action = String(args.action)
+      const profiles = listProfiles()
+      const nameOf = (id: string) => profiles.find(p => p.id === id)?.name || id.slice(0, 8)
+
+      if (action === 'inbox') {
+        const orders = getFleetOrders({ toProfileId: ctx.profileId })
+        if (orders.length === 0) return 'No orders in your inbox.'
+        return orders.map(o =>
+          `[${o.id.slice(0, 8)}] ${o.status.toUpperCase()} | From: ${nameOf(o.from_profile_id)} | Type: ${o.type}\n  ${o.description}${o.progress ? `\n  Progress: ${o.progress}` : ''}`
+        ).join('\n\n')
+      }
+      if (action === 'sent') {
+        const orders = getFleetOrders({ fromProfileId: ctx.profileId })
+        if (orders.length === 0) return 'No orders sent.'
+        return orders.map(o =>
+          `[${o.id.slice(0, 8)}] ${o.status.toUpperCase()} | To: ${nameOf(o.to_profile_id)} | Type: ${o.type}\n  ${o.description}${o.progress ? `\n  Progress: ${o.progress}` : ''}`
+        ).join('\n\n')
+      }
+      if (['accept', 'complete', 'reject'].includes(action)) {
+        const orderId = String(args.order_id || '')
+        if (!orderId) return 'Error: order_id is required'
+        // Support short IDs
+        const allOrders = getFleetOrders({ toProfileId: ctx.profileId })
+        const order = allOrders.find(o => o.id === orderId || o.id.startsWith(orderId))
+        if (!order) return `Error: Order "${orderId}" not found in your inbox.`
+
+        const newStatus = action === 'accept' ? 'accepted' : action === 'complete' ? 'completed' : 'rejected'
+        updateFleetOrder(order.id, { status: newStatus, progress: args.progress ? String(args.progress) : undefined })
+
+        // Notify the sender
+        const statusMsg = `Order [${order.id.slice(0, 8)}] ${newStatus} by ${ctx.profileName}${args.progress ? `: ${args.progress}` : ''}`
+        agentManager.nudge(order.from_profile_id, `## Fleet Order Update\n${statusMsg}`)
+
+        ctx.log('system', `Fleet order ${order.id.slice(0, 8)} → ${newStatus}`)
+        return `Order ${order.id.slice(0, 8)} marked as ${newStatus}.`
+      }
+      return `Error: Unknown action "${action}". Use inbox, sent, accept, complete, or reject.`
     }
     default:
       return `Unknown local tool: ${name}`

@@ -215,6 +215,26 @@ function migrate(db: Database): void {
     CREATE INDEX IF NOT EXISTS idx_etrig_profile ON event_triggers(profile_id);
   `)
 
+  // Fleet orders for cross-agent task delegation (convoy system)
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS fleet_orders (
+      id TEXT PRIMARY KEY,
+      from_profile_id TEXT NOT NULL,
+      to_profile_id TEXT NOT NULL,
+      type TEXT NOT NULL,
+      description TEXT NOT NULL,
+      params TEXT DEFAULT NULL,
+      status TEXT DEFAULT 'pending',
+      progress TEXT DEFAULT NULL,
+      created_at TEXT DEFAULT (datetime('now')),
+      updated_at TEXT DEFAULT (datetime('now')),
+      FOREIGN KEY (from_profile_id) REFERENCES profiles(id) ON DELETE CASCADE,
+      FOREIGN KEY (to_profile_id) REFERENCES profiles(id) ON DELETE CASCADE
+    );
+    CREATE INDEX IF NOT EXISTS idx_ford_to ON fleet_orders(to_profile_id, status);
+    CREATE INDEX IF NOT EXISTS idx_ford_from ON fleet_orders(from_profile_id);
+  `)
+
   // Drop legacy table (storage credits now parsed from agent memory)
   db.exec('DROP TABLE IF EXISTS fleet_intel_storage_credits')
 
@@ -588,6 +608,55 @@ export function deleteEventTrigger(id: string): void {
 
 export function markEventTriggerFired(id: string): void {
   getDb().query("UPDATE event_triggers SET last_fired_at = datetime('now') WHERE id = ?").run(id)
+}
+
+// --- Fleet Orders (Convoy System) ---
+
+export interface FleetOrder {
+  id: string
+  from_profile_id: string
+  to_profile_id: string
+  type: string
+  description: string
+  params: string | null
+  status: string
+  progress: string | null
+  created_at: string
+  updated_at: string
+}
+
+export function createFleetOrder(order: Pick<FleetOrder, 'id' | 'from_profile_id' | 'to_profile_id' | 'type' | 'description' | 'params'>): void {
+  getDb().query(
+    `INSERT INTO fleet_orders (id, from_profile_id, to_profile_id, type, description, params)
+     VALUES (?, ?, ?, ?, ?, ?)`
+  ).run(order.id, order.from_profile_id, order.to_profile_id, order.type, order.description, order.params)
+}
+
+export function getFleetOrders(opts: {
+  toProfileId?: string
+  fromProfileId?: string
+  status?: string
+}): FleetOrder[] {
+  const conditions: string[] = []
+  const params: string[] = []
+  if (opts.toProfileId) { conditions.push('to_profile_id = ?'); params.push(opts.toProfileId) }
+  if (opts.fromProfileId) { conditions.push('from_profile_id = ?'); params.push(opts.fromProfileId) }
+  if (opts.status) { conditions.push('status = ?'); params.push(opts.status) }
+  const where = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : ''
+  return getDb().query(`SELECT * FROM fleet_orders ${where} ORDER BY created_at DESC`).all(...params) as FleetOrder[]
+}
+
+export function updateFleetOrder(id: string, updates: { status?: string; progress?: string }): void {
+  const sets: string[] = ["updated_at = datetime('now')"]
+  const vals: string[] = []
+  if (updates.status !== undefined) { sets.push('status = ?'); vals.push(updates.status) }
+  if (updates.progress !== undefined) { sets.push('progress = ?'); vals.push(updates.progress) }
+  vals.push(id)
+  getDb().query(`UPDATE fleet_orders SET ${sets.join(', ')} WHERE id = ?`).run(...vals)
+}
+
+export function deleteFleetOrder(id: string): void {
+  getDb().query('DELETE FROM fleet_orders WHERE id = ?').run(id)
 }
 
 export function getFinancialSnapshots(opts: {

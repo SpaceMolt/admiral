@@ -2,6 +2,7 @@ import { Hono } from 'hono'
 import {
   listSchedules, getSchedule, upsertSchedule, deleteSchedule,
   listEventTriggers, upsertEventTrigger, deleteEventTrigger,
+  getFleetOrders, deleteFleetOrder,
 } from '../lib/db'
 import { nextCronTime } from '../lib/scheduler'
 
@@ -106,6 +107,23 @@ schedules.post('/triggers', async (c) => {
 
 schedules.delete('/triggers/:id', (c) => {
   deleteEventTrigger(c.req.param('id'))
+  return c.json({ ok: true })
+})
+
+// --- Fleet Orders ---
+
+schedules.get('/orders', (c) => {
+  const profileId = c.req.query('profile_id')
+  const status = c.req.query('status')
+  return c.json(getFleetOrders({ toProfileId: profileId || undefined, status: status || undefined }))
+})
+
+schedules.get('/orders/all', (c) => {
+  return c.json(getFleetOrders({}))
+})
+
+schedules.delete('/orders/:id', (c) => {
+  deleteFleetOrder(c.req.param('id'))
   return c.json({ ok: true })
 })
 
