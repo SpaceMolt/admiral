@@ -280,6 +280,7 @@ export class Agent {
             signal: this.abortController.signal, apiKey: turnApiKey, maxToolRounds, llmTimeoutMs,
             contextBudgetRatio,
             onActivity: (a) => this.setActivity(`${phasePrefix}${a}`),
+            compactionModel: hasDualModel ? model : undefined,  // Always use executor for compaction
           },
           compaction,
         )
