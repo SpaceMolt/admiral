@@ -35,6 +35,7 @@ export function Dashboard({ profiles: initialProfiles, providers, registrationCo
   const [showWizard, setShowWizard] = useState(false)
   const [showTour, setShowTour] = useState(false)
   const [view, setView] = useState<'profiles' | 'map' | 'analytics'>('profiles')
+  const [warRoom, setWarRoom] = useState(false)
   const [sidebarOpen, setSidebarOpen] = useState(() => {
     try { return localStorage.getItem('admiral-sidebar-open') !== 'false' } catch { return true }
   })
@@ -169,7 +170,8 @@ export function Dashboard({ profiles: initialProfiles, providers, registrationCo
 
   return (
     <div className="flex flex-col h-screen">
-      {/* Top bar */}
+      {/* Top bar — hidden in war room */}
+      {!warRoom && (
       <div className="sticky top-0 z-50 flex items-center justify-between h-12 px-3.5 bg-card border-b border-border">
         <div className="flex items-baseline gap-3">
           <h1 className="font-jetbrains text-sm font-bold tracking-[1.5px] text-primary uppercase">
@@ -239,11 +241,12 @@ export function Dashboard({ profiles: initialProfiles, providers, registrationCo
           </button>
         </div>
       </div>
+      )}
 
       {/* Main content */}
       <div className="flex flex-1 min-h-0">
-        {/* Sidebar */}
-        {sidebarOpen && (
+        {/* Sidebar — hidden in war room */}
+        {sidebarOpen && !warRoom && (
           <div data-tour="sidebar" className="border-r border-border bg-card flex flex-col h-full">
             <ProfileList
               profiles={profiles}
@@ -264,6 +267,8 @@ export function Dashboard({ profiles: initialProfiles, providers, registrationCo
               profiles={profiles}
               statuses={statuses}
               playerDataMap={playerDataMap}
+              fullscreen={warRoom}
+              onToggleFullscreen={() => setWarRoom(v => !v)}
             />
           ) : view === 'analytics' ? (
             <AnalyticsPane

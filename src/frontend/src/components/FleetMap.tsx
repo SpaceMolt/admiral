@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import { Canvas } from '@react-three/fiber'
 import { CameraControls } from '@react-three/drei'
-import { Loader2, RefreshCw } from 'lucide-react'
+import { Loader2, RefreshCw, Maximize2, Minimize2 } from 'lucide-react'
 import type CameraControlsImpl from 'camera-controls'
 import type { Profile } from '@/types'
 import type { GalaxyMapData, GalaxySystem } from '@shared/galaxy-types'
@@ -18,9 +18,11 @@ interface Props {
   profiles: Profile[]
   statuses: Record<string, { connected: boolean; running: boolean }>
   playerDataMap: Record<string, Record<string, unknown>>
+  fullscreen?: boolean
+  onToggleFullscreen?: () => void
 }
 
-export function FleetMap({ profiles, statuses, playerDataMap }: Props) {
+export function FleetMap({ profiles, statuses, playerDataMap, fullscreen, onToggleFullscreen }: Props) {
   const [galaxyData, setGalaxyData] = useState<GalaxyMapData | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -95,11 +97,14 @@ export function FleetMap({ profiles, statuses, playerDataMap }: Props) {
   // Keyboard
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
-      if (e.key === 'Escape') setSelectedSystem(null)
+      if (e.key === 'Escape') {
+        if (fullscreen && onToggleFullscreen) onToggleFullscreen()
+        else setSelectedSystem(null)
+      }
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [])
+  }, [fullscreen, onToggleFullscreen])
 
   // Center on system (from legend click)
   const centerOnSystem = useCallback((systemName: string) => {
@@ -206,6 +211,22 @@ export function FleetMap({ profiles, statuses, playerDataMap }: Props) {
       />
 
       <FleetIntelPanel />
+
+      {/* Top-right controls */}
+      <div className="absolute top-3 right-3 flex items-center gap-2 z-30">
+        {fullscreen && (
+          <span className="text-[10px] uppercase tracking-[1.5px] text-primary/60 font-medium mr-2 select-none">War Room</span>
+        )}
+        {onToggleFullscreen && (
+          <button
+            onClick={onToggleFullscreen}
+            className="flex items-center justify-center w-7 h-7 bg-card/80 border border-border text-muted-foreground hover:text-foreground transition-colors backdrop-blur-sm"
+            title={fullscreen ? 'Exit war room (Esc)' : 'War room — full screen'}
+          >
+            {fullscreen ? <Minimize2 size={13} /> : <Maximize2 size={13} />}
+          </button>
+        )}
+      </div>
 
       <div className="absolute bottom-3 left-3 flex items-center gap-3 text-[10px] text-muted-foreground/60 select-none">
         <span>{galaxyData?.total_count || 0} systems</span>

@@ -1,9 +1,9 @@
 import { useState, useRef, useEffect, useCallback, useMemo } from 'react'
-import { ArrowDown, Loader2, Clock, DollarSign, Cpu, Users } from 'lucide-react'
+import { ArrowDown, Loader2, Clock, DollarSign, Cpu, Users, MessageSquare } from 'lucide-react'
 import { useVirtualizer } from '@tanstack/react-virtual'
 import type { Profile, LogEntry, LogType } from '@/types'
 
-type Tab = 'timeline' | 'financial' | 'tokens'
+type Tab = 'timeline' | 'comms' | 'financial' | 'tokens'
 
 const BADGE_CLASS: Record<string, string> = {
   connection: 'log-badge-connection',
@@ -43,6 +43,7 @@ export function AnalyticsPane({ profiles, statuses }: Props) {
 
   const tabs: { key: Tab; label: string; icon: React.ReactNode }[] = [
     { key: 'timeline', label: 'Timeline', icon: <Clock size={12} /> },
+    { key: 'comms', label: 'Comms', icon: <MessageSquare size={12} /> },
     { key: 'financial', label: 'Financial', icon: <DollarSign size={12} /> },
     { key: 'tokens', label: 'Token Economics', icon: <Cpu size={12} /> },
   ]
@@ -70,6 +71,7 @@ export function AnalyticsPane({ profiles, statuses }: Props) {
       {/* Tab content */}
       <div className="flex-1 min-h-0">
         {tab === 'timeline' && <TimelineTab profiles={profiles} statuses={statuses} />}
+        {tab === 'comms' && <CommsTab profiles={profiles} statuses={statuses} />}
         {tab === 'financial' && <FinancialTab profiles={profiles} />}
         {tab === 'tokens' && <TokensTab profiles={profiles} />}
       </div>
@@ -240,11 +242,245 @@ function TimelineTab({ profiles, statuses }: { profiles: Profile[]; statuses: Re
   )
 }
 
+// ---- Comms Tab ----
+
+interface CommsMessage {
+  id: number
+  profile_id: string
+  timestamp: string
+  summary: string
+  detail: string | null
+  channel?: string
+  sender?: string
+  content?: string
+}
+
+function parseNotification(entry: LogEntry): CommsMessage {
+  const msg: CommsMessage = {
+    id: entry.id,
+    profile_id: entry.profile_id,
+    timestamp: entry.timestamp,
+    summary: entry.summary,
+    detail: entry.detail,
+  }
+  if (entry.detail) {
+    try {
+      const d = JSON.parse(entry.detail)
+      // Chat notifications: { type: 'chat', channel, sender/from, content/msg }
+      if (d.type === 'chat' || d.msg_type === 'chat' || d.channel) {
+        msg.channel = d.channel || 'system'
+        msg.sender = d.sender || d.from || d.username || ''
+        msg.content = d.content || d.msg || d.message || d.data || ''
+      } else {
+        // Other notifications — use summary as content
+        msg.channel = d.type || 'event'
+        msg.content = entry.summary
+      }
+    } catch {
+      msg.channel = 'event'
+      msg.content = entry.summary
+    }
+  }
+  return msg
+}
+
+const CHANNEL_COLORS: Record<string, string> = {
+  system: 'hsl(var(--smui-frost-1))',
+  local: 'hsl(var(--smui-green))',
+  faction: 'hsl(var(--smui-primary))',
+  private: 'hsl(var(--smui-orange))',
+  event: 'hsl(var(--smui-yellow))',
+  trade: 'hsl(var(--smui-green))',
+  combat: '#ef4444',
+  friend: '#c084fc',
+  tip: 'hsl(var(--smui-yellow))',
+}
+
+function CommsTab({ profiles, statuses }: { profiles: Profile[]; statuses: Record<string, { connected: boolean; running: boolean }> }) {
+  const [messages, setMessages] = useState<CommsMessage[]>([])
+  const [autoScroll, setAutoScroll] = useState(true)
+  const [filterProfiles, setFilterProfiles] = useState<Set<string>>(() => new Set(profiles.map(p => p.id)))
+  const [filterChannels, setFilterChannels] = useState<Set<string>>(new Set())
+  const scrollRef = useRef<HTMLDivElement>(null)
+
+  const profileMap = useMemo(() => {
+    const m = new Map<string, { name: string; color: string }>()
+    profiles.forEach((p, i) => m.set(p.id, { name: p.name, color: AGENT_COLORS[i % AGENT_COLORS.length] }))
+    return m
+  }, [profiles])
+
+  // SSE stream filtered to notification type
+  useEffect(() => {
+    const es = new EventSource('/api/analytics/timeline?stream=true&types=notification')
+    es.onmessage = (event) => {
+      try {
+        const entry = JSON.parse(event.data) as LogEntry
+        const msg = parseNotification(entry)
+        setMessages(prev => {
+          if (prev.some(m => m.id === entry.id)) return prev
+          const next = [...prev, msg].sort((a, b) => a.id - b.id)
+          if (next.length > 500) return next.slice(-400)
+          return next
+        })
+        // Track channels for filter chips
+        if (msg.channel) {
+          setFilterChannels(prev => {
+            if (prev.has(msg.channel!)) return prev
+            return new Set([...prev, msg.channel!])
+          })
+        }
+      } catch { /* heartbeat */ }
+    }
+    return () => es.close()
+  }, [])
+
+  const [activeChannels, setActiveChannels] = useState<Set<string> | null>(null) // null = all
+
+  const filtered = useMemo(() => {
+    return messages.filter(m => {
+      if (!filterProfiles.has(m.profile_id)) return false
+      if (activeChannels && m.channel && !activeChannels.has(m.channel)) return false
+      return true
+    })
+  }, [messages, filterProfiles, activeChannels])
+
+  useEffect(() => {
+    if (autoScroll && scrollRef.current) {
+      requestAnimationFrame(() => {
+        scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight })
+      })
+    }
+  }, [filtered.length, autoScroll])
+
+  const handleScroll = useCallback(() => {
+    if (!scrollRef.current) return
+    const { scrollTop, scrollHeight, clientHeight } = scrollRef.current
+    setAutoScroll(scrollHeight - scrollTop - clientHeight < 40)
+  }, [])
+
+  function toggleProfile(id: string) {
+    setFilterProfiles(prev => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id); else next.add(id)
+      return next
+    })
+  }
+
+  function toggleChannel(ch: string) {
+    setActiveChannels(prev => {
+      if (!prev) {
+        // Switch from "all" to "only this one"
+        return new Set([ch])
+      }
+      const next = new Set(prev)
+      if (next.has(ch)) next.delete(ch); else next.add(ch)
+      if (next.size === 0) return null // back to all
+      return next
+    })
+  }
+
+  return (
+    <div className="flex flex-col h-full relative">
+      {/* Agent + channel filter chips */}
+      <div className="flex items-center gap-1 px-2 py-1.5 border-b border-border/50 flex-wrap">
+        <Users size={11} className="text-muted-foreground mr-1" />
+        {profiles.map((p, i) => {
+          const color = AGENT_COLORS[i % AGENT_COLORS.length]
+          const active = filterProfiles.has(p.id)
+          return (
+            <button
+              key={p.id}
+              onClick={() => toggleProfile(p.id)}
+              className={`flex items-center gap-1 px-2 py-0.5 text-[10px] uppercase tracking-wider border transition-colors ${
+                active ? 'border-current' : 'border-transparent opacity-40'
+              }`}
+              style={{ color }}
+            >
+              <span className="w-1.5 h-1.5 rounded-full" style={{ background: color }} />
+              {p.name}
+            </button>
+          )
+        })}
+        {filterChannels.size > 0 && (
+          <>
+            <span className="w-px h-3 bg-border mx-1" />
+            {Array.from(filterChannels).sort().map(ch => {
+              const active = !activeChannels || activeChannels.has(ch)
+              const color = CHANNEL_COLORS[ch] || '#888'
+              return (
+                <button
+                  key={ch}
+                  onClick={() => toggleChannel(ch)}
+                  className={`px-2 py-0.5 text-[10px] uppercase tracking-wider border transition-colors ${
+                    active ? 'border-current' : 'border-transparent opacity-40'
+                  }`}
+                  style={{ color }}
+                >
+                  {ch}
+                </button>
+              )
+            })}
+          </>
+        )}
+      </div>
+
+      {/* Message list */}
+      <div ref={scrollRef} onScroll={handleScroll} className="flex-1 overflow-y-auto text-xs">
+        {filtered.length === 0 ? (
+          <div className="flex items-center justify-center h-full text-muted-foreground text-xs">
+            No comms yet. Notifications and chat messages from connected agents appear here.
+          </div>
+        ) : (
+          <div className="divide-y divide-border/20">
+            {filtered.map(msg => {
+              const agent = profileMap.get(msg.profile_id)
+              const chColor = CHANNEL_COLORS[msg.channel || ''] || '#888'
+              return (
+                <div key={msg.id} className="px-2.5 py-1.5 hover:bg-secondary/20">
+                  <div className="flex items-center gap-2">
+                    <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ background: agent?.color || '#888' }} />
+                    <span className="text-[10px] font-medium shrink-0 w-16 truncate" style={{ color: agent?.color || '#888' }}>
+                      {agent?.name || 'Unknown'}
+                    </span>
+                    <span className="text-muted-foreground shrink-0 tabular-nums text-[10px]">
+                      {formatTime(msg.timestamp)}
+                    </span>
+                    {msg.channel && (
+                      <span className="px-1.5 py-0 text-[9px] uppercase tracking-wider border shrink-0" style={{ color: chColor, borderColor: chColor + '40' }}>
+                        {msg.channel}
+                      </span>
+                    )}
+                    {msg.sender && (
+                      <span className="text-foreground/60 text-[10px] shrink-0">{msg.sender}:</span>
+                    )}
+                    <span className="text-foreground/80 truncate">{msg.content || msg.summary}</span>
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        )}
+      </div>
+
+      {!autoScroll && (
+        <button
+          onClick={() => { setAutoScroll(true); scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight }) }}
+          className="absolute bottom-4 right-4 w-8 h-8 flex items-center justify-center bg-card border border-border text-muted-foreground hover:text-foreground hover:border-primary/40 transition-all shadow-lg"
+          title="Scroll to bottom"
+        >
+          <ArrowDown size={14} />
+        </button>
+      )}
+    </div>
+  )
+}
+
 // ---- Financial Tab ----
 
 interface FinancialData {
-  profiles: Array<{ id: string; name: string; wallet: number; storage: number; total: number }>
+  profiles: Array<{ id: string; name: string; wallet: number; storage: number; total: number; cargo: Array<{ item: string; quantity: number }> }>
   fleetTotal: number
+  fleetCargo: Record<string, number>
 }
 
 function FinancialTab({ profiles }: { profiles: Profile[] }) {
@@ -316,6 +552,40 @@ function FinancialTab({ profiles }: { profiles: Profile[] }) {
           <MiniChart data={history.map(h => h.total)} labels={history.map(h => h.time)} color="hsl(var(--smui-primary))" />
         </div>
       )}
+
+      {/* Fleet inventory */}
+      {data.fleetCargo && Object.keys(data.fleetCargo).length > 0 && (
+        <div className="space-y-2">
+          <div className="text-[10px] uppercase tracking-wider text-muted-foreground">Fleet Cargo Inventory</div>
+          <div className="border border-border">
+            <table className="w-full text-xs">
+              <thead>
+                <tr className="border-b border-border bg-secondary/20">
+                  <th className="text-left px-2 py-1.5 text-[10px] uppercase tracking-wider text-muted-foreground font-medium">Item</th>
+                  <th className="text-right px-2 py-1.5 text-[10px] uppercase tracking-wider text-muted-foreground font-medium">Qty</th>
+                  <th className="text-left px-2 py-1.5 text-[10px] uppercase tracking-wider text-muted-foreground font-medium">Held By</th>
+                </tr>
+              </thead>
+              <tbody>
+                {Object.entries(data.fleetCargo)
+                  .sort(([, a], [, b]) => b - a)
+                  .map(([item, qty]) => {
+                    const holders = data.profiles
+                      .filter(p => p.cargo.some(c => c.item === item))
+                      .map(p => p.name)
+                    return (
+                      <tr key={item} className="border-b border-border/30">
+                        <td className="px-2 py-1.5 font-mono text-foreground/80">{item.replace(/_/g, ' ')}</td>
+                        <td className="px-2 py-1.5 text-right tabular-nums font-medium">{qty.toLocaleString()}</td>
+                        <td className="px-2 py-1.5 text-muted-foreground text-[10px]">{holders.join(', ')}</td>
+                      </tr>
+                    )
+                  })}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
@@ -328,11 +598,20 @@ interface TokenData {
   timeline: Array<{ timestamp: string; cost: number; tokens: number; profile_id: string; model: string }>
 }
 
+interface RoiData {
+  profiles: Array<{ id: string; name: string; totalCredits: number; apiCost: number; creditsPerDollar: number }>
+  fleetTotalCredits: number
+  fleetApiCost: number
+  fleetCreditsPerDollar: number
+}
+
 function TokensTab({ profiles }: { profiles: Profile[] }) {
   const [data, setData] = useState<TokenData | null>(null)
+  const [roi, setRoi] = useState<RoiData | null>(null)
 
   useEffect(() => {
     fetch('/api/analytics/tokens').then(r => r.json()).then(setData).catch(() => {})
+    fetch('/api/analytics/roi').then(r => r.json()).then(setRoi).catch(() => {})
   }, [])
 
   const profileMap = useMemo(() => {
@@ -433,6 +712,54 @@ function TokensTab({ profiles }: { profiles: Profile[] }) {
         <div className="space-y-2">
           <div className="text-[10px] uppercase tracking-wider text-muted-foreground">Cumulative Cost</div>
           <MiniChart data={costTimeline} color="hsl(var(--smui-orange))" prefix="$" />
+        </div>
+      )}
+
+      {/* ROI / CFO View */}
+      {roi && (
+        <div className="space-y-4">
+          <div className="text-[10px] uppercase tracking-wider text-muted-foreground">Return on Investment</div>
+
+          {/* Fleet ROI summary */}
+          <div className="grid grid-cols-3 gap-4">
+            <StatCard label="Fleet Credits" value={roi.fleetTotalCredits.toLocaleString() + ' cr'} />
+            <StatCard label="API Spend" value={formatCost(roi.fleetApiCost)} />
+            <StatCard label="Credits / $1" value={roi.fleetCreditsPerDollar.toLocaleString()} />
+          </div>
+
+          {/* Per-agent ROI table */}
+          <div className="border border-border">
+            <table className="w-full text-xs">
+              <thead>
+                <tr className="border-b border-border bg-secondary/20">
+                  <th className="text-left px-2 py-1.5 text-[10px] uppercase tracking-wider text-muted-foreground font-medium">Agent</th>
+                  <th className="text-right px-2 py-1.5 text-[10px] uppercase tracking-wider text-muted-foreground font-medium">Credits</th>
+                  <th className="text-right px-2 py-1.5 text-[10px] uppercase tracking-wider text-muted-foreground font-medium">API Cost</th>
+                  <th className="text-right px-2 py-1.5 text-[10px] uppercase tracking-wider text-muted-foreground font-medium">Cr / $1</th>
+                </tr>
+              </thead>
+              <tbody>
+                {roi.profiles
+                  .sort((a, b) => b.creditsPerDollar - a.creditsPerDollar)
+                  .map((p) => {
+                    const idx = profiles.findIndex(pr => pr.id === p.id)
+                    const color = AGENT_COLORS[idx >= 0 ? idx % AGENT_COLORS.length : 0]
+                    return (
+                      <tr key={p.id} className="border-b border-border/30">
+                        <td className="px-2 py-1.5">
+                          <span className="font-medium" style={{ color }}>{p.name}</span>
+                        </td>
+                        <td className="px-2 py-1.5 text-right tabular-nums">{p.totalCredits.toLocaleString()}</td>
+                        <td className="px-2 py-1.5 text-right tabular-nums">{formatCost(p.apiCost)}</td>
+                        <td className="px-2 py-1.5 text-right tabular-nums font-medium">
+                          {p.creditsPerDollar > 0 ? p.creditsPerDollar.toLocaleString() : '—'}
+                        </td>
+                      </tr>
+                    )
+                  })}
+              </tbody>
+            </table>
+          </div>
         </div>
       )}
     </div>

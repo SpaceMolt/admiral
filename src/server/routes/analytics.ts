@@ -104,9 +104,11 @@ analytics.get('/financial', (c) => {
       wallet: number
       storage: number
       total: number
+      cargo: Array<{ item: string; quantity: number }>
     }>
     fleetTotal: number
-  } = { profiles: [], fleetTotal: 0 }
+    fleetCargo: Record<string, number>
+  } = { profiles: [], fleetTotal: 0, fleetCargo: {} }
 
   for (const profile of profiles) {
     const agent = agentManager.getAgent(profile.id)
@@ -117,15 +119,80 @@ analytics.get('/financial', (c) => {
     // Parse storage from memory
     const storage = parseStorageCreditsFromMemory(profile.memory || '')
 
+    // Extract cargo items from game state
+    const cargo: Array<{ item: string; quantity: number }> = []
+    const rawCargo = (gameState?.cargo ?? gameState?.ship && (gameState.ship as Record<string, unknown>)?.cargo) as Array<Record<string, unknown>> | undefined
+    if (Array.isArray(rawCargo)) {
+      for (const c of rawCargo) {
+        const item = String(c.item_id || c.name || '')
+        const qty = Number(c.quantity ?? 1)
+        if (item) {
+          cargo.push({ item, quantity: qty })
+          result.fleetCargo[item] = (result.fleetCargo[item] || 0) + qty
+        }
+      }
+    }
+
     result.profiles.push({
       id: profile.id,
       name: profile.name,
       wallet,
       storage,
       total: wallet + storage,
+      cargo,
     })
     result.fleetTotal += wallet + storage
   }
+
+  return c.json(result)
+})
+
+/**
+ * GET /api/analytics/roi
+ * Per-agent ROI: game credits earned vs API dollars spent.
+ * Uses token cost data + current financial snapshot.
+ */
+analytics.get('/roi', (c) => {
+  const profiles = listProfiles()
+  const tokenData = getTokenAnalytics({})
+  const result: {
+    profiles: Array<{
+      id: string
+      name: string
+      totalCredits: number
+      apiCost: number
+      creditsPerDollar: number
+    }>
+    fleetTotalCredits: number
+    fleetApiCost: number
+    fleetCreditsPerDollar: number
+  } = { profiles: [], fleetTotalCredits: 0, fleetApiCost: 0, fleetCreditsPerDollar: 0 }
+
+  for (const profile of profiles) {
+    const agent = agentManager.getAgent(profile.id)
+    const gameState = agent?.gameState as Record<string, unknown> | null | undefined
+    const player = (gameState?.player ?? {}) as Record<string, unknown>
+    const wallet = typeof player.credits === 'number' ? player.credits : 0
+    const storage = parseStorageCreditsFromMemory(profile.memory || '')
+    const totalCredits = wallet + storage
+
+    const tokenStats = tokenData.byProfile[profile.id]
+    const apiCost = tokenStats?.cost ?? 0
+
+    result.profiles.push({
+      id: profile.id,
+      name: profile.name,
+      totalCredits,
+      apiCost,
+      creditsPerDollar: apiCost > 0 ? Math.round(totalCredits / apiCost) : 0,
+    })
+    result.fleetTotalCredits += totalCredits
+    result.fleetApiCost += apiCost
+  }
+
+  result.fleetCreditsPerDollar = result.fleetApiCost > 0
+    ? Math.round(result.fleetTotalCredits / result.fleetApiCost)
+    : 0
 
   return c.json(result)
 })
