@@ -66,6 +66,8 @@ export function LogPane({ profileId, connected }: Props) {
   }, [connected])
 
   useEffect(() => {
+    setEntries([])
+
     if (eventSourceRef.current) {
       eventSourceRef.current.close()
     }
