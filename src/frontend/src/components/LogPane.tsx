@@ -66,18 +66,6 @@ export function LogPane({ profileId, connected }: Props) {
   }, [connected])
 
   useEffect(() => {
-    // Fetch recent entries immediately so the pane isn't blank on switch
-    fetch(`/api/profiles/${profileId}/logs`)
-      .then(r => r.json())
-      .then((batch: LogEntry[]) => {
-        setEntries(prev => {
-          const ids = new Set(prev.map(e => e.id))
-          const fresh = batch.filter((e: LogEntry) => !ids.has(e.id))
-          return [...prev, ...fresh].sort((a, b) => a.id - b.id).slice(-500)
-        })
-      })
-      .catch(() => {})
-
     setEntries([])
 
     if (eventSourceRef.current) {
@@ -87,6 +75,17 @@ export function LogPane({ profileId, connected }: Props) {
     const es = new EventSource(`/api/profiles/${profileId}/logs?stream=true`)
     eventSourceRef.current = es
 
+    // Server sends recent history as a single batch on connect
+    es.addEventListener('init', (event) => {
+      try {
+        const batch = JSON.parse(event.data) as LogEntry[]
+        setEntries(batch.sort((a, b) => a.id - b.id))
+      } catch {
+        // ignore
+      }
+    })
+
+    // Live entries arrive individually after the init batch
     es.onmessage = (event) => {
       try {
         const entry = JSON.parse(event.data) as LogEntry
