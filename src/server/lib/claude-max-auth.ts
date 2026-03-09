@@ -26,6 +26,7 @@ interface CredentialsFile {
 }
 
 let cachedCredentials: ClaudeOAuthCredentials | null = null
+let refreshInFlight: Promise<ClaudeOAuthCredentials> | null = null
 
 function readCredentialsFile(): CredentialsFile | null {
   try {
@@ -103,24 +104,46 @@ export function isClaudeMaxAvailable(): boolean {
  * for Bearer auth + Claude Code headers.
  */
 export async function getClaudeMaxToken(): Promise<string> {
-  // Read fresh from disk if we don't have cached creds
-  if (!cachedCredentials) {
-    const file = readCredentialsFile()
-    if (!file) {
-      throw new Error(
-        'Claude MAX credentials not found. Run "claude auth login" in your terminal first.'
-      )
-    }
-    cachedCredentials = file.claudeAiOauth
+  // Re-read from disk each time so we pick up tokens refreshed by Claude Code
+  const file = readCredentialsFile()
+  if (!file) {
+    throw new Error(
+      'Claude MAX credentials not found. Run "claude auth login" in your terminal first.'
+    )
   }
 
-  // Check if token is expired (with 1 minute buffer)
+  // Use disk version if it has a newer/valid token (e.g., refreshed by Claude Code)
+  const diskCreds = file.claudeAiOauth
   const now = Date.now()
-  if (cachedCredentials.expiresAt < now + 60_000) {
-    cachedCredentials = await refreshToken(cachedCredentials.refreshToken)
+
+  if (diskCreds.expiresAt > now + 60_000) {
+    cachedCredentials = diskCreds
+    return diskCreds.accessToken
   }
 
-  return cachedCredentials.accessToken
+  // Token expired — refresh, but deduplicate concurrent requests
+  if (refreshInFlight) {
+    const result = await refreshInFlight
+    return result.accessToken
+  }
+
+  const refreshTokenValue = diskCreds.refreshToken
+  refreshInFlight = refreshToken(refreshTokenValue).finally(() => {
+    refreshInFlight = null
+  })
+
+  try {
+    cachedCredentials = await refreshInFlight
+    return cachedCredentials.accessToken
+  } catch (err) {
+    // If refresh fails, try re-reading disk in case another process refreshed
+    const retry = readCredentialsFile()
+    if (retry && retry.claudeAiOauth.expiresAt > Date.now() + 60_000) {
+      cachedCredentials = retry.claudeAiOauth
+      return cachedCredentials.accessToken
+    }
+    throw err
+  }
 }
 
 /**

@@ -7,7 +7,7 @@ import { HttpV2Connection } from './connections/http_v2'
 import { WebSocketConnection } from './connections/websocket'
 import { McpConnection } from './connections/mcp'
 import { McpV2Connection } from './connections/mcp_v2'
-import { resolveModel } from './model'
+import { resolveModel, resolveApiKey } from './model'
 import { fetchGameCommands, formatCommandList } from './schema'
 import { allTools } from './tools'
 import { runAgentTurn, type CompactionState } from './loop'
@@ -177,10 +177,10 @@ export class Agent {
 
     this.log('system', `Starting LLM loop with ${profile.provider}/${profile.model}`)
 
-    const { model, apiKey } = await resolveModel(`${profile.provider}/${profile.model}`)
+    const { model } = await resolveModel(`${profile.provider}/${profile.model}`)
 
     // Resolve planner model if dual-model is configured
-    let plannerResolved: { model: typeof model; apiKey?: string } | null = null
+    let plannerResolved: { model: typeof model } | null = null
     const hasDualModel = !!(profile.planner_model)
     if (hasDualModel) {
       const pp = profile.planner_provider || profile.provider
@@ -269,7 +269,9 @@ export class Agent {
         // Dual-model phase selection
         const isPlanningTurn = hasDualModel && plannerResolved && (turnCounter % planningInterval === 0)
         const turnModel = isPlanningTurn ? plannerResolved!.model : model
-        const turnApiKey = isPlanningTurn ? plannerResolved!.apiKey : apiKey
+        // Re-resolve API key each turn for OAuth providers (tokens expire)
+        const turnProvider = isPlanningTurn ? (profile.planner_provider || profile.provider) : profile.provider
+        const turnApiKey = await resolveApiKey(turnProvider!)
         const phasePrefix = isPlanningTurn ? '[Planning] ' : (hasDualModel ? '[Executing] ' : '')
 
         this.setActivity(`${phasePrefix}Waiting for LLM response...`)

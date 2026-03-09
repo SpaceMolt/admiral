@@ -128,3 +128,15 @@ function getApiKeyFromDb(provider: string): string | undefined {
   const dbProvider = getProvider(provider)
   return dbProvider?.api_key || undefined
 }
+
+/**
+ * Resolve a fresh API key for a provider.
+ * For claude-max, this re-fetches the OAuth token (auto-refreshing if expired).
+ * For other providers, reads from DB. Lightweight enough to call every turn.
+ */
+export async function resolveApiKey(provider: string): Promise<string | undefined> {
+  if (provider === 'claude-max') {
+    return await getClaudeMaxToken()
+  }
+  return getApiKeyFromDb(provider)
+}
