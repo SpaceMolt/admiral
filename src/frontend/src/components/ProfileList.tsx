@@ -130,20 +130,22 @@ export function ProfileList({ profiles, activeId, statuses, playerDataMap, onSel
     <div className="w-56 flex flex-col flex-1 min-h-0">
       <div className="px-3.5 py-2.5 border-b border-border flex items-center justify-between">
         <h2 className="text-[11px] text-muted-foreground uppercase tracking-[1.5px] font-normal">Profiles</h2>
-        <div className="flex items-center gap-1">
+        <div className="flex items-center gap-1.5">
           <button
             onClick={() => batchAction('connect_llm')}
-            className="flex items-center justify-center w-5 h-5 text-muted-foreground/50 hover:text-[hsl(var(--smui-green))] transition-colors"
-            title="Connect all agents"
+            className="flex items-center gap-1 px-1.5 py-0.5 text-[9px] uppercase tracking-wider text-muted-foreground/60 hover:text-[hsl(var(--smui-green))] hover:bg-[hsl(var(--smui-green)/0.1)] transition-colors rounded"
+            title="Connect and start all agents"
           >
-            <Play size={10} />
+            <Play size={9} fill="currentColor" />
+            <span>All</span>
           </button>
           <button
             onClick={() => batchAction('disconnect')}
-            className="flex items-center justify-center w-5 h-5 text-muted-foreground/50 hover:text-[hsl(var(--smui-orange))] transition-colors"
+            className="flex items-center gap-1 px-1.5 py-0.5 text-[9px] uppercase tracking-wider text-muted-foreground/60 hover:text-[hsl(var(--smui-orange))] hover:bg-[hsl(var(--smui-orange)/0.1)] transition-colors rounded"
             title="Disconnect all agents"
           >
-            <Square size={10} />
+            <Square size={8} fill="currentColor" />
+            <span>Stop</span>
           </button>
         </div>
       </div>

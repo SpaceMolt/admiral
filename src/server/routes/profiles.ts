@@ -7,7 +7,16 @@ const profiles = new Hono()
 // GET /api/profiles
 profiles.get('/', (c) => {
   const all = listProfiles()
-  return c.json(all.map(p => ({ ...p, ...agentManager.getStatus(p.id) })))
+  return c.json(all.map(p => {
+    const status = agentManager.getStatus(p.id)
+    // Persist live faction name to group_name so it survives disconnects
+    const liveFaction = (status.gameState as Record<string, unknown> | null)?.faction as string | undefined
+    if (liveFaction && liveFaction !== p.group_name) {
+      updateProfile(p.id, { group_name: liveFaction })
+      p.group_name = liveFaction
+    }
+    return { ...p, ...status }
+  }))
 })
 
 // POST /api/profiles
