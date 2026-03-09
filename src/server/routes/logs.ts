@@ -17,9 +17,9 @@ logs.get('/:id/logs', async (c) => {
 
   // SSE stream
   return streamSSE(c, async (stream) => {
-    // Send recent history as a single batch event
+    // Send recent history as a single batch via default message channel
     const recent = getLogEntries(id, undefined, 50).reverse()
-    await stream.writeSSE({ event: 'init', data: JSON.stringify(recent) })
+    await stream.writeSSE({ data: JSON.stringify({ _init: true, entries: recent }) })
 
     let currentAgent = agentManager.getAgent(id)
     let closed = false

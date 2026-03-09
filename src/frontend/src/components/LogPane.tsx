@@ -75,20 +75,16 @@ export function LogPane({ profileId, connected }: Props) {
     const es = new EventSource(`/api/profiles/${profileId}/logs?stream=true`)
     eventSourceRef.current = es
 
-    // Server sends recent history as a single batch on connect
-    es.addEventListener('init', (event) => {
-      try {
-        const batch = JSON.parse(event.data) as LogEntry[]
-        setEntries(batch.sort((a, b) => a.id - b.id))
-      } catch {
-        // ignore
-      }
-    })
-
-    // Live entries arrive individually after the init batch
     es.onmessage = (event) => {
       try {
-        const entry = JSON.parse(event.data) as LogEntry
+        const data = JSON.parse(event.data)
+        // Initial batch arrives as { _init: true, entries: [...] }
+        if (data._init && Array.isArray(data.entries)) {
+          setEntries((data.entries as LogEntry[]).sort((a: LogEntry, b: LogEntry) => a.id - b.id))
+          return
+        }
+        // Live entries arrive individually
+        const entry = data as LogEntry
         setEntries(prev => {
           if (prev.some(e => e.id === entry.id)) return prev
           const next = [...prev, entry].sort((a, b) => a.id - b.id)
