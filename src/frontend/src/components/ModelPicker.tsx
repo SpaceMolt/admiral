@@ -77,7 +77,7 @@ export function ModelPicker({ provider, value, onChange }: Props) {
               setOpen(false)
             }
           }}
-          placeholder="e.g. claude-sonnet-4-20250514"
+          placeholder="Select or type a model name..."
           className="flex h-9 w-full bg-background border border-input px-2.5 py-1.5 text-sm font-jetbrains text-foreground shadow-xs transition-[color,box-shadow] outline-none placeholder:text-muted-foreground focus:border-ring focus:ring-ring/50 focus:ring-[3px]"
         />
         <button
