@@ -16,6 +16,9 @@ const FILTER_GROUPS: { key: string; label: string; types: LogType[] }[] = [
 
 const ALL_FILTER_KEYS = FILTER_GROUPS.map(g => g.key)
 
+// Per-profile cache survives component remounts — instant data on switch
+const logCache = new Map<string, LogEntry[]>()
+
 const BADGE_CLASS: Record<string, string> = {
   connection: 'log-badge-connection',
   error: 'log-badge-error',
@@ -46,7 +49,7 @@ interface Props {
 }
 
 export function LogPane({ profileId, connected }: Props) {
-  const [entries, setEntries] = useState<LogEntry[]>([])
+  const [entries, setEntries] = useState<LogEntry[]>(() => logCache.get(profileId) || [])
   const [enabledFilters, setEnabledFilters] = useState<Set<string>>(() => new Set(ALL_FILTER_KEYS))
   const [searchParams, setSearchParams] = useSearchParams()
   const selectedLogId = searchParams.get('log') ? parseInt(searchParams.get('log')!) : null
@@ -65,6 +68,11 @@ export function LogPane({ profileId, connected }: Props) {
     setSseKey(k => k + 1)
   }, [connected])
 
+  // Restore cached entries on profile switch, then SSE refreshes
+  useEffect(() => {
+    setEntries(logCache.get(profileId) || [])
+  }, [profileId])
+
   useEffect(() => {
     if (eventSourceRef.current) {
       eventSourceRef.current.close()
@@ -80,6 +88,7 @@ export function LogPane({ profileId, connected }: Props) {
           if (prev.some(e => e.id === entry.id)) return prev
           const next = [...prev, entry].sort((a, b) => a.id - b.id)
           if (next.length > 500) return next.slice(-400)
+          logCache.set(profileId, next)
           return next
         })
       } catch {

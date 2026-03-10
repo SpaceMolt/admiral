@@ -67,6 +67,15 @@ export class McpConnection implements GameConnection {
 
     const result = this.parseToolResult(resp.result)
 
+    // Re-initialize on session expiry and retry once
+    const errCode = (result?.error as Record<string, unknown> | undefined)?.code
+    if (errCode === 'session_expired' || errCode === 'session_invalid') {
+      this.sessionId = null
+      this.connected = false
+      await this.connect()
+      return this.execute(command, args)
+    }
+
     // Poll notifications
     try {
       const notifResp = await this.callTool('get_notifications', {})

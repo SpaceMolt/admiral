@@ -108,7 +108,7 @@ export class HttpV2Connection implements GameConnection {
     const result = resp.result as Record<string, unknown> | undefined
     return {
       success: true,
-      player_id: result?.player_id as string | undefined,
+      player_id: (result?.player as Record<string, unknown> | undefined)?.id as string | undefined,
       session: result as Record<string, unknown> | undefined,
     }
   }
@@ -159,7 +159,7 @@ export class HttpV2Connection implements GameConnection {
     if (resp.error) {
       const code = resp.error.code
       if (code === 'rate_limited') {
-        const secs = resp.error.wait_seconds || 10
+        const secs = resp.error.retry_after || 10
         await sleep(Math.ceil(secs * 1000))
         return this.execute(command, args)
       }
@@ -282,11 +282,9 @@ export class HttpV2Connection implements GameConnection {
     try {
       const data = await resp.json()
       if (data.session) this.session = data.session
-      // v2 returns { result: <text>, structuredContent: <JSON> }
-      // Normalize: prefer structuredContent as `result` for programmatic consumers
-      if (data.structuredContent !== undefined && data.structuredContent !== null) {
-        data.result = data.structuredContent
-      }
+      // v2 returns { result: <rendered text>, structuredContent: <JSON> }
+      // Keep both: result (text) goes to the LLM, structuredContent is used
+      // for cacheGameState and player data display.
       return data as CommandResult
     } catch {
       return { error: { code: 'http_error', message: `HTTP ${resp.status}` } }

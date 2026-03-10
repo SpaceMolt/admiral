@@ -82,15 +82,13 @@ export async function fetchOpenApiSpec(
  * Fetch the OpenAPI spec from the gameserver and extract commands with params.
  */
 export async function fetchGameCommands(baseUrl: string, log?: SpecLogFn): Promise<GameCommandInfo[]> {
-  const specUrl = baseUrl.replace(/\/v\d+\/?$/, '/openapi.json')
+  // Try versioned spec first (e.g. /api/v2/openapi.json), then unversioned fallback
+  const specUrl = `${baseUrl}/openapi.json`
+  const fallbackUrl = baseUrl.replace(/\/api\/v\d+\/?$/, '/api/openapi.json')
 
   let spec = await fetchOpenApiSpec(specUrl, log)
-  if (!spec) {
-    // Fall back to fetching from the API base directly
-    const apiUrl = baseUrl.replace(/\/api\/v\d+\/?$/, '/api/openapi.json')
-    if (apiUrl !== specUrl) {
-      spec = await fetchOpenApiSpec(apiUrl, log)
-    }
+  if (!spec && fallbackUrl !== specUrl) {
+    spec = await fetchOpenApiSpec(fallbackUrl, log)
   }
   if (!spec) return []
 

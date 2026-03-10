@@ -38,7 +38,7 @@ export class HttpConnection implements GameConnection {
     const result = resp.result as Record<string, unknown> | undefined
     return {
       success: true,
-      player_id: result?.player_id as string | undefined,
+      player_id: (result?.player as Record<string, unknown> | undefined)?.id as string | undefined,
       session: result as Record<string, unknown> | undefined,
     }
   }
@@ -89,7 +89,7 @@ export class HttpConnection implements GameConnection {
     if (resp.error) {
       const code = resp.error.code
       if (code === 'rate_limited') {
-        const secs = resp.error.wait_seconds || 10
+        const secs = resp.error.retry_after || 10
         await sleep(Math.ceil(secs * 1000))
         return this.execute(command, args)
       }

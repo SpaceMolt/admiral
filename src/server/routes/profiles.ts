@@ -104,6 +104,48 @@ profiles.post('/:id/command', async (c) => {
   }
 })
 
+// POST /api/profiles/batch — batch connect/disconnect multiple agents
+profiles.post('/batch', async (c) => {
+  const body = await c.req.json()
+  const action = body.action as string // 'connect_llm' | 'disconnect'
+  const profileIds = body.ids as string[] | undefined
+  const group = body.group as string | undefined
+
+  if (!action || !['connect_llm', 'disconnect'].includes(action)) {
+    return c.json({ error: 'action must be connect_llm or disconnect' }, 400)
+  }
+
+  let targets = listProfiles()
+  if (profileIds && profileIds.length > 0) {
+    const idSet = new Set(profileIds)
+    targets = targets.filter(p => idSet.has(p.id))
+  }
+  if (group) {
+    targets = targets.filter(p => (p as unknown as Record<string, unknown>).group_name === group)
+  }
+
+  const results: Array<{ id: string; name: string; ok: boolean; error?: string }> = []
+
+  for (const profile of targets) {
+    try {
+      if (action === 'disconnect') {
+        await agentManager.disconnect(profile.id)
+        results.push({ id: profile.id, name: profile.name, ok: true })
+      } else {
+        await agentManager.connect(profile.id)
+        if (profile.provider && profile.provider !== 'manual' && profile.model) {
+          await agentManager.startLLM(profile.id)
+        }
+        results.push({ id: profile.id, name: profile.name, ok: true })
+      }
+    } catch (err) {
+      results.push({ id: profile.id, name: profile.name, ok: false, error: err instanceof Error ? err.message : String(err) })
+    }
+  }
+
+  return c.json({ action, count: results.length, results })
+})
+
 // POST /api/profiles/:id/nudge
 profiles.post('/:id/nudge', async (c) => {
   const id = c.req.param('id')

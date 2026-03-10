@@ -98,9 +98,10 @@ interface Props {
   disabled: boolean
   commandInputRef?: React.RefObject<HTMLInputElement | null>
   serverUrl?: string
+  connectionMode?: string
 }
 
-export function CommandPanel({ profileId, onSend, disabled, commandInputRef, serverUrl }: Props) {
+export function CommandPanel({ profileId, onSend, disabled, commandInputRef, serverUrl, connectionMode }: Props) {
   const [command, setCommand] = useState('')
   const [argsStr, setArgsStr] = useState('')
   const [historyIndex, setHistoryIndex] = useState(-1)
@@ -114,13 +115,14 @@ export function CommandPanel({ profileId, onSend, disabled, commandInputRef, ser
   // Fetch commands from API
   useEffect(() => {
     const url = serverUrl || 'https://game.spacemolt.com'
-    fetch(`/api/commands?server_url=${encodeURIComponent(url)}`)
+    const apiVersion = connectionMode === 'http_v2' || connectionMode === 'mcp_v2' ? 'v2' : 'v1'
+    fetch(`/api/commands?server_url=${encodeURIComponent(url)}&api_version=${apiVersion}`)
       .then(r => r.json())
       .then(data => {
         if (Array.isArray(data) && data.length > 0) setCommands(data)
       })
       .catch(() => {})
-  }, [serverUrl])
+  }, [serverUrl, connectionMode])
 
   // Fuzzy-filtered matches
   const matches = useMemo(() => {

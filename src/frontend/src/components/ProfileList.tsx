@@ -1,4 +1,4 @@
-import { Plus, Bot, User } from 'lucide-react'
+import { Plus, Bot, User, Play, Square } from 'lucide-react'
 import type { Profile } from '@/types'
 
 interface Props {
@@ -16,11 +16,37 @@ const MODE_LABELS: Record<string, string> = {
   mcp: 'MCP',
 }
 
+async function batchAction(action: 'connect_llm' | 'disconnect') {
+  try {
+    await fetch('/api/profiles/batch', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action }),
+    })
+  } catch { /* ignore */ }
+}
+
 export function ProfileList({ profiles, activeId, statuses, playerDataMap, onSelect, onNew }: Props) {
   return (
     <div className="w-56 flex flex-col flex-1 min-h-0">
-      <div className="px-3.5 py-2.5 border-b border-border">
+      <div className="px-3.5 py-2.5 border-b border-border flex items-center justify-between">
         <h2 className="text-[11px] text-muted-foreground uppercase tracking-[1.5px] font-normal">Profiles</h2>
+        <div className="flex items-center gap-1">
+          <button
+            onClick={() => batchAction('connect_llm')}
+            className="flex items-center justify-center w-5 h-5 text-muted-foreground/50 hover:text-[hsl(var(--smui-green))] transition-colors"
+            title="Connect all agents"
+          >
+            <Play size={10} />
+          </button>
+          <button
+            onClick={() => batchAction('disconnect')}
+            className="flex items-center justify-center w-5 h-5 text-muted-foreground/50 hover:text-[hsl(var(--smui-orange))] transition-colors"
+            title="Disconnect all agents"
+          >
+            <Square size={10} />
+          </button>
+        </div>
       </div>
       <div className="flex-1 overflow-y-auto">
         {profiles.map(p => {

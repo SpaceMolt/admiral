@@ -128,7 +128,7 @@ export function ProfileView({ profile, providers, status, playerData, onPlayerDa
   const editNameRef = useRef<HTMLInputElement>(null)
   const popoverRef = useRef<HTMLDivElement>(null)
 
-  const isManual = !profile.provider || profile.provider === 'manual'
+  const isManual = !profile.provider || profile.provider === 'manual' || !profile.model
   const availableProviders = ['manual', ...providers.filter(p => p.status === 'valid' || p.api_key).map(p => p.id)]
 
   // Auto-open name edit for new profiles
@@ -876,14 +876,14 @@ export function ProfileView({ profile, providers, status, playerData, onPlayerDa
               className="w-1 shrink-0 cursor-col-resize bg-border hover:bg-primary/40 transition-colors"
             />
             <div data-tour="side-pane" style={{ width: sidePaneWidth }} className="shrink-0">
-              <SidePane profileId={profile.id} todo={profile.todo} connected={status.connected} playerData={playerData} onRefreshStatus={fetchStatus} />
+              <SidePane key={profile.id} profileId={profile.id} todo={profile.todo} connected={status.connected} playerData={playerData} onRefreshStatus={fetchStatus} />
             </div>
           </>
         )}
       </div>
 
       {/* Manual command input */}
-      <CommandPanel profileId={profile.id} onSend={handleSendCommand} disabled={!status.connected} commandInputRef={commandInputRef} serverUrl={profile.server_url} />
+      <CommandPanel profileId={profile.id} onSend={handleSendCommand} disabled={!status.connected} commandInputRef={commandInputRef} serverUrl={profile.server_url} connectionMode={profile.connection_mode} />
 
       {/* Directive modal */}
       {showDirectiveModal && (

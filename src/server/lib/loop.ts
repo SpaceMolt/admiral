@@ -9,8 +9,8 @@ const MAX_RETRIES = 3
 const RETRY_BASE_DELAY = 5000
 const DEFAULT_LLM_TIMEOUT_MS = 300_000
 
-const CHARS_PER_TOKEN = 4
-const CONTEXT_BUDGET_RATIO = 0.55
+const CHARS_PER_TOKEN = 3  // More conservative — game JSON is token-dense
+const CONTEXT_BUDGET_RATIO = 0.45  // Trigger compaction earlier to leave room
 const MIN_RECENT_MESSAGES = 10
 const SUMMARY_MAX_TOKENS = 1024
 
@@ -48,7 +48,7 @@ export async function runAgentTurn(
     options?.onActivity?.('Waiting for LLM response...')
     let response: AssistantMessage
     try {
-      response = await completeWithRetry(model, context, log, options)
+      response = await completeWithRetry(model, context, log, options, compaction)
     } catch (err) {
       log('error', `LLM call failed: ${err instanceof Error ? err.message : String(err)}`, JSON.stringify({
         model: { name: (model as any).name || 'unknown', contextWindow: model.contextWindow },
@@ -255,6 +255,20 @@ async function compactContext(
   compaction?: CompactionState,
   options?: LoopOptions,
 ): Promise<void> {
+  // Proactively truncate oversized tool results to prevent token bloat
+  for (const msg of context.messages) {
+    if (msg.role === 'toolResult' && Array.isArray(msg.content)) {
+      for (const block of msg.content) {
+        if ('text' in block) {
+          const text = (block as any).text
+          if (typeof text === 'string' && text.length > 4000) {
+            (block as any).text = text.slice(0, 3000) + '\n...(truncated)'
+          }
+        }
+      }
+    }
+  }
+
   const ratio = options?.contextBudgetRatio ?? CONTEXT_BUDGET_RATIO
   const budget = Math.floor(model.contextWindow * ratio)
   const currentTokens = totalMessageTokens(context.messages)
@@ -357,6 +371,7 @@ async function completeWithRetry(
   context: Context,
   log: LogFn,
   options?: LoopOptions,
+  compaction?: CompactionState,
 ): Promise<AssistantMessage> {
   let lastError: Error | null = null
 
@@ -398,6 +413,16 @@ async function completeWithRetry(
       lastError = err instanceof Error ? err : new Error(String(err))
       if (options?.signal?.aborted) throw lastError
 
+      // Emergency compaction: if "prompt is too long", force-compact context
+      const isOverflow = lastError.message.includes('prompt is too long') ||
+        lastError.message.includes('too many tokens') ||
+        lastError.message.includes('maximum context length')
+      if (isOverflow && context.messages.length > 4) {
+        log('system', `Emergency compaction: context overflow detected (${context.messages.length} messages). Force-compacting...`)
+        await emergencyCompact(model, context, compaction, options)
+        log('system', `Emergency compaction complete: ${context.messages.length} messages, ~${totalMessageTokens(context.messages)} tokens`)
+      }
+
       const delay = RETRY_BASE_DELAY * Math.pow(2, attempt)
       log('error', `LLM error (attempt ${attempt + 1}/${MAX_RETRIES}): ${lastError.message}`, JSON.stringify({
         model: { name: (model as any).name || 'unknown', contextWindow: model.contextWindow },
@@ -412,6 +437,59 @@ async function completeWithRetry(
   }
 
   throw lastError || new Error('LLM call failed after retries')
+}
+
+/**
+ * Emergency compaction: aggressively trim context when API reports overflow.
+ * Keeps only the last ~30% of messages and truncates large tool results.
+ */
+async function emergencyCompact(
+  model: Model<any>,
+  context: Context,
+  compaction?: CompactionState,
+  options?: LoopOptions,
+): Promise<void> {
+  // First, truncate oversized tool results in-place
+  for (const msg of context.messages) {
+    if (msg.role === 'toolResult' && Array.isArray(msg.content)) {
+      for (const block of msg.content) {
+        if ('text' in block) {
+          const text = (block as any).text
+          if (typeof text === 'string' && text.length > 2000) {
+            (block as any).text = text.slice(0, 1500) + '\n...(truncated)'
+          }
+        }
+      }
+    }
+  }
+
+  // Keep only last 30% of messages (at least MIN_RECENT_MESSAGES)
+  const keepCount = Math.max(MIN_RECENT_MESSAGES, Math.floor(context.messages.length * 0.3))
+  if (context.messages.length <= keepCount + 1) return
+
+  const splitIdx = findTurnBoundary(context.messages, context.messages.length - keepCount)
+  if (splitIdx <= 1) return
+
+  const oldMessages = context.messages.slice(1, splitIdx)
+  const recentMessages = context.messages.slice(splitIdx)
+
+  let summary: string
+  try {
+    summary = await summarizeViaLLM(model, oldMessages, compaction?.summary, options)
+  } catch {
+    // Last resort: just drop old messages without summarizing
+    summary = compaction?.summary || '(Earlier session context was dropped due to overflow.)'
+  }
+
+  if (compaction) compaction.summary = summary
+
+  const summaryMessage: Message = {
+    role: 'user' as const,
+    content: `## Session History Summary (emergency compaction)\n\n${summary}\n\n---\nContinue your mission. Recent events follow.`,
+    timestamp: Date.now(),
+  }
+
+  context.messages = [context.messages[0], summaryMessage, ...recentMessages]
 }
 
 function sleep(ms: number): Promise<void> {

@@ -20,7 +20,7 @@ export interface CommandResult {
   result?: unknown
   structuredContent?: unknown
   notifications?: unknown[]
-  error?: { code: string; message: string; wait_seconds?: number }
+  error?: { code: string; message: string; retry_after?: number }
 }
 
 export type NotificationHandler = (notification: unknown) => void

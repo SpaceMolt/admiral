@@ -40,6 +40,7 @@ export class Agent {
   private pendingNudges: string[] = []
   private _activity: string = 'idle'
   private _gameState: Record<string, unknown> | null = null
+  private _sessionExpired = false
 
   constructor(profileId: string) {
     this.profileId = profileId
@@ -59,6 +60,10 @@ export class Agent {
 
   get gameState(): Record<string, unknown> | null {
     return this._gameState
+  }
+
+  get sessionExpired(): boolean {
+    return this._sessionExpired
   }
 
   private setActivity(activity: string) {
