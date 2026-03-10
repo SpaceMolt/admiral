@@ -53,17 +53,12 @@ export function Dashboard({ profiles: initialProfiles, providers, registrationCo
         const resp = await fetch('/api/profiles')
         const data: Array<Record<string, unknown>> = await resp.json()
         const newStatuses: Record<string, { connected: boolean; running: boolean }> = {}
-        const newGameStates: Record<string, Record<string, unknown>> = {}
         for (const p of data) {
           const id = p.id as string
           newStatuses[id] = { connected: !!p.connected, running: !!p.running }
-          if (p.gameState && typeof p.gameState === 'object') {
-            newGameStates[id] = p.gameState as Record<string, unknown>
-          }
         }
         setProfiles(data as unknown as Profile[])
         setStatuses(newStatuses)
-        setPlayerDataMap(prev => ({ ...prev, ...newGameStates }))
       } catch { /* ignore */ }
     }
     poll()
@@ -76,17 +71,12 @@ export function Dashboard({ profiles: initialProfiles, providers, registrationCo
       const resp = await fetch('/api/profiles')
       const data: Array<Record<string, unknown>> = await resp.json()
       const newStatuses: Record<string, { connected: boolean; running: boolean }> = {}
-      const newGameStates: Record<string, Record<string, unknown>> = {}
       for (const p of data) {
         const id = p.id as string
         newStatuses[id] = { connected: !!p.connected, running: !!p.running }
-        if (p.gameState && typeof p.gameState === 'object') {
-          newGameStates[id] = p.gameState as Record<string, unknown>
-        }
       }
       setProfiles(data as unknown as Profile[])
       setStatuses(newStatuses)
-      setPlayerDataMap(prev => ({ ...prev, ...newGameStates }))
     } catch {
       // ignore
     }
