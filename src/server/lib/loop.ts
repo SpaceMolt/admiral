@@ -9,7 +9,7 @@ const MAX_RETRIES = 3
 const RETRY_BASE_DELAY = 5000
 const DEFAULT_LLM_TIMEOUT_MS = 300_000
 
-const CHARS_PER_TOKEN = 3  // More conservative — game JSON is token-dense
+const CHARS_PER_TOKEN = 2  // Game JSON tokenizes at ~1.7 chars/token; 2 is a safe approximation
 const CONTEXT_BUDGET_RATIO = 0.45  // Trigger compaction earlier to leave room
 const MIN_RECENT_MESSAGES = 10
 const SUMMARY_MAX_TOKENS = 1024
@@ -21,6 +21,7 @@ export interface LoopOptions {
   llmTimeoutMs?: number
   contextBudgetRatio?: number
   onActivity?: (activity: string) => void
+  compactionModel?: Model<any>  // Separate (cheaper) model for compaction summarization
 }
 
 export interface CompactionState {
@@ -38,12 +39,13 @@ export async function runAgentTurn(
   compaction?: CompactionState,
 ): Promise<void> {
   const maxRounds = options?.maxToolRounds ?? DEFAULT_MAX_TOOL_ROUNDS
+  const summaryModel = options?.compactionModel || model
   let rounds = 0
 
   while (rounds < maxRounds) {
     if (options?.signal?.aborted) return
 
-    await compactContext(model, context, compaction, options)
+    await compactContext(summaryModel, context, compaction, options)
 
     options?.onActivity?.('Waiting for LLM response...')
     let response: AssistantMessage
@@ -419,7 +421,8 @@ async function completeWithRetry(
         lastError.message.includes('maximum context length')
       if (isOverflow && context.messages.length > 4) {
         log('system', `Emergency compaction: context overflow detected (${context.messages.length} messages). Force-compacting...`)
-        await emergencyCompact(model, context, compaction, options)
+        const compactModel = options?.compactionModel || model
+        await emergencyCompact(compactModel, context, compaction, options)
         log('system', `Emergency compaction complete: ${context.messages.length} messages, ~${totalMessageTokens(context.messages)} tokens`)
       }
 
