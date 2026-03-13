@@ -7,7 +7,8 @@ import { JsonHighlight } from './JsonHighlight'
 import { MarkdownRenderer } from './MarkdownRenderer'
 
 const FILTER_GROUPS: { key: string; label: string; types: LogType[] }[] = [
-  { key: 'llm', label: 'LLM', types: ['llm_call', 'llm_thought'] },
+  { key: 'call', label: 'Call', types: ['llm_call'] },
+  { key: 'llm', label: 'LLM', types: ['llm_thought'] },
   { key: 'tools', label: 'Tools', types: ['tool_call', 'tool_result'] },
   { key: 'server', label: 'Server', types: ['server_message', 'notification'] },
   { key: 'errors', label: 'Errors', types: ['error'] },

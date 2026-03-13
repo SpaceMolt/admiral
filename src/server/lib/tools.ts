@@ -52,6 +52,28 @@ const LOCAL_TOOLS = new Set(['save_credentials', 'update_todo', 'read_todo', 'st
 
 const MAX_RESULT_CHARS = 4000
 
+// Cooldown tracking for action commands to prevent spam loops (e.g. mine → "Action pending" → mine → ...)
+// Maps profileId → last action command timestamp
+const actionCooldowns = new Map<string, number>()
+const ACTION_COOLDOWN_MS = 8000  // 8 seconds between action commands within a turn
+
+// Commands that are free queries (no tick cost) — exempt from cooldown
+const QUERY_COMMANDS = new Set([
+  'get_status', 'get_ship', 'get_cargo', 'get_system', 'get_poi', 'get_base',
+  'get_map', 'get_skills', 'get_nearby', 'get_wrecks', 'get_trades',
+  'get_missions', 'get_active_missions', 'get_notifications', 'get_chat_history',
+  'get_battle_status', 'get_commands', 'get_guide', 'get_version', 'get_notes',
+  'get_insurance_quote', 'get_action_log', 'view_market', 'view_orders',
+  'view_storage', 'view_faction_storage', 'view_completed_mission',
+  'estimate_purchase', 'analyze_market', 'find_route', 'search_systems',
+  'scan', 'help', 'catalog', 'browse_ships', 'commission_quote', 'commission_status',
+  'completed_missions', 'read_note', 'get_notes', 'captains_log_list', 'captains_log_get',
+  'faction_info', 'faction_list', 'faction_get_invites', 'faction_rooms',
+  'faction_visit_room', 'faction_intel_status', 'faction_query_intel',
+  'faction_query_trade_intel', 'faction_trade_intel_status', 'faction_list_missions',
+  'forum_list', 'forum_get_thread', 'claim_insurance',
+])
+
 export type LogFn = (type: string, summary: string, detail?: string) => void
 
 interface ToolContext {
@@ -86,6 +108,21 @@ export async function executeTool(
   const fmtArgs = commandArgs ? formatArgs(commandArgs) : ''
   ctx.log('tool_call', `game(${command}${fmtArgs ? ', ' + fmtArgs : ''})`)
 
+  // Cooldown check for action commands to prevent spam loops
+  // Strip MCP v2 prefix (e.g. "spacemolt_get_system" → "get_system") for lookup
+  const bareCommand = command.replace(/^spacemolt_/, '')
+  const isQuery = QUERY_COMMANDS.has(command) || QUERY_COMMANDS.has(bareCommand)
+  if (!isQuery) {
+    const lastAction = actionCooldowns.get(ctx.profileId) ?? 0
+    const elapsed = Date.now() - lastAction
+    if (elapsed < ACTION_COOLDOWN_MS) {
+      const waitSec = Math.ceil((ACTION_COOLDOWN_MS - elapsed) / 1000)
+      ctx.log('tool_result', `Cooldown: ${command} blocked (${waitSec}s remaining)`)
+      return `⏳ ACTION BLOCKED — cooldown active (${waitSec}s remaining). Game actions cost 1 tick (~10s). You just performed an action. Use query commands (get_status, get_cargo, view_market, read_todo, etc.) while waiting, or STOP calling tools and end your turn.`
+    }
+    actionCooldowns.set(ctx.profileId, Date.now())
+  }
+
   try {
     const resp = await ctx.connection.execute(command, commandArgs && Object.keys(commandArgs).length > 0 ? commandArgs : undefined)
 
@@ -95,8 +132,19 @@ export async function executeTool(
       return errMsg
     }
 
-    const result = formatToolResult(command, resp.result, resp.notifications)
+    // MCP v2 returns structuredContent (JSON) separately from result (text summary).
+    // Prefer structuredContent for the LLM — it has the actual data.
+    const resultData = resp.structuredContent ?? resp.result
+    const result = formatToolResult(command, resultData, resp.notifications)
     ctx.log('tool_result', truncate(result, 200), result)
+
+    // Detect "action pending" responses and append a strong stop signal
+    const resultLower = result.toLowerCase()
+    if (resultLower.includes('action pending') || resultLower.includes('resolves next tick') || resultLower.includes('already pending')) {
+      ctx.log('tool_result', `Action pending detected for ${command} — cooldown enforced`)
+      return truncateResult(result + '\n\n⚠️ STOP — Your action is QUEUED and will resolve on the next game tick (~10 seconds). Do NOT call this command again. Either use query commands (get_status, get_cargo, read_todo, view_market) to check on things, or end your turn and wait.')
+    }
+
     return truncateResult(result)
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err)

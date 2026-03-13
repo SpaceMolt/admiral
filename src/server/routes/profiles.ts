@@ -92,12 +92,12 @@ profiles.post('/:id/connect', async (c) => {
 // POST /api/profiles/:id/command
 profiles.post('/:id/command', async (c) => {
   const id = c.req.param('id')
-  const { command, args } = await c.req.json()
+  const { command, args, silent } = await c.req.json()
   if (!command) return c.json({ error: 'Missing command' }, 400)
   const agent = agentManager.getAgent(id)
   if (!agent || !agent.isConnected) return c.json({ error: 'Agent not connected' }, 400)
   try {
-    const result = await agent.executeCommand(command, args)
+    const result = await agent.executeCommand(command, args, { silent: !!silent })
     return c.json(result)
   } catch (err) {
     return c.json({ error: err instanceof Error ? err.message : String(err) }, 500)

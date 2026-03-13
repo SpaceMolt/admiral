@@ -103,3 +103,17 @@ function getApiKeyFromDb(provider: string): string | undefined {
   const dbProvider = getProvider(provider)
   return dbProvider?.api_key || undefined
 }
+
+/**
+ * Resolve an API key for a provider, suitable for passing to pi-ai complete().
+ * Returns 'local' for local/custom providers so pi-ai doesn't fall back to
+ * checking process.env.OPENAI_API_KEY.
+ */
+export function resolveApiKey(provider: string): string | undefined {
+  const dbKey = getApiKeyFromDb(provider)
+  if (dbKey) return dbKey
+  if (provider in CUSTOM_BASE_URLS) return 'local'
+  const dbProvider = getProvider(provider)
+  if (dbProvider?.base_url) return 'local'
+  return undefined
+}

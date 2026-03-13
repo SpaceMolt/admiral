@@ -45,10 +45,11 @@ export function SidePane({ profileId, todo: initialTodo, connected, playerData, 
       const resp = await fetch(`/api/profiles/${profileId}/command`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ command: 'captains_log_list' }),
+        body: JSON.stringify({ command: 'captains_log_list', silent: true }),
       })
       const data = await resp.json()
-      const result = data.result || data
+      // MCP v2 returns structuredContent (JSON) separately from result (text summary)
+      const result = data.structuredContent || data.result || data
 
       if (!result.total_count || result.total_count === 0) {
         captainsLogCache.set(profileId, [])
@@ -66,13 +67,13 @@ export function SidePane({ profileId, todo: initialTodo, connected, playerData, 
           fetch(`/api/profiles/${profileId}/command`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ command: 'captains_log_list', args: { index: i } }),
+            body: JSON.stringify({ command: 'captains_log_list', args: { index: i }, silent: true }),
           }).then(r => r.json()).catch(() => null)
         )
       }
       const results = await Promise.all(promises)
       for (const r of results) {
-        const entry = r?.result?.entry || r?.entry
+        const entry = r?.structuredContent?.entry || r?.result?.entry || r?.entry
         if (entry) entries.push(entry)
       }
 

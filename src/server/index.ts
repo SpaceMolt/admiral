@@ -53,6 +53,14 @@ if (isDev) {
   })
 } else {
   // Serve static files from dist/
+  // Assets use content-hashed filenames so they can be cached forever.
+  // index.html must never be cached so the browser always picks up new asset hashes.
+  app.use('/*', async (c, next) => {
+    await next()
+    if (c.req.path === '/' || c.req.path.endsWith('.html')) {
+      c.header('Cache-Control', 'no-cache, no-store, must-revalidate')
+    }
+  })
   app.use('/*', serveStatic({ root: './dist' }))
   // SPA fallback
   app.get('*', serveStatic({ path: './dist/index.html' }))

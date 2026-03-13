@@ -30,7 +30,23 @@ export async function fetchOpenApiSpec(
   const cacheKey = `openapi_cache:${specUrl}`
   const cacheTimeKey = `openapi_cache_time:${specUrl}`
 
-  // Try fetching from the server
+  // Return fresh cache immediately without hitting the server
+  try {
+    const cached = getPreference(cacheKey)
+    const cachedTime = getPreference(cacheTimeKey)
+    if (cached) {
+      const age = cachedTime ? Date.now() - Number(cachedTime) : Infinity
+      if (age < SPEC_CACHE_TTL_MS) {
+        const ageMin = Math.round(age / 60_000)
+        log?.('info', `Using cached OpenAPI spec for ${specUrl} (${ageMin}m old)`)
+        return JSON.parse(cached)
+      }
+    }
+  } catch {
+    // Cache read/parse failed -- fall through to fetch
+  }
+
+  // Cache missing or stale -- fetch from server
   try {
     const resp = await fetch(specUrl, { signal: AbortSignal.timeout(10_000), headers: { 'User-Agent': 'SpaceMolt-Admiral' } })
     if (!resp.ok) {
@@ -53,21 +69,17 @@ export async function fetchOpenApiSpec(
     log?.('info', `Fetched OpenAPI spec from ${specUrl}`)
     return spec
   } catch {
-    // Fetch failed -- try cache
+    // Fetch failed -- try stale cache as last resort
   }
 
-  // Try cached spec
+  // Last resort: use stale cache
   try {
     const cached = getPreference(cacheKey)
-    const cachedTime = getPreference(cacheTimeKey)
     if (cached) {
+      const cachedTime = getPreference(cacheTimeKey)
       const age = cachedTime ? Date.now() - Number(cachedTime) : Infinity
       const ageMin = Math.round(age / 60_000)
-      if (age < SPEC_CACHE_TTL_MS) {
-        log?.('info', `Using cached OpenAPI spec for ${specUrl} (${ageMin}m old)`)
-      } else {
-        log?.('warn', `Using stale cached OpenAPI spec for ${specUrl} (${ageMin}m old, fetch failed)`)
-      }
+      log?.('warn', `Using stale cached OpenAPI spec for ${specUrl} (${ageMin}m old, fetch failed)`)
       return JSON.parse(cached)
     }
   } catch {
