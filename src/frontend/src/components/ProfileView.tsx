@@ -517,7 +517,7 @@ export function ProfileView({ profile, providers, status, playerData, onPlayerDa
   return (
     <div className="flex flex-col h-full">
       {/* Header bar */}
-      <div data-tour="navbar" className="flex items-center gap-3 h-12 px-3.5 bg-card border-b border-border select-none">
+      <div data-tour="navbar" className="flex flex-wrap items-center gap-x-3 gap-y-1.5 min-h-12 py-1.5 px-3.5 bg-card border-b border-border select-none">
         {onToggleProfileList && (
           <button
             onClick={onToggleProfileList}
@@ -807,7 +807,7 @@ export function ProfileView({ profile, providers, status, playerData, onPlayerDa
             size="sm"
             onClick={handleConnect}
             disabled={connecting}
-            className="gap-1.5 font-semibold text-[hsl(var(--smui-green))] border-[hsl(var(--smui-green)/0.4)] hover:bg-[hsl(var(--smui-green)/0.1)]"
+            className="shrink-0 gap-1.5 font-semibold text-[hsl(var(--smui-green))] border-[hsl(var(--smui-green)/0.4)] hover:bg-[hsl(var(--smui-green)/0.1)]"
           >
             {connecting ? <PlugZap size={12} className="animate-pulse" /> : <Plug size={12} />}
             {connecting ? 'Connecting...' : (isManual ? 'Connect' : 'Connect + Start')}
@@ -817,14 +817,14 @@ export function ProfileView({ profile, providers, status, playerData, onPlayerDa
             variant="outline"
             size="sm"
             onClick={handleDisconnect}
-            className="gap-1.5 font-semibold text-destructive border-destructive/40 hover:bg-destructive/10"
+            className="shrink-0 gap-1.5 font-semibold text-destructive border-destructive/40 hover:bg-destructive/10"
           >
             <Square size={12} />
             Disconnect
           </Button>
         )}
 
-        <Button variant="ghost" size="icon" onClick={() => { if (window.confirm('Delete this profile and all its logs?')) onDelete() }} className="h-7 w-7 text-muted-foreground hover:text-destructive ml-1">
+        <Button variant="ghost" size="icon" onClick={() => { if (window.confirm('Delete this profile and all its logs?')) onDelete() }} className="shrink-0 h-7 w-7 text-muted-foreground hover:text-destructive ml-1">
           <Trash2 size={14} />
         </Button>
       </div>
