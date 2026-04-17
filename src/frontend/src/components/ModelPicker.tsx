@@ -63,7 +63,7 @@ export function ModelPicker({ provider, value, onChange }: Props) {
           }}
           onFocus={() => {
             setOpen(true)
-            setFilter(value)
+            setFilter('')
           }}
           onKeyDown={e => {
             if (e.key === 'Escape') { setOpen(false); inputRef.current?.blur() }
@@ -87,7 +87,7 @@ export function ModelPicker({ provider, value, onChange }: Props) {
               setOpen(false)
             } else {
               setOpen(true)
-              setFilter(value)
+              setFilter('')
               inputRef.current?.focus()
             }
           }}
