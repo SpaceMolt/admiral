@@ -159,10 +159,40 @@ export async function runAgentTurn(
     for (const toolCall of toolCalls) {
       if (options?.signal?.aborted) return
 
-      options?.onActivity?.(`Executing tool: ${toolCall.name}`)
+      // Guard against malformed tool calls from LLMs (e.g. empty name, null args).
+      // Some local/small models occasionally emit tool-use blocks with no name,
+      // which would otherwise fail confusingly deep in tool dispatch.
+      const rawName = typeof toolCall.name === 'string' ? toolCall.name : ''
+      const name = rawName.trim()
+      if (!name) {
+        const errMsg = 'Error: LLM produced malformed tool call with empty name - skipping'
+        log('error', errMsg, JSON.stringify({
+          toolCallId: toolCall.id,
+          name: toolCall.name,
+          arguments: toolCall.arguments,
+        }, null, 2))
+        const toolResultMessage: Message = {
+          role: 'toolResult',
+          toolCallId: toolCall.id,
+          toolName: rawName || '(empty)',
+          content: [{ type: 'text', text: errMsg }],
+          isError: true,
+          timestamp: Date.now(),
+        }
+        context.messages.push(toolResultMessage)
+        continue
+      }
+
+      // Normalize arguments: LLMs sometimes emit null/undefined instead of {}.
+      const safeArgs: Record<string, unknown> =
+        toolCall.arguments && typeof toolCall.arguments === 'object'
+          ? toolCall.arguments as Record<string, unknown>
+          : {}
+
+      options?.onActivity?.(`Executing tool: ${name}`)
       const callReason = !showedReason ? reason : undefined
       showedReason = true
-      const result = await executeTool(toolCall.name, toolCall.arguments, toolCtx, callReason)
+      const result = await executeTool(name, safeArgs, toolCtx, callReason)
 
       // If update_todo changed the todo via local tool, sync back
       todo.value = toolCtx.todo
@@ -171,7 +201,7 @@ export async function runAgentTurn(
       const toolResultMessage: Message = {
         role: 'toolResult',
         toolCallId: toolCall.id,
-        toolName: toolCall.name,
+        toolName: name,
         content: [{ type: 'text', text: result }],
         isError,
         timestamp: Date.now(),

@@ -67,6 +67,17 @@ export async function executeTool(
   ctx: ToolContext,
   reason?: string,
 ): Promise<string> {
+  // Defense in depth: callers should already have validated the name, but
+  // guard here too so a malformed LLM tool call never reaches dispatch.
+  if (typeof name !== 'string' || !name.trim()) {
+    const errMsg = 'Error: LLM produced malformed tool call with empty name - skipping'
+    ctx.log('error', errMsg)
+    return errMsg
+  }
+  // Normalize args to an object so downstream code can rely on Object.keys/entries.
+  if (!args || typeof args !== 'object') {
+    args = {}
+  }
   if (LOCAL_TOOLS.has(name)) {
     ctx.log('tool_call', `${name}(${formatArgs(args)})`)
     return executeLocalTool(name, args, ctx)
