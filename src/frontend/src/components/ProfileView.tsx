@@ -512,7 +512,7 @@ export function ProfileView({ profile, providers, status, playerData, onPlayerDa
     } catch {
       // Error logged by agent
     }
-  }, [profile.id])
+  }, [profile.id, onPlayerData])
 
   return (
     <div className="flex flex-col h-full">
