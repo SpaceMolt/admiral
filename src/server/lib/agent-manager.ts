@@ -157,6 +157,20 @@ class AgentManager {
     }
   }
 
+  pauseLLM(profileId: string): void {
+    const agent = this.agents.get(profileId)
+    if (agent?.isRunning) {
+      agent.pauseLLM()
+    }
+  }
+
+  resumeLLM(profileId: string): void {
+    const agent = this.agents.get(profileId)
+    if (agent?.isRunning) {
+      agent.resumeLLM()
+    }
+  }
+
   nudge(profileId: string, message: string): void {
     const agent = this.agents.get(profileId)
     if (agent?.isRunning) {
@@ -164,11 +178,12 @@ class AgentManager {
     }
   }
 
-  getStatus(profileId: string): { connected: boolean; running: boolean; activity: string; gameState: SlimGameState } {
+  getStatus(profileId: string): { connected: boolean; running: boolean; paused: boolean; activity: string; gameState: SlimGameState } {
     const agent = this.agents.get(profileId)
     return {
       connected: agent?.isConnected ?? false,
       running: agent?.isRunning ?? false,
+      paused: agent?.isPaused ?? false,
       activity: agent?.activity ?? 'idle',
       gameState: slimGameState(agent?.gameState ?? null),
     }

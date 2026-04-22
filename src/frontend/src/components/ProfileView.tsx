@@ -1,6 +1,6 @@
 
 import { useState, useCallback, useEffect, useRef } from 'react'
-import { Square, Plug, PlugZap, Trash2, Pencil, Check, X, PanelLeft, PanelLeftClose, PanelRightClose, MessageSquare } from 'lucide-react'
+import { Square, Plug, PlugZap, Trash2, Pencil, Check, X, PanelLeft, PanelLeftClose, PanelRightClose, MessageSquare, Pause, Play } from 'lucide-react'
 import type { Profile, Provider } from '@/types'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -88,7 +88,7 @@ type EditingField = 'name' | 'mode' | 'provider' | 'credentials' | null
 interface Props {
   profile: Profile
   providers: Provider[]
-  status: { connected: boolean; running: boolean }
+  status: { connected: boolean; running: boolean; paused?: boolean }
   registrationCode?: string
   playerData: Record<string, unknown> | null
   onPlayerData: (data: Record<string, unknown>) => void
@@ -491,6 +491,12 @@ export function ProfileView({ profile, providers, status, playerData, onPlayerDa
     onRefresh()
   }
 
+  async function handlePauseToggle() {
+    const endpoint = status.paused ? 'resume' : 'pause'
+    await fetch(`/api/profiles/${profile.id}/${endpoint}`, { method: 'POST' })
+    onRefresh()
+  }
+
   const handleSendCommand = useCallback(async (command: string, args?: Record<string, unknown>) => {
     try {
       const resp = await fetch(`/api/profiles/${profile.id}/command`, {
@@ -813,15 +819,29 @@ export function ProfileView({ profile, providers, status, playerData, onPlayerDa
             {connecting ? 'Connecting...' : (isManual ? 'Connect' : 'Connect + Start')}
           </Button>
         ) : (
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleDisconnect}
-            className="shrink-0 gap-1.5 font-semibold text-destructive border-destructive/40 hover:bg-destructive/10"
-          >
-            <Square size={12} />
-            Disconnect
-          </Button>
+          <>
+            {!isManual && status.running && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handlePauseToggle}
+                className="shrink-0 gap-1.5 font-semibold text-[hsl(var(--smui-yellow))] border-[hsl(var(--smui-yellow)/0.4)] hover:bg-[hsl(var(--smui-yellow)/0.1)]"
+                title={status.paused ? 'Resume LLM loop' : 'Pause LLM loop (keeps connection alive)'}
+              >
+                {status.paused ? <Play size={12} /> : <Pause size={12} />}
+                {status.paused ? 'Resume' : 'Pause'}
+              </Button>
+            )}
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleDisconnect}
+              className="shrink-0 gap-1.5 font-semibold text-destructive border-destructive/40 hover:bg-destructive/10"
+            >
+              <Square size={12} />
+              Disconnect
+            </Button>
+          </>
         )}
 
         <Button variant="ghost" size="icon" onClick={() => { if (window.confirm('Delete this profile and all its logs?')) onDelete() }} className="shrink-0 h-7 w-7 text-muted-foreground hover:text-destructive ml-1">

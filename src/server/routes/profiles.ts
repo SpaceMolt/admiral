@@ -146,6 +146,26 @@ profiles.post('/batch', async (c) => {
   return c.json({ action, count: results.length, results })
 })
 
+// POST /api/profiles/:id/pause
+profiles.post('/:id/pause', (c) => {
+  const id = c.req.param('id')
+  const status = agentManager.getStatus(id)
+  if (!status.connected) return c.json({ error: 'Agent is not connected' }, 400)
+  if (!status.running) return c.json({ error: 'Agent is not running' }, 400)
+  agentManager.pauseLLM(id)
+  return c.json(agentManager.getStatus(id))
+})
+
+// POST /api/profiles/:id/resume
+profiles.post('/:id/resume', (c) => {
+  const id = c.req.param('id')
+  const status = agentManager.getStatus(id)
+  if (!status.connected) return c.json({ error: 'Agent is not connected' }, 400)
+  if (!status.running) return c.json({ error: 'Agent is not running' }, 400)
+  agentManager.resumeLLM(id)
+  return c.json(agentManager.getStatus(id))
+})
+
 // POST /api/profiles/:id/nudge
 profiles.post('/:id/nudge', async (c) => {
   const id = c.req.param('id')

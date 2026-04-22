@@ -26,7 +26,7 @@ export function Dashboard({ profiles: initialProfiles, providers, registrationCo
     setSearchParams(params)
   }
   const [autoEditName, setAutoEditName] = useState(false)
-  const [statuses, setStatuses] = useState<Record<string, { connected: boolean; running: boolean }>>({})
+  const [statuses, setStatuses] = useState<Record<string, { connected: boolean; running: boolean; paused: boolean }>>({})
   const [playerDataMap, setPlayerDataMap] = useState<Record<string, Record<string, unknown>>>({})
   const [showWizard, setShowWizard] = useState(false)
   const [showTour, setShowTour] = useState(false)
@@ -52,10 +52,10 @@ export function Dashboard({ profiles: initialProfiles, providers, registrationCo
       try {
         const resp = await fetch('/api/profiles')
         const data: Array<Record<string, unknown>> = await resp.json()
-        const newStatuses: Record<string, { connected: boolean; running: boolean }> = {}
+        const newStatuses: Record<string, { connected: boolean; running: boolean; paused: boolean }> = {}
         for (const p of data) {
           const id = p.id as string
-          newStatuses[id] = { connected: !!p.connected, running: !!p.running }
+          newStatuses[id] = { connected: !!p.connected, running: !!p.running, paused: !!p.paused }
         }
         setProfiles(data as unknown as Profile[])
         setStatuses(newStatuses)
@@ -70,10 +70,10 @@ export function Dashboard({ profiles: initialProfiles, providers, registrationCo
     try {
       const resp = await fetch('/api/profiles')
       const data: Array<Record<string, unknown>> = await resp.json()
-      const newStatuses: Record<string, { connected: boolean; running: boolean }> = {}
+      const newStatuses: Record<string, { connected: boolean; running: boolean; paused: boolean }> = {}
       for (const p of data) {
         const id = p.id as string
-        newStatuses[id] = { connected: !!p.connected, running: !!p.running }
+        newStatuses[id] = { connected: !!p.connected, running: !!p.running, paused: !!p.paused }
       }
       setProfiles(data as unknown as Profile[])
       setStatuses(newStatuses)
@@ -179,7 +179,7 @@ export function Dashboard({ profiles: initialProfiles, providers, registrationCo
             <ProfileView
               profile={activeProfile}
               providers={providers}
-              status={statuses[activeProfile.id] || { connected: false, running: false }}
+              status={statuses[activeProfile.id] || { connected: false, running: false, paused: false }}
               registrationCode={registrationCode}
               playerData={playerDataMap[activeProfile.id] || null}
               onPlayerData={(data) => setPlayerDataMap(prev => ({ ...prev, [activeProfile.id]: data }))}

@@ -35,6 +35,7 @@ export class Agent {
   readonly events = new EventEmitter()
   private connection: GameConnection | null = null
   private running = false
+  private _paused = false
   private abortController: AbortController | null = null
   private restartRequested = false
   private pendingNudges: string[] = []
@@ -52,6 +53,28 @@ export class Agent {
 
   get isRunning(): boolean {
     return this.running
+  }
+
+  get isPaused(): boolean {
+    return this._paused
+  }
+
+  pauseLLM(): void {
+    if (!this.running || this._paused) return
+    this._paused = true
+    this.setActivity('Paused')
+    this.log('system', 'LLM loop paused')
+    // Wake the loop from any sleep so it picks up the paused flag immediately
+    this.abortController?.abort()
+  }
+
+  resumeLLM(): void {
+    if (!this._paused) return
+    this._paused = false
+    this.setActivity('idle')
+    this.log('system', 'LLM loop resumed')
+    // Wake the loop from the pause-wait sleep
+    this.abortController?.abort()
   }
 
   get activity(): string {
@@ -180,6 +203,13 @@ export class Agent {
       // Reset abort controller if it was used (e.g. by a nudge wakeup)
       if (this.abortController.signal.aborted) {
         this.abortController = new AbortController()
+      }
+
+      // If paused, wait and skip LLM call. Keeps the connection alive.
+      if (this._paused) {
+        this.setActivity('Paused')
+        await abortableSleep(500, this.abortController.signal)
+        continue
       }
 
       // Handle restart request (directive changed)
@@ -320,6 +350,7 @@ export class Agent {
 
   async stop(): Promise<void> {
     this.running = false
+    this._paused = false
     this.abortController?.abort()
     if (this.connection) {
       this.log('connection', 'Disconnecting...')
