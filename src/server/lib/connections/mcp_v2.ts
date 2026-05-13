@@ -142,10 +142,13 @@ export class McpV2Connection implements GameConnection {
       return { error: { code: resp.error.code?.toString() || 'mcp_error', message: resp.error.message || 'Unknown error' } }
     }
 
-    const { parsed: result, structured: structuredContent } = this.parseToolResult(resp.result)
+    const { parsed, structured: structuredContent, text } = this.parseToolResult(resp.result)
+    // Plain-text responses surface as a string so formatToolResult takes the
+    // string path instead of jsonToYaml-wrapping a {text: ...} object.
+    const result: unknown = text !== null ? text : parsed
 
     // Re-initialize on session expiry and retry once
-    const errCode = (result?.error as Record<string, unknown> | undefined)?.code
+    const errCode = (parsed?.error as Record<string, unknown> | undefined)?.code
     if (errCode === 'session_expired' || errCode === 'session_invalid') {
       this.sessionId = null
       this.connected = false
@@ -268,7 +271,7 @@ export class McpV2Connection implements GameConnection {
       return { error: { message: 'No matching response in SSE stream' } }
     }
 
-    return await resp.json()
+    return await resp.json() as { result?: unknown; error?: { code?: number; message: string } }
   }
 
   private async sendNotification(method: string, params: unknown): Promise<void> {
@@ -279,12 +282,15 @@ export class McpV2Connection implements GameConnection {
     await fetch(this.baseUrl, { method: 'POST', headers, body })
   }
 
-  private parseToolResult(result: unknown): { parsed: Record<string, unknown> | null; structured: unknown } {
-    if (!result) return { parsed: null, structured: null }
+  private parseToolResult(result: unknown): {
+    parsed: Record<string, unknown> | null
+    structured: unknown
+    text: string | null
+  } {
+    if (!result) return { parsed: null, structured: null, text: null }
     const r = result as Record<string, unknown>
-    // MCP v2 returns structuredContent with the actual JSON data (mutations only)
     if (r.structuredContent && typeof r.structuredContent === 'object') {
-      return { parsed: r.structuredContent as Record<string, unknown>, structured: r.structuredContent }
+      return { parsed: r.structuredContent as Record<string, unknown>, structured: r.structuredContent, text: null }
     }
     if (r.content && Array.isArray(r.content)) {
       for (const block of r.content) {
@@ -292,14 +298,14 @@ export class McpV2Connection implements GameConnection {
         if (b.type === 'text' && typeof b.text === 'string') {
           try {
             const json = JSON.parse(b.text)
-            return { parsed: json, structured: json }
+            return { parsed: json, structured: json, text: null }
           } catch {
-            return { parsed: { text: b.text }, structured: null }
+            return { parsed: null, structured: null, text: b.text }
           }
         }
       }
     }
-    return { parsed: r, structured: r }
+    return { parsed: r, structured: r, text: null }
   }
 }
 
