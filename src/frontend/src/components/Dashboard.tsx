@@ -66,6 +66,16 @@ export function Dashboard({ profiles: initialProfiles, providers, registrationCo
     return () => clearInterval(interval)
   }, [])
 
+  // Stable per-active-profile player-data setter. Keyed on the primitive
+  // activeId (not the activeProfile object) so its identity survives the 5s
+  // status poll's re-renders. An unstable closure here would invalidate
+  // ProfileView's fetchStatus on every poll, which tore down and rescheduled
+  // the 60s status-refresh interval before it could ever fire.
+  const handlePlayerData = useCallback((data: Record<string, unknown>) => {
+    if (!activeId) return
+    setPlayerDataMap(prev => ({ ...prev, [activeId]: data }))
+  }, [activeId])
+
   const refreshProfiles = useCallback(async () => {
     try {
       const resp = await fetch('/api/profiles')
@@ -182,7 +192,7 @@ export function Dashboard({ profiles: initialProfiles, providers, registrationCo
               status={statuses[activeProfile.id] || { connected: false, running: false, paused: false }}
               registrationCode={registrationCode}
               playerData={playerDataMap[activeProfile.id] || null}
-              onPlayerData={(data) => setPlayerDataMap(prev => ({ ...prev, [activeProfile.id]: data }))}
+              onPlayerData={handlePlayerData}
               onDelete={() => handleDeleteProfile(activeProfile.id)}
               onRefresh={() => {
                 refreshProfiles()
