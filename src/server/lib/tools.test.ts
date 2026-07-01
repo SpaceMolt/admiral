@@ -124,3 +124,75 @@ describe('tool call log formatting — no trailing ", )"', () => {
     }
   })
 })
+
+describe('plain-text result passes through to LLM without YAML wrapping', () => {
+  function mockConnectionReturning(result: unknown): GameConnection {
+    return {
+      mode: 'mcp_v2' as any,
+      connect: async () => {},
+      login: async () => ({ success: true }),
+      register: async () => ({ success: true, username: 't', password: 't', player_id: 't', empire: 't' }),
+      execute: async () => ({ result }),
+      onNotification: () => {},
+      disconnect: async () => {},
+      isConnected: () => true,
+    }
+  }
+
+  function makeCtxWith(connection: GameConnection, fn: LogFn) {
+    return { connection, profileId: 'test-profile', log: fn, todo: '' }
+  }
+
+  it('plain string result reaches the LLM verbatim', async () => {
+    const text = "Captain's log entry 0 of 20:\n"
+    const { fn } = captureLog()
+    const out = await executeTool(
+      'captains_log_list', {},
+      makeCtxWith(mockConnectionReturning(text), fn),
+    )
+    expect(out).toBe(text)
+    expect(out).not.toContain('text:')
+    expect(out).not.toMatch(/\\n/)
+  })
+
+  it('multi-line status text preserves real newlines (not \\n escapes)', async () => {
+    const status = 'NovaClaw [nebula] | 13,000cr | GSC-0039\nShip: Appraisal | Hull: 85/85'
+    const { fn } = captureLog()
+    const out = await executeTool(
+      'get_status', {},
+      makeCtxWith(mockConnectionReturning(status), fn),
+    )
+    expect(out).toBe(status)
+    expect(out.split('\n').length).toBe(2)
+    expect(out).not.toContain('text:')
+  })
+
+  it('regression guard: {text: "..."} wrapper would re-introduce YAML escaping', async () => {
+    // This is the SHAPE the parser used to produce before the fix. If anyone
+    // restores the old wrapping in parseToolResult, this test documents what
+    // the LLM would see: a YAML-keyed string with newlines escaped to \n.
+    const text = "Captain's log entry 0 of 20:\n"
+    const { fn } = captureLog()
+    const out = await executeTool(
+      'captains_log_list', {},
+      makeCtxWith(mockConnectionReturning({ text }), fn),
+    )
+    expect(out).toContain('text:')
+    expect(out).toMatch(/\\n/)  // newline got escaped, not passed through
+    expect(out).not.toBe(text)
+  })
+
+  it('structured object (mutation case) still flows through jsonToYaml', async () => {
+    // Mining mutations return structuredContent objects with real fields; the
+    // fix should NOT change this path. Verify YAML rendering is still applied.
+    const mineResult = { quantity: 2, resource_name: 'Copper Ore', remaining: 99992 }
+    const { fn } = captureLog()
+    const out = await executeTool(
+      'mine', {},
+      makeCtxWith(mockConnectionReturning(mineResult), fn),
+    )
+    expect(out).toContain('quantity: 2')
+    expect(out).toContain('resource_name: Copper Ore')
+    expect(out).toContain('remaining: 99992')
+  })
+})
