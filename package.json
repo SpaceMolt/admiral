@@ -8,7 +8,8 @@
     "start": "./admiral"
   },
   "dependencies": {
-    "@mariozechner/pi-ai": "latest",
+    "@mariozechner/pi-ai": "^0.73.1",
+    "@opentelemetry/api": "^1.9.1",
     "@tanstack/react-virtual": "^3.13.18",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
