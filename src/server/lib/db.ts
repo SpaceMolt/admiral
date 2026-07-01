@@ -192,11 +192,29 @@ export function deleteProfile(id: string): void {
 
 // --- Log CRUD ---
 
+// Every LLM call, tool call, and server response gets logged here with no
+// other cap, so admiral.db grows unbounded over a long-running agent
+// (reported: 18GB). Trim old rows past this cap, checked probabilistically
+// on insert so we're not running a DELETE on every single log write.
+const LOG_ENTRY_CAP_PER_PROFILE = 20_000
+const LOG_TRIM_CHECK_INTERVAL = 200
+
 export function addLogEntry(profileId: string, type: string, summary: string, detail?: string): number {
-  const result = getDb().query(
+  const db = getDb()
+  const result = db.query(
     'INSERT INTO log_entries (profile_id, type, summary, detail) VALUES (?, ?, ?, ?)'
   ).run(profileId, type, summary, detail ?? null)
-  return Number(result.lastInsertRowid)
+  const id = Number(result.lastInsertRowid)
+  if (id % LOG_TRIM_CHECK_INTERVAL === 0) trimLogEntries(profileId)
+  return id
+}
+
+function trimLogEntries(profileId: string): void {
+  getDb().query(
+    `DELETE FROM log_entries WHERE profile_id = ? AND id NOT IN (
+       SELECT id FROM log_entries WHERE profile_id = ? ORDER BY id DESC LIMIT ?
+     )`
+  ).run(profileId, profileId, LOG_ENTRY_CAP_PER_PROFILE)
 }
 
 export function getLogEntries(profileId: string, afterId?: number, limit: number = 100): LogEntry[] {
