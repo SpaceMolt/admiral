@@ -90,7 +90,7 @@ async function fetchOllamaModels(baseUrl?: string): Promise<string[]> {
   try {
     const resp = await fetch(`${base}/api/tags`, { signal: AbortSignal.timeout(5000) })
     if (!resp.ok) return []
-    const data = await resp.json()
+    const data = await resp.json() as Record<string, unknown>
     const modelList = data.models as { name: string }[] | undefined
     return (modelList || []).map(m => m.name).sort()
   } catch {
@@ -105,7 +105,7 @@ async function fetchOpenAICompatModels(apiUrl: string, apiKey?: string): Promise
 
     const resp = await fetch(apiUrl, { headers, signal: AbortSignal.timeout(10000) })
     if (!resp.ok) return []
-    const data = await resp.json()
+    const data = await resp.json() as Record<string, unknown>
     const modelList = data.data as { id: string }[] | undefined
     return (modelList || []).map(m => m.id).sort()
   } catch {
