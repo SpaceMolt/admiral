@@ -1,4 +1,5 @@
 import { Database } from 'bun:sqlite'
+import type { SQLQueryBindings } from 'bun:sqlite'
 import path from 'path'
 import fs from 'fs'
 import type { Provider, Profile, LogEntry } from '../../shared/types'
@@ -182,7 +183,7 @@ export function updateProfile(id: string, updates: Partial<Profile>): Profile | 
   sets.push("updated_at = datetime('now')")
   vals.push(id)
 
-  getDb().query(`UPDATE profiles SET ${sets.join(', ')} WHERE id = ?`).run(...vals)
+  getDb().query(`UPDATE profiles SET ${sets.join(', ')} WHERE id = ?`).run(...(vals as SQLQueryBindings[]))
   return getProfile(id)
 }
 

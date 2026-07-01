@@ -42,7 +42,7 @@ export async function fetchOpenApiSpec(
       }
       throw new Error(`HTTP ${resp.status}`)
     }
-    const spec = await resp.json()
+    const spec = await resp.json() as Record<string, unknown>
     // Cache on success
     try {
       setPreference(cacheKey, JSON.stringify(spec))

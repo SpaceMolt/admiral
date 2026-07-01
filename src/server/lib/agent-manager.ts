@@ -22,10 +22,9 @@ type SlimGameState = {
 
 function slimGameState(raw: Record<string, unknown> | null): SlimGameState {
   if (!raw) return null
-  const gs = raw as Record<string, Record<string, unknown> & { cargo?: unknown[]; current_ammo?: unknown; magazine_size?: unknown }>
-  const player = gs.player as Record<string, unknown> | undefined
-  const ship = gs.ship as Record<string, unknown> & { cargo?: unknown[] } | undefined
-  const modules = gs.modules as Array<Record<string, unknown>> | undefined
+  const player = raw.player as Record<string, unknown> | undefined
+  const ship = raw.ship as (Record<string, unknown> & { cargo?: unknown[] }) | undefined
+  const modules = raw.modules as Array<Record<string, unknown> & { current_ammo?: unknown; magazine_size?: unknown }> | undefined
   return {
     credits: player?.credits,
     system: player?.current_system,

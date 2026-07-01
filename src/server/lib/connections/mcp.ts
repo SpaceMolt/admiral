@@ -160,7 +160,7 @@ export class McpConnection implements GameConnection {
       return { error: { message: 'No matching response in SSE stream' } }
     }
 
-    return await resp.json()
+    return await resp.json() as { result?: unknown; error?: { code?: number; message: string } }
   }
 
   private async sendNotification(method: string, params: unknown): Promise<void> {

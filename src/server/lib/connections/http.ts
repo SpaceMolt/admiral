@@ -149,7 +149,7 @@ export class HttpConnection implements GameConnection {
         })
         if (!resp.ok) throw new Error(`Failed to create session: ${resp.status}`)
 
-        const data = await resp.json()
+        const data = await resp.json() as { session?: ApiSession }
         if (data.session) {
           this.session = data.session
         } else {
@@ -194,9 +194,9 @@ export class HttpConnection implements GameConnection {
     }
 
     try {
-      const data = await resp.json()
+      const data = await resp.json() as CommandResult & { session?: ApiSession }
       if (data.session) this.session = data.session
-      return data as CommandResult
+      return data
     } catch {
       return { error: { code: 'http_error', message: `HTTP ${resp.status}` } }
     }
